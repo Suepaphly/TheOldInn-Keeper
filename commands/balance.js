@@ -1,21 +1,22 @@
 const Discord = require("discord.js");
-const db = require("quick.db");
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();  
 
 module.exports.run = async (client, message, args) => {
+    let user = message.mentions.members.first() || message.author;
+    const member = message.mentions.members.first() || message.guild.members.cache.get(args[0]) || message.member;
 
-  let user = message.mentions.members.first() || message.author;
-  const member = message.mentions.members.first() || message.guild.members.cache.get(args[0]) || message.member;
+    let bal = await db.get(`money_${user.id}`);
+    let bbal = await db.get(`bank_${user.id}`);
 
-  let bal = db.fetch(`money_${user.id}`)
-  let bbal = db.fetch(`bank_${user.id}`)
+    // Default to 0 if null
+    if (bal === null) bal = 0;
+    if (bbal === null) bbal = 0;
 
-  if (bal === null) bal = 0;
-
-  message.channel.send(`**${member.user.tag}** Wallet: \`${bal}\` kopeks; Bank: \`${bbal}\``)
+    message.channel.send(`**${member.user.tag}** Wallet: \`${bal}\` kopeks; Bank: \`${bbal}\``);
 }; 
 
-
 module.exports.help = {
-  name:"balance",
-  aliases: ["bal", "credits", "money", "wallet"]
-}
+    name: "balance",
+    aliases: ["bal", "credits", "money", "wallet"]
+};
