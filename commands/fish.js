@@ -1,4 +1,5 @@
-const db = require("quick.db");
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();
 const Discord = require("discord.js");
 const mg = require("../utility/utility.js");
 
@@ -16,8 +17,8 @@ module.exports.run = async (client, message, args) => {
     message.guild.members.cache.get(args[0]) ||
     message.member;
   let user = message.author;
-  let author = await db.fetch(`fish_${user.id}`);
-  let userlevel = await db.fetch(`fishinglevel_${user.id}`);
+  let author = await db.get(`fish_${user.id}`);
+  let userlevel = await db.get(`fishinglevel_${user.id}`);
 
   let timeout = 1800000;
 
@@ -30,34 +31,34 @@ module.exports.run = async (client, message, args) => {
   } else {
     let rarefish = [
       "**🐡`(Blow Fish)`**",
-      "**:crown:`(Crown)`**",
-      "**:ring:`(Ring)`**",
-      "**:whale2:`(Whale)`**",
-      "**:lobster:`(Lobster)`**",
+      "**👑`(Crown)`**",
+      "**💍`(Ring)`**",
+      "**🐋`(Whale)`**",
+      "**🦞`(Lobster)`**",
     ];
 
     let bigfish = [
       "**🐬`(Dolphin)`**",
       "**🦈`(Shark)`**",
       "**🦑`(Squid)`**",
-      "**:octopus:`(Octopus)`**",
-      "**:crocodile:`(Crocodile)`**",
+      "**🐙`(Octopus)`**",
+      "**🐊`(Crocodile)`**",
     ];
 
     let fish = [
       "**🐠`(Tropical Fish)`**",
       "**🐟`(Fish)`**",
       "**🦐`(Shrimp)`**",
-      "**:crab:`(Crab)`**",
-      "**:turtle:`(Turtle)`**",
+      "**🦀`(Crab)`**",
+      "**🐢`(Turtle)`**",
     ];
 
     let trash = [
       "**👕`(Shirt)`**",
-      "**:athletic_shoe:`(Shoe)`**",
-      "**:military_helmet:`(Helmet)`**",
-      "**:billed_cap:`(Hat)`**",
-      "**:thong_sandal:`(Sandal)`**",
+      "**👟`(Shoe)`**",
+      "**🪖`(Helmet)`**",
+      "**🧢`(Hat)`**",
+      "**🩴`(Sandal)`**",
     ];
 
     var fisharray = [trash, fish, bigfish, rarefish];
@@ -73,8 +74,11 @@ module.exports.run = async (client, message, args) => {
       message.channel.send(
         `**FISH MINIGAME:** - 🎣\n**${member.user.tag}** fished a ${fisharray[fishresult[0]][fishresult[1]]} and earned \`${fishresult[2]}\` kopeks.`,
       );
-      db.add(`money_${user.id}`, fishresult[2]);
-      db.set(`fish_${user.id}`, Date.now());
+      // Update the user's money
+      let currentMoney = await db.get(`money_${user.id}`);
+      await db.set(`money_${user.id}`, currentMoney + fishresult[2]);
+      // Set the time of the last fish
+      await db.set(`fish_${user.id}`, Date.now());
     }
   }
 };
