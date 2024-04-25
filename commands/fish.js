@@ -72,7 +72,7 @@ module.exports.run = async (client, message, args) => {
 
     if (!args[0]) {
       message.channel.send(
-        `**FISH MINIGAME:** - 🎣\n**${member.user.tag}** fished a ${fisharray[fishresult[0]][fishresult[1]]} and earned \`${fishresult[2]}\` kopeks.`,
+        `**FISH MINIGAME:** - 🎣\n**<@${message.author.id}>'s** fished a ${fisharray[fishresult[0]][fishresult[1]]} and earned \`${fishresult[2]}\` kopeks.`,
       );
       // Update the user's money
       let currentMoney = await db.get(`money_${user.id}`);
