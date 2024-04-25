@@ -14,7 +14,7 @@ module.exports.run = async (client, message, args) => {
     if (bal === null) bal = 0;
     if (bbal === null) bbal = 0;
 
-    message.channel.send(`**<@${message.author.id}>'s'** Wallet: \`${bal}\` kopeks; Bank: \`${bbal}\``);
+    message.channel.send(`**<@${message.author.id}>'s'** Wallet: \`${bal}\`; Bank: \`${bbal}\``);
 }; 
 
 module.exports.help = {
