@@ -1,9 +1,16 @@
 const db = require("quick.db") 
 const Discord = require("discord.js");
-const ms = require("parse-ms");
 const ptt = require("../utility/protectTheTavern.js");
 
 module.exports.run = async (client, message, args) => {
+
+  let ms;
+  try {
+    ms = (await import("parse-ms")).default;
+  } catch (error) {
+    console.error("Failed to import parse-ms", error);
+    return;
+  }
   
       var user = message.author;
       var item = args[0];

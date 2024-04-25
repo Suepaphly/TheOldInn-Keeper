@@ -1,8 +1,15 @@
 const Discord = require("discord.js");
 const db = require("quick.db");
-const ms = require("parse-ms");
 
 module.exports.run = async (bot, message, args) => {
+
+  let ms;
+  try {
+    ms = (await import("parse-ms")).default;
+  } catch (error) {
+    console.error("Failed to import parse-ms", error);
+    return;
+  }
 
 let user = message.mentions.members.first() || 0;
 let thief = message.author;

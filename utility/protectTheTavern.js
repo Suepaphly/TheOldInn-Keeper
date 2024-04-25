@@ -1,7 +1,6 @@
 var cron = require('node-cron');
 const db = require("quick.db") 
 const Discord = require("discord.js");
-const ms = require("parse-ms");
 
 const troopArray = ["town_guard", "mercenary", "soldier", "knight", "royal_guard"];
 const troopCostArray = [10, 20, 30, 50, 100];
