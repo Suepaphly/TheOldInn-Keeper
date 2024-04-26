@@ -23,7 +23,7 @@ exports.run = async (client, message, args) => {
     await db.add(`money_${user.id}`, amountToAdd); // Adding the amount to user's money
     let bal = await db.get(`money_${user.id}`); // Get the new balance after adding
 
-    message.channel.send(`Added \`${amountToAdd}\` kopeks to **${user.tag}**'s balance.\n> Current balance: \`${bal}\` kopeks.`);
+    message.channel.send(`Added \`${amountToAdd}\` kopeks to **${message.author.username}**'s balance.\n> Current balance: \`${bal}\` kopeks.`);
 };
 
 module.exports.help = {

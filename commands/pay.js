@@ -1,8 +1,10 @@
 const Discord = require("discord.js");
-const db = require("quick.db");
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
 
+  // Import parse-ms dynamically
   let ms;
   try {
     ms = (await import("parse-ms")).default;
@@ -13,30 +15,39 @@ module.exports.run = async (client, message, args) => {
 
   let user = message.mentions.members.first() || message.author;
 
-  let member = db.fetch(`money_${message.author.id}`)
+  // Fetching money amount asynchronously
+  let memberMoney = await db.get(`money_${message.author.id}`);
 
+  // Validate mentioned user and argument presence
   if (!user) {
-      return message.channel.send(`Wrong usage, mention someone to give kopeks.`)
+      return message.channel.send(`Wrong usage, mention someone to give kopeks.`);
   }
-  
+
   if (!args[1]) {
-      return message.channel.send(`Wrong usage, specify an amount to give kopeks.`)
+      return message.channel.send(`Wrong usage, specify an amount to give kopeks.`);
   }
+
+  const amount = parseInt(args[1], 10);
+  if (isNaN(amount) || amount <= 0) {
+      return message.channel.send(`Wrong usage, the amount must be a positive number.`);
+  }
+
   if (message.content.includes('-')) { 
-      return message.channel.send(`Wrong usage, you can't pay someone negative kopeks.`)
+      return message.channel.send(`Wrong usage, you can't pay someone negative kopeks.`);
   }
 
-  if (member < args[1]) {
-      return message.channel.send(`Wrong usage, you don't have that much kopeks.`)
+  if (memberMoney < amount) {
+      return message.channel.send(`Wrong usage, you don't have that much kopeks.`);
   }
 
-  message.channel.send(`You transfered \`${args[1]}\` kopeks to **${user.user.username}**'s balance.`)
-  db.add(`money_${user.id}`, args[1])
-  db.subtract(`money_${message.author.id}`, args[1])
+  // Execute the monetary transaction
+  await db.sub(`money_${message.author.id}`, amount);
+  await db.add(`money_${user.id}`, amount);
 
+  message.channel.send(`You transferred \`${amount}\` kopeks to **${user.user.username}**'s balance.`);
 }
 
 module.exports.help = {
   name:"pay",
   aliases: ["transfer", "givemoney"]
-}  
+}

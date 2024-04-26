@@ -1,4 +1,5 @@
-const db = require("quick.db") 
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();
 const Discord = require("discord.js");
 const ptt = require("../utility/protectTheTavern.js");
 
@@ -16,18 +17,21 @@ module.exports.run = async (client, message, args) => {
       var item = args[0];
       var amount = args[1];
       var location = args[2];
-      var money = await db.fetch(`money_${message.author.id}`);
+      var money = await db.get(`money_${message.author.id}`);
       
   
       if(item == null || !amount == null ){
-          var buyEmbed = new Discord.MessageEmbed()
-            .setColor('#000001')
-            .setTitle("Buy Castle Walls, Army Troops, and Defensive Traps.")
-            .setDescription(`Just type =buy [wall, army, or trap] [amount] [Traps and Army: Choose Rampart, Wall, or Castle]. 
-                            \n You can leave the amount blank to see prices and current amounts. 
-                            \n Ex: =buy town_gaurd 5 rampart; =buy rampart 2; =buy boiling_oil 4 castle`)
-            .setFooter('The Tavernkeeper thanks you for playing. \n');
-          message.channel.send(buyEmbed);
+        let buyMessage = "**Buy Castle Walls, Army Troops, and Defensive Traps.**\n" +
+        "**Just type =buy [wall, army, or trap] [amount] [Traps and Army: Choose Rampart, Wall, or Castle].**\n" +
+        "You can leave the amount blank to see prices and current amounts.\n" +
+        "**Examples:**\n" +
+        "=buy town_guard 5 rampart;\n" +
+        "=buy rampart 2;\n" +
+        "=buy boiling_oil 4 castle\n\n" +
+        "The Tavernkeeper thanks you for playing.";
+
+        message.channel.send(buyMessage);
+
       } else {
         var mtype = null;
         

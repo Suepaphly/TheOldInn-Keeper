@@ -1,118 +1,84 @@
 const Discord = require("discord.js");
-const db = require("quick.db");
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();
 
 module.exports.run = async (bot, message, args) => {
-
-  let ms;
-  try {
-    ms = (await import("parse-ms")).default;
-  } catch (error) {
-    console.error("Failed to import parse-ms", error);
-    return;
-  }
-
-let user = message.mentions.members.first() || 0;
-let thief = message.author;
-let targetuser = await db.fetch(`money_${user.id}`)
-let author = await db.fetch(`rob_${thief.id}`)
-let thieflevel = await db.fetch(`thieflevel_${thief.id}`) || 0;
-let author2 = await db.fetch(`money_${thief.id}`)
-let robchance = [52, 60, 70, 80, 90, 95];
-let robamt = [20, 30, 40, 50, 60, 70];
-
-let timeout = 36000000;
-
-    const resp = db.all();
-    var money = "";
-
-    // Sort from higher to lower
-    resp.sort((a, b) => (a.data < b.data) ? 1 : -1);
-    money = resp.filter((item) => item.ID.includes("money_"));
-
-    let content = "";
-    var list = 11;
-    if(money.length < 10){
-      list = money.length;  
-    }
-   
-    for (let i = 0; i < 5; i++) {
-        let user = bot.users.cache.get(money[i].ID.split('_')[1]).tag
-
-        var conv = money[i].data.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
-
-        content += `${i+1}. **${user}** => ${conv}\n`
-    
+    // Import parse-ms dynamically
+    let ms;
+    try {
+        ms = (await import("parse-ms")).default;
+    } catch (error) {
+        console.error("Failed to import parse-ms", error);
+        return;
     }
 
-    const embed = new Discord.MessageEmbed()
-    .setDescription(`**${message.guild.name} Kopek Leaderboard (In Wallet) **\n\n${content}`)
-    .setColor("#FFFFFF");
-
-    
-    
-    if(args[0] === null || user === 0){     
-        message.channel.send(embed);   
-    } else if (author !== null && timeout - (Date.now() - author) > 0) {
-        let time = ms(timeout - (Date.now() - author));
-
-        let timeEmbed = new Discord.MessageEmbed()
-        .setColor("#FFFFFF")
-        .setDescription(`:pirate_flag: ${message.author.username} You have already robbed someone\n\nTry again in ${time.hours}h ${time.minutes}m ${time.seconds}s `);
-        message.channel.send(timeEmbed)
-      } else if (user.id === 853832646970310677) {
-      
-        let robTavern = new Discord.MessageEmbed()
-        .setColor("#FFFFFF")
-        .setDescription(`:pirate_flag: ${message.author.username} You can't Rob the Ol' Innkeeper! Who would run the Inn?!?! \n The town makes you sleep outside tonight as pennance.`);
-        message.channel.send(robTavern)
-          
-      } else {
-
-    let moneyEmbed = new Discord.MessageEmbed()
-      .setColor("#FFFFFF")
-      .setDescription(`:pirate_flag: ${message.author.username} You need at least 200 kopeks in both wallets to rob someone.`);
-
-    if (author2 < 200 || targetuser < 200) {
-        return message.channel.send(moneyEmbed)
-
-    }
-    let moneyEmbed2 = new Discord.MessageEmbed()
-      .setColor("#FFFFFF")
-      .setDescription(`:detective: ${message.author.username} ${user.user.username} does not have anything you can rob`);
-    if (targetuser < 200) {
-        return message.channel.send(moneyEmbed2)
-    }
-    
-    var perc = (Math.floor(Math.random() * robamt[thieflevel]) + 1)*0.01;
-    var kopek = Math.floor(targetuser*perc);
-    var caught = Math.floor(Math.random() *99)+1;
-    if(caught > (100-robchance[thieflevel])) {
-        let embed = new Discord.MessageEmbed()
-        .setDescription(`:ninja: ${message.author.username} You robbed ${user} and got away with ${kopek} kopeks`)
-        .setColor("#FFFFFF")
-        message.channel.send(embed)
-        db.subtract(`money_${user.id}`, kopek)
-        db.add(`money_${thief.id}`, kopek)
-    } else {
-        var kopek = author2*perc;
-        if (kopek > author2){
-          kopek = author2;   
+    let user = message.mentions.members.first();
+    if (!user || user.id === message.author.id) {
+        if (args[0] === null) {
+            let moneyData = await db.all();
+            let leaderboard = moneyData
+                .filter(item => item.id.startsWith("money_"))
+                .sort((a, b) => b.value - a.value)
+                .slice(0, 5)
+                .map(async (item, index) => {
+                    let tag = (await bot.users.fetch(item.id.split('_')[1])).tag;
+                    return `${index + 1}. **${tag}** => ${item.value.toLocaleString()}\n`;
+                });
+            Promise.all(leaderboard).then(leaderboardStrings => {
+                message.channel.send(`**${message.guild.name} Kopek Leaderboard (In Wallet)**\n\n${leaderboardStrings.join('')}`);
+            });
+        } else {
+            message.channel.send("Wrong usage, mention someone to rob that isn't yourself.");
         }
-        let embed = new Discord.MessageEmbed()
-        .setDescription(`:ninja: ${message.author.username} You got caught by the town guard and were forced to pay ${kopek} kopeks restitution to ${user}.`)
-        .setColor("#FFFFFF")
-        message.channel.send(embed)
-        db.subtract(`money_${thief.id}`, kopek)
-        db.add(`money_${user.id}`, kopek)
+        return;
     }
 
-    db.set(`rob_${thief.id}`, Date.now())
+    let [targetUserMoney, thiefMoney, lastRob] = await Promise.all([
+        db.get(`money_${user.id}`),
+        db.get(`money_${message.author.id}`),
+        db.get(`rob_${message.author.id}`)
+    ]);
 
+    if (lastRob && (36000000 - (Date.now() - lastRob) > 0)) {
+        let time = ms(36000000 - (Date.now() - lastRob));
+        message.channel.send(`:pirate_flag: ${message.author.username}, you have already robbed someone\n\nTry again in ${time.hours}h ${time.minutes}m ${time.seconds}s`);
+        return;
     }
+
+    if (user.id === "853832646970310677") { // Assuming this is a specific user to not rob
+        message.channel.send(`:pirate_flag: ${message.author.username}, you can't rob the Ol' Innkeeper! Who would run the Inn?!`);
+        return;
+    }
+
+    if (thiefMoney < 200 || targetUserMoney < 200) {
+        message.channel.send(`:pirate_flag: ${message.author.username}, you need at least 200 kopeks in both wallets to rob someone.`);
+        return;
+    }
+
+    let thiefLevel = await db.get(`thieflevel_${message.author.id}`) || 0;
+    let robChance = [52, 60, 70, 80, 90, 95][thiefLevel];
+    let robAmt = [20, 30, 40, 50, 60, 70][thiefLevel];
+    let perc = (Math.floor(Math.random() * robAmt) + 1) * 0.01;
+    let kopek = Math.floor(targetUserMoney * perc);
+    let caught = Math.floor(Math.random() * 100);
+
+    if (caught > (100 - robChance)) {
+        message.channel.send(`:ninja: ${message.author.username}, you robbed ${user.user.username} and got away with ${kopek} kopeks`);
+        await db.sub(`money_${user.id}`, kopek);
+        await db.add(`money_${message.author.id}`, kopek);
+    } else {
+        let penalty = Math.min(thiefMoney, Math.floor(thiefMoney * perc));
+        message.channel.send(`:ninja: ${message.author.username}, you got caught by the town guard and were forced to pay ${penalty} kopeks restitution to ${user.user.username}.`);
+        await db.sub(`money_${message.author.id}`, penalty);
+        await db.add(`money_${user.id}`, penalty);
+    }
+
+    await db.set(`rob_${message.author.id}`, Date.now());
 };
+
 
 
 module.exports.help = {
   name:"rob",
-  aliases: ["rop"]
+  aliases: ["rob", "steal", "pillage"]
 }
