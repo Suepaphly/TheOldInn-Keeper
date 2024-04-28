@@ -24,6 +24,8 @@ const monsterTimeArray = [21600000, 43200000, 86400000, 172800000, 259200000];
 
 var lockArena = false;
 
+//--------------------- Main Game Loop Functions
+
 async function setupNewGame() {
     try {
         await db.set(`rampart`, 100);
@@ -61,6 +63,23 @@ async function addMonster(type, number) {
         console.error('Failed to add monster:', error);
     }
 }
+
+function startBattle() {
+    lockArena = true;
+    // Future battle logic
+}
+
+function attackTurn() {
+    // Calculate Town Damage
+    // Calculate Monster Damage
+    // Display Battle 
+}
+
+function endBattle() {
+    // Disburse Reward
+}
+
+//--------------------- User Linked Functions
 
 async function buyArmy(type, number, location, player, message) {
     try {
@@ -203,27 +222,16 @@ async function rmWall(type, number, player, message) {
     }
 }
 
-function startBattle() {
-    lockArena = true;
-    // Future battle logic
-}
-
-function attackTurn() {
-    // Calculate Town Damage
-    // Calculate Monster Damage
-    // Display Battle 
-}
-
-function endBattle() {
-    // Disburse Reward
-}
-
-function endTroopContract() {
-    // Dismiss all troops at the end of each week. 
-}
 
 function summonMonster(type, number, playerid) {
     // Player summoned monsters
+}
+
+
+//--------------------- Utility Functions
+
+function endTroopContract() {
+    // Dismiss all troops at the end of each week. 
 }
 
 function getPlayerAttack() {
