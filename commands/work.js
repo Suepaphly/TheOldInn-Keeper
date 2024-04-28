@@ -1,5 +1,6 @@
 const Discord = require("discord.js");
-const db = require("quick.db");
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();
 const mg = require("../utility/utility.js");
 
 module.exports.run = async (client, message, args) => {
@@ -14,8 +15,8 @@ module.exports.run = async (client, message, args) => {
 
     const member = message.mentions.members.first() || message.guild.members.cache.get(args[0]) || message.member;
     let user = message.author;
-    let author = await db.fetch(`work_${user.id}`)
- let userlevel = await db.fetch(`workinglevel_${user.id}`)
+    let author = await db.get(`work_${user.id}`)
+ let userlevel = await db.get(`workinglevel_${user.id}`)
 
     let timeout = 18000000;
     
