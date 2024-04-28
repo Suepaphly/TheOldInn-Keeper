@@ -16,6 +16,7 @@ const wallArray = ["rampart", "wall", "castle"];
 const wallCostArray = [50, 500, 5000];
 const wallHealthArray = [1, 10, 100];
 
+
 const monsterArray = ["goblin", "mephit", "broodling", "ogre", "automaton"];
 const monsterCostArray = [10, 20, 30, 50, 100];
 const monsterHealthArray = [1, 5, 10, 25, 50];
@@ -47,24 +48,6 @@ async function setupNewGame() {
     }
 }
 
-async function addMonster(type, number) {
-    try {
-        let monsters = await db.get("Monsters");
-        let found = false;
-        for (let i = 0; i < monsters.length; i++) {
-            if (monsters[i].name === type) {
-                found = true;
-                await db.add("Monsters" + monsters[i].name, number);
-                break;
-            }
-        }
-        if (!found) {
-            console.log("No monsters of type: '" + type + "' in Database");
-        }
-    } catch (error) {
-        console.error('Failed to add monster:', error);
-    }
-}
 
 async function startBattle() {
     lockArena = true;
@@ -79,7 +62,7 @@ async function startBattle() {
 
         // Start the battle turns
         for (let turn = 0; turn < 60; turn++) {
-            if (!await attackTurn(defenses, monsters)) {
+            if (!await attackTurn()) {
                 break; // Stop the battle if all monsters are defeated or have breached the defenses
             }
             await new Promise(resolve => setTimeout(resolve, 60000)); // Wait for one minute between turns
@@ -90,7 +73,7 @@ async function startBattle() {
         // Conclude the battle
         await endBattle(defenses, monsters);
     } catch (error) {
-        console.error("Error during battle start:", error);
+        console.error("Error during battle:", error);
     }
 
     lockArena = false;
@@ -279,6 +262,24 @@ function calcArmy(field) {
     // Calculate the effectiveness or damage caused by the army
 }
 
+async function addMonster(type, number) {
+    try {
+        let monsters = await db.get("Monsters");
+        let found = false;
+        for (let i = 0; i < monsters.length; i++) {
+            if (monsters[i].name === type) {
+                found = true;
+                await db.add("Monsters" + monsters[i].name, number);
+                break;
+            }
+        }
+        if (!found) {
+            console.log("No monsters of type: '" + type + "' in Database");
+        }
+    } catch (error) {
+        console.error('Failed to add monster:', error);
+    }
+}
 
 module.exports = {
     troopArray,
