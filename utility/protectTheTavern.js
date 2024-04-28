@@ -32,14 +32,16 @@ async function setupNewGame() {
         await db.set(`wall`, 10);
         await db.set(`castle`, 1);
 
-        await db.set(`Troops_rampart`, {total: 0, town_guard: 0, mercenary: 0, soldier: 0, knight: 0, royal_guard: 0});
-        await db.set(`Traps_rampart`, {total: 0, spikes: 0, boiling_Oil: 0, repeater: 0, ballista: 0, cannon: 0});
+        await db.set(`Troops_rampart`, {town_guard: 0, mercenary: 0, soldier: 0, knight: 0, royal_guard: 0});
+        await db.set(`Traps_rampart`, {spikes: 0, boiling_Oil: 0, repeater: 0, ballista: 0, cannon: 0});
 
-        await db.set(`Troops_wall`, {total: 0, town_guard: 0, mercenary: 0, soldier: 0, knight: 0, royal_guard: 0});
-        await db.set(`Traps_wall`, {total: 0, spikes: 0, boiling_Oil: 0, repeater: 0, ballista: 0, cannon: 0});
+        await db.set(`Troops_wall`, {town_guard: 0, mercenary: 0, soldier: 0, knight: 0, royal_guard: 0});
+        await db.set(`Traps_wall`, {spikes: 0, boiling_Oil: 0, repeater: 0, ballista: 0, cannon: 0});
 
-        await db.set(`Troops_castle`, {total: 0, town_guard: 0, mercenary: 0, soldier: 0, knight: 0, royal_guard: 0});
-        await db.set(`Traps_castle`, {total: 0, spikes: 0, boiling_Oil: 0, repeater: 0, ballista: 0, cannon: 0});
+        await db.set(`Troops_castle`, {town_guard: 0, mercenary: 0, soldier: 0, knight: 0, royal_guard: 0});
+        await db.set(`Traps_castle`, {spikes: 0, boiling_Oil: 0, repeater: 0, ballista: 0, cannon: 0});
+
+        await db.set(`Monsters`, {goblin: 0, mephit: 0, broodling: 0, ogre: 0, automaton: 0});
     } catch (error) {
         console.error('Failed to setup new game:', error);
     }
@@ -52,7 +54,7 @@ async function addMonster(type, number) {
         for (let i = 0; i < monsters.length; i++) {
             if (monsters[i].name === type) {
                 found = true;
-                await db.add("ActiveMonsters." + monsters[i].name, number);
+                await db.add("Monsters" + monsters[i].name, number);
                 break;
             }
         }
@@ -64,10 +66,37 @@ async function addMonster(type, number) {
     }
 }
 
-function startBattle() {
+async function startBattle() {
     lockArena = true;
-    // Future battle logic
+    console.log("Battle started! The arena is locked.");
+
+    // Initialize battle state
+    try {
+
+        //retrieve defenses and monsters
+
+        // Display initial battle state
+
+        // Start the battle turns
+        for (let turn = 0; turn < 60; turn++) {
+            if (!await attackTurn(defenses, monsters)) {
+                break; // Stop the battle if all monsters are defeated or have breached the defenses
+            }
+            await new Promise(resolve => setTimeout(resolve, 60000)); // Wait for one minute between turns
+
+            // if turn is divisible by 5, show the battle state again
+        }
+
+        // Conclude the battle
+        await endBattle(defenses, monsters);
+    } catch (error) {
+        console.error("Error during battle start:", error);
+    }
+
+    lockArena = false;
+    console.log("Battle ended! The arena is unlocked.");
 }
+
 
 function attackTurn() {
     // Calculate Town Damage
