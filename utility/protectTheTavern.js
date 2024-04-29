@@ -16,7 +16,6 @@ const wallArray = ["rampart", "wall", "castle"];
 const wallCostArray = [50, 500, 5000];
 const wallHealthArray = [1, 10, 100];
 
-
 const monsterArray = ["goblin", "mephit", "broodling", "ogre", "automaton"];
 const monsterCostArray = [10, 20, 30, 50, 100];
 const monsterHealthArray = [1, 5, 10, 25, 50];
