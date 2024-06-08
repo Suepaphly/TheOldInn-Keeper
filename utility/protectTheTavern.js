@@ -96,10 +96,13 @@ async function buyArmy(type, number, location, player, message) {
     try {
         var typeIndex = troopArray.indexOf(type);
         var locIndex = wallArray.indexOf(location);
-        var totalTroops = await db.get(`Troops_${wallArray[locIndex]}.total`);
-        var locWall = await db.get(`${wallArray[locIndex]}`);
-        var wBal = await db.get(`money_${player.id}`);
-        var locAvail = (locWall / 10 - totalTroops) >= number;
+        var totalTroops = await db.get(`Troops_${wallArray[locIndex]}.total`) || 0;
+        var totalTraps = await db.get(`Traps_${wallArray[locIndex]}.total`) || 0;
+        var totalDefense = totalTroops + totalTraps;
+        var locWall = await db.get(`${wallArray[locIndex]}`) || 0;
+        var wBal = await db.get(`money_${player.id}`) || 0;
+        var maxUnits = (locWall / 10) || 0; // Each wall unit can house 10 units
+        var locAvail = (maxUnits - totalDefense) >= number;
 
         if (wBal >= troopCostArray[typeIndex] * number && locAvail) {
             await db.add(`Troops_${wallArray[locIndex]}.total`, number);
@@ -116,14 +119,18 @@ async function buyArmy(type, number, location, player, message) {
     }
 }
 
+
 async function buyTrap(type, number, location, player, message) {
     try {
         var typeIndex = trapArray.indexOf(type);
         var locIndex = wallArray.indexOf(location);
-        var totalTraps = await db.get(`Traps_${wallArray[locIndex]}.total`);
-        var locWall = await db.get(`${wallArray[locIndex]}`);
-        var wBal = await db.get(`money_${player.id}`);
-        var locAvail = (locWall / 10 - totalTraps) >= number;
+        var totalTroops = await db.get(`Troops_${wallArray[locIndex]}.total`) || 0;
+        var totalTraps = await db.get(`Traps_${wallArray[locIndex]}.total`) || 0;
+        var totalDefense = totalTroops + totalTraps;
+        var locWall = await db.get(`${wallArray[locIndex]}`) || 0;
+        var wBal = await db.get(`money_${player.id}`) || 0;
+        var maxUnits = (locWall / 10) || 0; // Each rampart can house 11 units
+        var locAvail = (maxUnits - totalDefense) >= number;
 
         if (wBal >= trapCostArray[typeIndex] * number && locAvail) {
             await db.add(`Traps_${wallArray[locIndex]}.total`, number);
@@ -139,6 +146,8 @@ async function buyTrap(type, number, location, player, message) {
         console.error('Error buying trap:', error);
     }
 }
+
+
 
 async function buyWall(type, number, player, message) {
     try {
