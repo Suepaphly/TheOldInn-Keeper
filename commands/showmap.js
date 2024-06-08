@@ -42,7 +42,7 @@ module.exports.run = async (client, message, args) => {
             const remainingSlots = availableSlots - usedSlots;
 
             // Append location info to mapInfo
-            mapInfo += `\nLocation: ${location.charAt(0).toUpperCase() + location.slice(1)} | Walls: ${wallCount}\n`;
+            mapInfo += `\nLocation: ${location.charAt(0).toUpperCase() + location.slice(1)} | Size: ${wallCount}\n`;
             mapInfo += `${armyInfo}\n`;
             mapInfo += `${trapInfo}\n`;
             mapInfo += `Used Slots: ${usedSlots}/${availableSlots} | Remaining Slots: ${remainingSlots}\n`;
