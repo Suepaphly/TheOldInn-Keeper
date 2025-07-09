@@ -27,7 +27,7 @@ module.exports.run = async (client, message, args) => {
 =craps [bet amount] - play craps
 =slots [bet amount] - play slots
 =pay [user] [amount] - pay another user kopeks`);
-          
+
 }; 
 
 

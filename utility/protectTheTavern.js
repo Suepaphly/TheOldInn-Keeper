@@ -135,6 +135,23 @@ async function attackTurn(channel) {
         // Calculate town damage for each wall layer
         let townDamage = await calculateTownDamage();
         
+        // Add castle troops damage if castle still stands
+        const castle = await db.get("castle") || 0;
+        if (castle > 0) {
+            const castleTroops = await db.get("Troops_castle") || {};
+            let castleDamage = 0;
+            for (let i = 0; i < troopArray.length; i++) {
+                const troopType = troopArray[i];
+                const troopCount = castleTroops[troopType] || 0;
+                castleDamage += troopCount * troopDmgArray[i];
+            }
+            
+            if (castleDamage > 0 && channel) {
+                channel.send(`🏰 **Castle troops sally forth!** Dealing ${castleDamage} additional damage!`);
+            }
+            townDamage += castleDamage;
+        }
+        
         // Apply town damage to monsters (starting with weakest)
         let remainingDamage = townDamage;
         let totalKilled = 0;
@@ -154,7 +171,7 @@ async function attackTurn(channel) {
         }
 
         if (channel && totalKilled > 0) {
-            channel.send(`⚔️ **Town strikes back!** Killed: ${killReport.join(", ")} (${townDamage} damage dealt)`);
+            channel.send(`⚔️ **Town defenses strike!** Killed: ${killReport.join(", ")} (${townDamage} total damage dealt)`);
         }
 
         // Calculate monster damage
