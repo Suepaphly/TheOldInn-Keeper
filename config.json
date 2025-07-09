@@ -1,0 +1,8 @@
+{
+  "prefix": "!",
+  "token": "YOUR_DISCORD_BOT_TOKEN_HERE",
+  "activity": {
+    "streaming": false,
+    "game": "ProtectTheTavern"
+  }
+}
