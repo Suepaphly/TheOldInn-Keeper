@@ -14,7 +14,7 @@ const client = new Client({
 });
 
 const prefix = config.prefix;
-const token = config.token;
+const token = process.env.DISCORD_TOKEN;
 
 client.commands = new Collection();
 client.aliases = new Collection();
