@@ -1,11 +1,10 @@
 
-const Discord = require("discord.js");
+const { EmbedBuilder, ChannelType } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
   // Main overview embed
-  const { EmbedBuilder } = Discord;
   const mainEmbed = new EmbedBuilder()
     .setTitle("🏰 PROTECT THE TAVERN - COMMAND GUIDE 🏰")
     .setDescription("Use the reactions below to navigate to different command categories!")

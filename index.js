@@ -51,7 +51,7 @@ client.on("ready", async () => {
   // Look for "the_castle" channel specifically
   const ptt = require("./utility/protectTheTavern.js");
   const castleChannel = client.channels.cache.find(channel => 
-    channel.name === 'the_castle' && channel.type === 'GUILD_TEXT'
+    channel.name === 'the_castle' && channel.type === 0
   );
   
   if (castleChannel) {
