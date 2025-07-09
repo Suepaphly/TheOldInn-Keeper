@@ -1,5 +1,5 @@
 
-const { EmbedBuilder, ChannelType } = require("discord.js");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 
@@ -7,15 +7,15 @@ module.exports.run = async (client, message, args) => {
   // Main overview embed
   const mainEmbed = new EmbedBuilder()
     .setTitle("🏰 PROTECT THE TAVERN - COMMAND GUIDE 🏰")
-    .setDescription("Use the reactions below to navigate to different command categories!")
+    .setDescription("Click the buttons below to view different command categories!")
     .setColor("#FFD700")
     .addFields(
-      { name: "💰", value: "Economy Commands", inline: true },
-      { name: "⚔️", value: "Earning Commands", inline: true },
-      { name: "🎲", value: "Gambling Commands", inline: true },
-      { name: "🏰", value: "Defense Commands", inline: true },
-      { name: "⚡", value: "Combat Commands", inline: true },
-      { name: "📊", value: "Status Commands", inline: true }
+      { name: "💰 Economy", value: "Wallet, bank, pay, daily", inline: true },
+      { name: "⚔️ Earning", value: "Gather, hunt, fish, craft, work", inline: true },
+      { name: "🎲 Gambling", value: "Blackjack, craps, slots, rob", inline: true },
+      { name: "🏰 Defense", value: "Buy walls, troops, traps", inline: true },
+      { name: "⚡ Combat", value: "Attack monsters in battle", inline: true },
+      { name: "📊 Status", value: "Cooldowns, levels, skills", inline: true }
     )
     .setFooter({ text: "The Tavernkeeper thanks you for playing! 🍺" });
 
@@ -89,37 +89,99 @@ module.exports.run = async (client, message, args) => {
       { name: "=lvl [skill]", value: "Level up skills", inline: true }
     );
 
-  const embeds = [mainEmbed, economyEmbed, earningEmbed, gamblingEmbed, defenseEmbed, combatEmbed, statusEmbed];
-  const emojis = ["🏠", "💰", "⚔️", "🎲", "🏰", "⚡", "📊"];
+  // Create buttons
+  const row1 = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('home')
+        .setLabel('🏠 Home')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('economy')
+        .setLabel('💰 Economy')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId('earning')
+        .setLabel('⚔️ Earning')
+        .setStyle(ButtonStyle.Success)
+    );
 
-  // Send main embed with reactions
-  const helpMessage = await message.channel.send({ embeds: [mainEmbed] });
+  const row2 = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('gambling')
+        .setLabel('🎲 Gambling')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId('defense')
+        .setLabel('🏰 Defense')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('combat')
+        .setLabel('⚡ Combat')
+        .setStyle(ButtonStyle.Danger)
+    );
 
-  // Add reaction emojis
-  for (const emoji of emojis) {
-    await helpMessage.react(emoji);
-  }
+  const row3 = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('status')
+        .setLabel('📊 Status')
+        .setStyle(ButtonStyle.Secondary)
+    );
 
-  // Create reaction collector
-  const filter = (reaction, user) => {
-    return emojis.includes(reaction.emoji.name) && user.id === message.author.id;
-  };
+  // Send message with buttons
+  const helpMessage = await message.channel.send({ 
+    embeds: [mainEmbed], 
+    components: [row1, row2, row3] 
+  });
 
-  const collector = helpMessage.createReactionCollector({ filter, time: 60000 });
+  // Create button collector
+  const filter = (interaction) => interaction.user.id === message.author.id;
+  const collector = helpMessage.createMessageComponentCollector({ filter, time: 300000 }); // 5 minutes
 
-  collector.on('collect', (reaction) => {
-    const emojiIndex = emojis.indexOf(reaction.emoji.name);
-    if (emojiIndex !== -1) {
-      helpMessage.edit({ embeds: [embeds[emojiIndex]] });
+  collector.on('collect', async (interaction) => {
+    let embed;
+    switch (interaction.customId) {
+      case 'home':
+        embed = mainEmbed;
+        break;
+      case 'economy':
+        embed = economyEmbed;
+        break;
+      case 'earning':
+        embed = earningEmbed;
+        break;
+      case 'gambling':
+        embed = gamblingEmbed;
+        break;
+      case 'defense':
+        embed = defenseEmbed;
+        break;
+      case 'combat':
+        embed = combatEmbed;
+        break;
+      case 'status':
+        embed = statusEmbed;
+        break;
+      default:
+        embed = mainEmbed;
     }
-    
-    // Remove user's reaction but keep the bot's
-    reaction.users.remove(message.author.id);
+
+    await interaction.update({ embeds: [embed], components: [row1, row2, row3] });
   });
 
   collector.on('end', () => {
-    helpMessage.edit({ embeds: [mainEmbed] });
-    helpMessage.reactions.removeAll().catch(console.error);
+    // Disable all buttons when collector ends
+    const disabledRows = [row1, row2, row3].map(row => {
+      const newRow = new ActionRowBuilder();
+      row.components.forEach(button => {
+        newRow.addComponents(ButtonBuilder.from(button).setDisabled(true));
+      });
+      return newRow;
+    });
+    
+    helpMessage.edit({ embeds: [mainEmbed], components: disabledRows }).catch(console.error);
   });
 };
 
