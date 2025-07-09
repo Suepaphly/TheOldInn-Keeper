@@ -136,8 +136,8 @@ async function attackTurn(channel) {
         let townDamage = await calculateTownDamage();
         
         // Add castle troops damage if castle still stands
-        const castle = await db.get("castle") || 0;
-        if (castle > 0) {
+        const castleHP = await db.get("castle") || 0;
+        if (castleHP > 0) {
             const castleTroops = await db.get("Troops_castle") || {};
             let castleDamage = 0;
             for (let i = 0; i < troopArray.length; i++) {
@@ -571,6 +571,7 @@ async function applyDamageToWalls(damage, channel) {
     try {
         let remainingDamage = damage;
         let damageReport = [];
+        let trapDamage = 0;
         
         // Damage ramparts first
         const ramparts = await db.get("rampart") || 0;
@@ -579,6 +580,21 @@ async function applyDamageToWalls(damage, channel) {
             await db.sub("rampart", rampartDamage);
             remainingDamage -= rampartDamage;
             damageReport.push(`🛡️ Ramparts: -${rampartDamage} HP`);
+            
+            // Fire rampart traps when breached
+            if (rampartDamage > 0) {
+                const rampartTraps = await db.get("Traps_rampart") || {};
+                let rampartTrapDamage = 0;
+                for (let i = 0; i < trapArray.length; i++) {
+                    const trapType = trapArray[i];
+                    const trapCount = rampartTraps[trapType] || 0;
+                    rampartTrapDamage += trapCount * trapDmgArray[i];
+                }
+                if (rampartTrapDamage > 0) {
+                    trapDamage += rampartTrapDamage;
+                    if (channel) channel.send(`💣 **Rampart traps activate!** Dealing ${rampartTrapDamage} damage to attackers!`);
+                }
+            }
         }
         
         // Then damage walls
@@ -588,6 +604,21 @@ async function applyDamageToWalls(damage, channel) {
             await db.sub("wall", wallDamage);
             remainingDamage -= wallDamage;
             damageReport.push(`🧱 Walls: -${wallDamage} HP`);
+            
+            // Fire wall traps when breached
+            if (wallDamage > 0) {
+                const wallTraps = await db.get("Traps_wall") || {};
+                let wallTrapDamage = 0;
+                for (let i = 0; i < trapArray.length; i++) {
+                    const trapType = trapArray[i];
+                    const trapCount = wallTraps[trapType] || 0;
+                    wallTrapDamage += trapCount * trapDmgArray[i];
+                }
+                if (wallTrapDamage > 0) {
+                    trapDamage += wallTrapDamage;
+                    if (channel) channel.send(`💣 **Wall traps activate!** Dealing ${wallTrapDamage} damage to attackers!`);
+                }
+            }
         }
         
         // Finally damage castle
@@ -597,13 +628,64 @@ async function applyDamageToWalls(damage, channel) {
             await db.sub("castle", castleDamage);
             remainingDamage -= castleDamage;
             damageReport.push(`🏰 Castle: -${castleDamage} HP`);
+            
+            // Fire castle traps when breached
+            if (castleDamage > 0) {
+                const castleTraps = await db.get("Traps_castle") || {};
+                let castleTrapDamage = 0;
+                for (let i = 0; i < trapArray.length; i++) {
+                    const trapType = trapArray[i];
+                    const trapCount = castleTraps[trapType] || 0;
+                    castleTrapDamage += trapCount * trapDmgArray[i];
+                }
+                if (castleTrapDamage > 0) {
+                    trapDamage += castleTrapDamage;
+                    if (channel) channel.send(`💣 **Castle traps activate!** Dealing ${castleTrapDamage} damage to attackers!`);
+                }
+            }
         }
         
         if (channel && damageReport.length > 0) {
             channel.send(`💥 **Damage Report:** ${damageReport.join(", ")}`);
         }
+        
+        // Apply trap damage back to monsters if any traps fired
+        if (trapDamage > 0) {
+            await applyTrapDamageToMonsters(trapDamage, channel);
+        }
+        
     } catch (error) {
         console.error("Error applying damage to walls:", error);
+    }
+}
+
+async function applyTrapDamageToMonsters(trapDamage, channel) {
+    try {
+        const monsters = await db.get("Monsters") || {};
+        let remainingDamage = trapDamage;
+        let totalKilled = 0;
+        let killReport = [];
+        
+        // Apply trap damage to monsters (starting with weakest)
+        for (let i = 0; i < monsterArray.length && remainingDamage > 0; i++) {
+            const monsterType = monsterArray[i];
+            const monsterCount = monsters[monsterType] || 0;
+            if (monsterCount > 0) {
+                const monstersKilled = Math.min(Math.floor(remainingDamage / monsterHealthArray[i]), monsterCount);
+                if (monstersKilled > 0) {
+                    await db.sub(`Monsters.${monsterType}`, monstersKilled);
+                    remainingDamage -= monstersKilled * monsterHealthArray[i];
+                    totalKilled += monstersKilled;
+                    killReport.push(`${monstersKilled} ${monsterType}(s)`);
+                }
+            }
+        }
+        
+        if (channel && totalKilled > 0) {
+            channel.send(`🔥 **Trap casualties:** ${killReport.join(", ")} (${trapDamage} trap damage dealt)`);
+        }
+    } catch (error) {
+        console.error("Error applying trap damage to monsters:", error);
     }
 }
 
