@@ -15,11 +15,26 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send(`${user.username}, there are no monsters to attack! The town is safe.`);
     }
     
-    // Check cooldown (5 minutes)
-    const lastAttack = await db.get(`attack_cooldown_${user.id}`);
-    if (lastAttack && (Date.now() - lastAttack < 300000)) { // 5 minutes cooldown
-        const timeLeft = Math.ceil((300000 - (Date.now() - lastAttack)) / 1000);
-        return message.channel.send(`${user.username}, you must wait ${timeLeft} seconds before attacking again!`);
+    // Check if battle is active and enforce turn-based attacking
+    if (ptt.lockArena && ptt.currentBattleTurn > 0) {
+        // During battle: one attack per turn
+        const hasAttackedThisTurn = await db.get(`turn_attack_${user.id}_${ptt.currentBattleTurn}`);
+        if (hasAttackedThisTurn) {
+            return message.channel.send(`${user.username}, you have already attacked this turn! Wait for the next turn.`);
+        }
+        
+        // Mark that this player has attacked this turn
+        await db.set(`turn_attack_${user.id}_${ptt.currentBattleTurn}`, true);
+    } else {
+        // Outside of battle: regular cooldown (5 minutes)
+        const lastAttack = await db.get(`attack_cooldown_${user.id}`);
+        if (lastAttack && (Date.now() - lastAttack < 300000)) { // 5 minutes cooldown
+            const timeLeft = Math.ceil((300000 - (Date.now() - lastAttack)) / 1000);
+            return message.channel.send(`${user.username}, you must wait ${timeLeft} seconds before attacking again!`);
+        }
+        
+        // Set cooldown for outside-battle attacks
+        await db.set(`attack_cooldown_${user.id}`, Date.now());
     }
     
     // Deal 10 damage to monsters (starting with weakest)
@@ -43,9 +58,6 @@ module.exports.run = async (client, message, args) => {
             }
         }
     }
-    
-    // Set cooldown
-    await db.set(`attack_cooldown_${user.id}`, Date.now());
     
     if (totalKilled > 0) {
         message.channel.send(`⚔️ ${user.username} attacks the monster horde! Killed: ${killReport.join(", ")} (10 damage dealt)`);

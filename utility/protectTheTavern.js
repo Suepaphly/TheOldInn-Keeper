@@ -23,6 +23,7 @@ const monsterDmgArray = [2, 8, 14, 21, 28];
 const monsterTimeArray = [21600000, 43200000, 86400000, 172800000, 259200000];
 
 var lockArena = false;
+var currentBattleTurn = 0;
 
 //--------------------- Main Game Loop Functions
 
@@ -55,9 +56,16 @@ async function startBattle(channel) {
     }
     
     lockArena = true;
+    currentBattleTurn = 0;
     if (channel) channel.send("🏰 Battle started! The arena is locked.");
 
     try {
+        // Clear any existing turn attack tracking
+        const allEntries = await db.all();
+        const turnAttackEntries = allEntries.filter(entry => entry.id.startsWith("turn_attack_"));
+        for (const entry of turnAttackEntries) {
+            await db.delete(entry.id);
+        }
         // Display initial battle state
         const monsters = await db.get("Monsters") || {};
         const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
@@ -72,6 +80,15 @@ async function startBattle(channel) {
         
         // Start the battle turns (limited to 10 turns)
         for (let turn = 1; turn <= 10; turn++) {
+            currentBattleTurn = turn;
+            
+            // Clear player attack tracking for this turn
+            const allEntries = await db.all();
+            const turnAttackEntries = allEntries.filter(entry => entry.id.startsWith("turn_attack_"));
+            for (const entry of turnAttackEntries) {
+                await db.delete(entry.id);
+            }
+            
             // Check if there are still monsters before each turn
             const currentMonsters = await db.get("Monsters") || {};
             const totalMonstersLeft = Object.values(currentMonsters).reduce((sum, count) => sum + count, 0);
@@ -116,7 +133,7 @@ async function startBattle(channel) {
             }
             
             // Wait between turns
-            await new Promise(resolve => setTimeout(resolve, 3000)); // 3 seconds between turns
+            await new Promise(resolve => setTimeout(resolve, 5000)); // 5 seconds between turns
         }
 
         // Conclude the battle
@@ -127,6 +144,7 @@ async function startBattle(channel) {
     }
 
     lockArena = false;
+    currentBattleTurn = 0;
     if (channel) channel.send("Battle ended! The arena is unlocked.");
 }
 
@@ -756,5 +774,6 @@ module.exports = {
     endBattle,
     endTroopContract,
     handleBankStealing,
-    lockArena
+    lockArena,
+    currentBattleTurn
 };
