@@ -43,6 +43,15 @@ async function setupNewGame() {
         await db.set(`Traps_castle`, {spikes: 0, boiling_Oil: 0, repeater: 0, ballista: 0, cannon: 0});
 
         await db.set(`Monsters`, {goblin: 0, mephit: 0, broodling: 0, ogre: 0, automaton: 0});
+        
+        // Clear all player troop and trap tracking
+        const allEntries = await db.all();
+        const playerEntries = allEntries.filter(entry => 
+            entry.id.startsWith("player_troops_") || entry.id.startsWith("player_traps_")
+        );
+        for (const entry of playerEntries) {
+            await db.delete(entry.id);
+        }
     } catch (error) {
         console.error('Failed to setup new game:', error);
     }
@@ -277,23 +286,26 @@ async function buyArmy(type, number, location, player, message) {
     try {
         var typeIndex = troopArray.indexOf(type);
         var locIndex = wallArray.indexOf(location);
-        var totalTroops = await db.get(`Troops_${wallArray[locIndex]}.total`) || 0;
-        var totalTraps = await db.get(`Traps_${wallArray[locIndex]}.total`) || 0;
-        var totalDefense = totalTroops + totalTraps;
         var locWall = await db.get(`${wallArray[locIndex]}`) || 0;
         var wBal = await db.get(`money_${player.id}`) || 0;
-        var maxUnits = (locWall / 10) || 0; // Each wall unit can house 10 units
-        var locAvail = (maxUnits - totalDefense) >= number;
-
-        if (wBal >= troopCostArray[typeIndex] * number && locAvail) {
+        
+        // Calculate player's current troops at this location
+        var playerTroops = await db.get(`player_troops_${player.id}_${wallArray[locIndex]}`) || 0;
+        
+        // Each 5 walls allows 1 troop per player
+        var maxTroopsForPlayer = Math.floor(locWall / 5);
+        var troopsAfterPurchase = playerTroops + number;
+        
+        if (wBal >= troopCostArray[typeIndex] * number && troopsAfterPurchase <= maxTroopsForPlayer) {
             await db.add(`Troops_${wallArray[locIndex]}.total`, number);
             await db.add(`Troops_${wallArray[locIndex]}.${troopArray[typeIndex]}`, number);
+            await db.add(`player_troops_${player.id}_${wallArray[locIndex]}`, number);
             await db.sub(`money_${player.id}`, troopCostArray[typeIndex] * number);
-            message.channel.send(`${player.username} just bought ${number} units of ${troopArray[typeIndex]}.`);
+            message.channel.send(`${player.username} just bought ${number} units of ${troopArray[typeIndex]}. (${troopsAfterPurchase}/${maxTroopsForPlayer} troops at ${wallArray[locIndex]})`);
         } else if (wBal < troopCostArray[typeIndex] * number) {
             message.channel.send(`${player.username} doesn't have enough kopeks to buy ${number} of ${troopArray[typeIndex]}.`);
         } else {
-            message.channel.send(`${player.username} there aren't enough ${wallArray[locIndex]}s to house ${number} ${troopArray[typeIndex]}(s).`);
+            message.channel.send(`${player.username} you can only have ${maxTroopsForPlayer} troops at ${wallArray[locIndex]} (1 per 5 walls). You currently have ${playerTroops}.`);
         }
     } catch (error) {
         console.error('Error buying army:', error);
@@ -305,23 +317,26 @@ async function buyTrap(type, number, location, player, message) {
     try {
         var typeIndex = trapArray.indexOf(type);
         var locIndex = wallArray.indexOf(location);
-        var totalTroops = await db.get(`Troops_${wallArray[locIndex]}.total`) || 0;
-        var totalTraps = await db.get(`Traps_${wallArray[locIndex]}.total`) || 0;
-        var totalDefense = totalTroops + totalTraps;
         var locWall = await db.get(`${wallArray[locIndex]}`) || 0;
         var wBal = await db.get(`money_${player.id}`) || 0;
-        var maxUnits = (locWall / 10) || 0; // Each rampart can house 11 units
-        var locAvail = (maxUnits - totalDefense) >= number;
+        
+        // Calculate player's current traps at this location
+        var playerTraps = await db.get(`player_traps_${player.id}_${wallArray[locIndex]}`) || 0;
+        
+        // Each 5 walls allows 1 trap per player
+        var maxTrapsForPlayer = Math.floor(locWall / 5);
+        var trapsAfterPurchase = playerTraps + number;
 
-        if (wBal >= trapCostArray[typeIndex] * number && locAvail) {
+        if (wBal >= trapCostArray[typeIndex] * number && trapsAfterPurchase <= maxTrapsForPlayer) {
             await db.add(`Traps_${wallArray[locIndex]}.total`, number);
             await db.add(`Traps_${wallArray[locIndex]}.${trapArray[typeIndex]}`, number);
+            await db.add(`player_traps_${player.id}_${wallArray[locIndex]}`, number);
             await db.sub(`money_${player.id}`, trapCostArray[typeIndex] * number);
-            message.channel.send(`${player.username} just bought ${number} units of ${trapArray[typeIndex]}.`);
+            message.channel.send(`${player.username} just bought ${number} units of ${trapArray[typeIndex]}. (${trapsAfterPurchase}/${maxTrapsForPlayer} traps at ${wallArray[locIndex]})`);
         } else if (wBal < trapCostArray[typeIndex] * number) {
             message.channel.send(`${player.username} doesn't have enough kopeks to buy ${number} units of ${trapArray[typeIndex]}.`);
         } else {
-            message.channel.send(`${player.username} there aren't enough ${wallArray[locIndex]}s to build ${number} ${trapArray[typeIndex]}(s).`);
+            message.channel.send(`${player.username} you can only have ${maxTrapsForPlayer} traps at ${wallArray[locIndex]} (1 per 5 walls). You currently have ${playerTraps}.`);
         }
     } catch (error) {
         console.error('Error buying trap:', error);

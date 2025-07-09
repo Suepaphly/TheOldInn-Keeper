@@ -30,10 +30,14 @@ module.exports.run = async (client, message, args) => {
 
 **🏰 TOWN DEFENSE COMMANDS:**
 =buy [amount] [location] [item] - Buy defenses for the town
-  • Locations: rampart, wall, castle
+  • Walls: =buy [amount] [wall_type]
+    - rampart (100 kopeks each) - Basic outer defenses
+    - wall (500 kopeks each) - Strong inner walls  
+    - castle (5000 kopeks each) - Final stronghold
   • Troops: town_guard, mercenary, soldier, knight, royal_guard
   • Traps: spikes, boiling_oil, repeater, ballista, cannon
-  • Example: =buy 5 rampart town_guard
+  • Examples: =buy 10 rampart | =buy 5 rampart town_guard | =buy 2 wall ballista
+  • Note: Every 5 walls allows 1 troop and 1 trap per player at that location
 
 =map - View the town defense status and monster threats
 =summon [monster type] [amount] - Summon monsters to attack the town
@@ -42,7 +46,6 @@ module.exports.run = async (client, message, args) => {
 
 **⚔️ COMBAT COMMANDS:**
 =attack - Deal 10 damage to monsters during battle
-=startNewGame - Reset the town defenses after defeat
 
 **📊 STATUS COMMANDS:**
 =cooldowns - Check all your cooldown timers
