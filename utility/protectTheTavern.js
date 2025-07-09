@@ -49,28 +49,46 @@ async function setupNewGame() {
 
 
 async function startBattle() {
+    if (lockArena) {
+        console.log("Battle already in progress!");
+        return;
+    }
+    
     lockArena = true;
-    console.log("Battle started! The arena is locked.");
+    console.log("🏰 Battle started! The arena is locked.");
 
-    // Initialize battle state
     try {
-
-        //retrieve defenses and monsters
-
         // Display initial battle state
-
+        const monsters = await db.get("Monsters") || {};
+        const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
+        
+        if (totalMonsters === 0) {
+            console.log("No monsters to battle! Battle cancelled.");
+            lockArena = false;
+            return;
+        }
+        
+        console.log(`⚔️ ${totalMonsters} monsters approach the town!`);
+        
         // Start the battle turns
-        for (let turn = 0; turn < 60; turn++) {
+        for (let turn = 1; turn <= 60; turn++) {
+            console.log(`\n--- Turn ${turn} ---`);
+            
             if (!await attackTurn()) {
                 break; // Stop the battle if all monsters are defeated or have breached the defenses
             }
-            await new Promise(resolve => setTimeout(resolve, 60000)); // Wait for one minute between turns
-
-            // if turn is divisible by 5, show the battle state again
+            
+            // Show battle state every 5 turns
+            if (turn % 5 === 0) {
+                await displayBattleState();
+            }
+            
+            // Wait for one minute between turns (reduced for testing)
+            await new Promise(resolve => setTimeout(resolve, 10000)); // 10 seconds for testing
         }
 
         // Conclude the battle
-        await endBattle(defenses, monsters);
+        await endBattle();
     } catch (error) {
         console.error("Error during battle:", error);
     }
@@ -79,15 +97,100 @@ async function startBattle() {
     console.log("Battle ended! The arena is unlocked.");
 }
 
-
-function attackTurn() {
-    // Calculate Town Damage
-    // Calculate Monster Damage
-    // Display Battle 
+async function displayBattleState() {
+    try {
+        const ramparts = await db.get("rampart") || 0;
+        const walls = await db.get("wall") || 0;
+        const castle = await db.get("castle") || 0;
+        const monsters = await db.get("Monsters") || {};
+        
+        console.log(`\n🏰 Town Status: Ramparts: ${ramparts}, Walls: ${walls}, Castle: ${castle}`);
+        console.log(`👹 Monster Army: ${Object.entries(monsters).map(([type, count]) => `${type}: ${count}`).join(", ")}`);
+    } catch (error) {
+        console.error("Error displaying battle state:", error);
+    }
 }
 
-function endBattle() {
-    // Disburse Reward
+
+async function attackTurn() {
+    try {
+        // Get current defenses and monsters
+        const monsters = await db.get("Monsters") || {goblin: 0, mephit: 0, broodling: 0, ogre: 0, automaton: 0};
+        
+        // Calculate total monster count
+        let totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
+        if (totalMonsters === 0) {
+            console.log("No monsters left! Town has won!");
+            return false; // End battle
+        }
+
+        // Calculate town damage for each wall layer
+        let townDamage = await calculateTownDamage();
+        
+        // Apply town damage to monsters (starting with weakest)
+        let remainingDamage = townDamage;
+        for (let i = 0; i < monsterArray.length && remainingDamage > 0; i++) {
+            const monsterType = monsterArray[i];
+            const monsterCount = monsters[monsterType];
+            if (monsterCount > 0) {
+                const monstersKilled = Math.min(Math.floor(remainingDamage / monsterHealthArray[i]), monsterCount);
+                if (monstersKilled > 0) {
+                    await db.sub(`Monsters.${monsterType}`, monstersKilled);
+                    remainingDamage -= monstersKilled * monsterHealthArray[i];
+                    console.log(`Town killed ${monstersKilled} ${monsterType}s`);
+                }
+            }
+        }
+
+        // Calculate monster damage
+        let monsterDamage = 0;
+        for (let i = 0; i < monsterArray.length; i++) {
+            const monsterType = monsterArray[i];
+            const monsterCount = monsters[monsterType] || 0;
+            monsterDamage += monsterCount * monsterDmgArray[i];
+        }
+
+        // Apply monster damage to walls (starting with ramparts)
+        await applyDamageToWalls(monsterDamage);
+
+        // Check if castle is destroyed
+        const castle = await db.get("castle") || 0;
+        if (castle <= 0) {
+            console.log("Castle destroyed! Monsters have won!");
+            return false; // End battle
+        }
+
+        console.log(`Battle continues - Town dealt ${townDamage} damage, Monsters dealt ${monsterDamage} damage`);
+        return true; // Continue battle
+    } catch (error) {
+        console.error("Error in attack turn:", error);
+        return false;
+    }
+}
+
+async function endBattle() {
+    try {
+        const castle = await db.get("castle") || 0;
+        const monsters = await db.get("Monsters") || {};
+        const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
+        
+        if (castle > 0 && totalMonsters === 0) {
+            console.log("🎉 VICTORY! The town has successfully defended against the monster attack!");
+            // Reset monsters for next battle
+            await db.set("Monsters", {goblin: 0, mephit: 0, broodling: 0, ogre: 0, automaton: 0});
+        } else if (castle <= 0) {
+            console.log("💀 DEFEAT! The monsters have breached the castle and conquered the town!");
+            // Reset defenses for rebuild
+            await setupNewGame();
+        }
+        
+        // Clear any remaining troop contracts
+        await endTroopContract();
+        
+        console.log("Battle concluded. Preparing for next conflict...");
+    } catch (error) {
+        console.error("Error ending battle:", error);
+    }
 }
 
 //--------------------- User Linked Functions
@@ -243,23 +346,81 @@ async function rmWall(type, number, player, message) {
 }
 
 
-function summonMonster(type, number, playerid) {
-    // Player summoned monsters
+async function summonMonster(type, number, playerid) {
+    try {
+        const typeIndex = monsterArray.indexOf(type);
+        if (typeIndex === -1) {
+            console.log(`Invalid monster type: ${type}`);
+            return false;
+        }
+        
+        const cost = monsterCostArray[typeIndex] * number;
+        const playerMoney = await db.get(`money_${playerid}`) || 0;
+        
+        if (playerMoney >= cost) {
+            await db.sub(`money_${playerid}`, cost);
+            await addMonster(type, number);
+            console.log(`Player ${playerid} summoned ${number} ${type}(s) for ${cost} kopeks`);
+            return true;
+        } else {
+            console.log(`Player ${playerid} doesn't have enough kopeks to summon ${number} ${type}(s)`);
+            return false;
+        }
+    } catch (error) {
+        console.error("Error summoning monster:", error);
+        return false;
+    }
 }
 
 
 //--------------------- Utility Functions
 
-function endTroopContract() {
-    // Dismiss all troops at the end of each week. 
+async function endTroopContract() {
+    try {
+        // Dismiss all troops from all locations
+        for (const wall of wallArray) {
+            const emptyTroops = {town_guard: 0, mercenary: 0, soldier: 0, knight: 0, royal_guard: 0, total: 0};
+            await db.set(`Troops_${wall}`, emptyTroops);
+        }
+        console.log("All troop contracts have ended. Troops dismissed.");
+    } catch (error) {
+        console.error("Error ending troop contracts:", error);
+    }
 }
 
 function getPlayerAttack() {
     // Adds and returns all the player attacks for the turn
 }
 
-function calculateTownDamage() {
-    // Calculate damage inflicted by the town
+async function calculateTownDamage() {
+    try {
+        let totalDamage = 0;
+        
+        // Calculate damage from each wall layer
+        for (const wall of wallArray) {
+            const troops = await db.get(`Troops_${wall}`) || {};
+            const traps = await db.get(`Traps_${wall}`) || {};
+            
+            // Add troop damage
+            for (let i = 0; i < troopArray.length; i++) {
+                const troopType = troopArray[i];
+                const troopCount = troops[troopType] || 0;
+                totalDamage += troopCount * troopDmgArray[i];
+            }
+            
+            // Add trap damage
+            for (let i = 0; i < trapArray.length; i++) {
+                const trapType = trapArray[i];
+                const trapCount = traps[trapType] || 0;
+                totalDamage += trapCount * trapDmgArray[i];
+            }
+        }
+        
+        return totalDamage;
+    } catch (error) {
+        console.error("Error calculating town damage:", error);
+        return 0;
+    }
 }
 
 function calcTrap(wall) {
@@ -270,18 +431,48 @@ function calcArmy(field) {
     // Calculate the effectiveness or damage caused by the army
 }
 
+async function applyDamageToWalls(damage) {
+    try {
+        let remainingDamage = damage;
+        
+        // Damage ramparts first
+        const ramparts = await db.get("rampart") || 0;
+        if (remainingDamage > 0 && ramparts > 0) {
+            const rampartDamage = Math.min(remainingDamage, ramparts);
+            await db.sub("rampart", rampartDamage);
+            remainingDamage -= rampartDamage;
+            console.log(`Ramparts took ${rampartDamage} damage`);
+        }
+        
+        // Then damage walls
+        const walls = await db.get("wall") || 0;
+        if (remainingDamage > 0 && walls > 0) {
+            const wallDamage = Math.min(remainingDamage, walls);
+            await db.sub("wall", wallDamage);
+            remainingDamage -= wallDamage;
+            console.log(`Walls took ${wallDamage} damage`);
+        }
+        
+        // Finally damage castle
+        const castle = await db.get("castle") || 0;
+        if (remainingDamage > 0 && castle > 0) {
+            const castleDamage = Math.min(remainingDamage, castle);
+            await db.sub("castle", castleDamage);
+            remainingDamage -= castleDamage;
+            console.log(`Castle took ${castleDamage} damage`);
+        }
+    } catch (error) {
+        console.error("Error applying damage to walls:", error);
+    }
+}
+
 async function addMonster(type, number) {
     try {
-        let monsters = await db.get("Monsters");
-        let found = false;
-        for (let i = 0; i < monsters.length; i++) {
-            if (monsters[i].name === type) {
-                found = true;
-                await db.add("Monsters" + monsters[i].name, number);
-                break;
-            }
-        }
-        if (!found) {
+        const typeIndex = monsterArray.indexOf(type);
+        if (typeIndex !== -1) {
+            await db.add(`Monsters.${type}`, number);
+            console.log(`Added ${number} ${type}(s) to the monster army`);
+        } else {
             console.log("No monsters of type: '" + type + "' in Database");
         }
     } catch (error) {
@@ -300,6 +491,10 @@ module.exports = {
     wallArray,
     wallCostArray,
     wallHealthArray,
+    monsterArray,
+    monsterCostArray,
+    monsterHealthArray,
+    monsterDmgArray,
     buyArmy,
     buyTrap,
     buyWall,
@@ -308,6 +503,9 @@ module.exports = {
     rmWall,
     setupNewGame,
     addMonster,
+    summonMonster,
     startBattle,
     endBattle,
+    endTroopContract,
+    lockArena
 };
