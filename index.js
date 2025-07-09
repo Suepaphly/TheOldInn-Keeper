@@ -48,16 +48,17 @@ client.on("ready", async () => {
   }
   
   // Initialize the random monster attack scheduler
-  // Find the first available text channel for attacks
+  // Look for "the_castle" channel specifically
   const ptt = require("./utility/protectTheTavern.js");
-  const defaultChannel = client.channels.cache.find(channel => 
-    channel.type === 'GUILD_TEXT' && channel.permissionsFor(client.user).has('SEND_MESSAGES')
+  const castleChannel = client.channels.cache.find(channel => 
+    channel.name === 'the_castle' && channel.type === 'GUILD_TEXT'
   );
   
-  if (defaultChannel) {
-    ptt.initializeScheduler(client, defaultChannel);
+  if (castleChannel) {
+    ptt.initializeScheduler(client, castleChannel);
+    console.log("Random monster attack scheduler initialized for #the_castle");
   } else {
-    console.log("No suitable channel found for scheduled attacks");
+    console.log("Channel #the_castle not found - scheduled attacks disabled");
   }
 });
 
