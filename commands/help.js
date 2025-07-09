@@ -1,10 +1,12 @@
 
 const Discord = require("discord.js");
-const db = require("quick.db");
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
   // Main overview embed
-  const mainEmbed = new Discord.EmbedBuilder()
+  const { EmbedBuilder } = Discord;
+  const mainEmbed = new EmbedBuilder()
     .setTitle("🏰 PROTECT THE TAVERN - COMMAND GUIDE 🏰")
     .setDescription("Use the reactions below to navigate to different command categories!")
     .setColor("#FFD700")
@@ -19,7 +21,7 @@ module.exports.run = async (client, message, args) => {
     .setFooter({ text: "The Tavernkeeper thanks you for playing! 🍺" });
 
   // Economy embed
-  const economyEmbed = new Discord.EmbedBuilder()
+  const economyEmbed = new EmbedBuilder()
     .setTitle("💰 ECONOMY COMMANDS")
     .setColor("#00FF00")
     .addFields(
@@ -32,7 +34,7 @@ module.exports.run = async (client, message, args) => {
     );
 
   // Earning embed
-  const earningEmbed = new Discord.EmbedBuilder()
+  const earningEmbed = new EmbedBuilder()
     .setTitle("⚔️ EARNING COMMANDS")
     .setColor("#32CD32")
     .addFields(
@@ -44,7 +46,7 @@ module.exports.run = async (client, message, args) => {
     );
 
   // Gambling embed
-  const gamblingEmbed = new Discord.EmbedBuilder()
+  const gamblingEmbed = new EmbedBuilder()
     .setTitle("🎲 GAMBLING COMMANDS")
     .setColor("#FF6347")
     .addFields(
@@ -55,7 +57,7 @@ module.exports.run = async (client, message, args) => {
     );
 
   // Defense embed
-  const defenseEmbed = new Discord.EmbedBuilder()
+  const defenseEmbed = new EmbedBuilder()
     .setTitle("🏰 TOWN DEFENSE COMMANDS")
     .setColor("#4169E1")
     .addFields(
@@ -71,7 +73,7 @@ module.exports.run = async (client, message, args) => {
     );
 
   // Combat embed
-  const combatEmbed = new Discord.EmbedBuilder()
+  const combatEmbed = new EmbedBuilder()
     .setTitle("⚡ COMBAT COMMANDS")
     .setColor("#DC143C")
     .addFields(
@@ -79,7 +81,7 @@ module.exports.run = async (client, message, args) => {
     );
 
   // Status embed
-  const statusEmbed = new Discord.EmbedBuilder()
+  const statusEmbed = new EmbedBuilder()
     .setTitle("📊 STATUS COMMANDS")
     .setColor("#9370DB")
     .addFields(
