@@ -48,14 +48,14 @@ async function setupNewGame() {
 }
 
 
-async function startBattle() {
+async function startBattle(channel) {
     if (lockArena) {
-        console.log("Battle already in progress!");
+        if (channel) channel.send("Battle already in progress!");
         return;
     }
     
     lockArena = true;
-    console.log("🏰 Battle started! The arena is locked.");
+    if (channel) channel.send("🏰 Battle started! The arena is locked.");
 
     try {
         // Display initial battle state
@@ -63,38 +63,37 @@ async function startBattle() {
         const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
         
         if (totalMonsters === 0) {
-            console.log("No monsters to battle! Battle cancelled.");
+            if (channel) channel.send("No monsters to battle! Battle cancelled.");
             lockArena = false;
             return;
         }
         
-        console.log(`⚔️ ${totalMonsters} monsters approach the town!`);
+        if (channel) channel.send(`⚔️ ${totalMonsters} monsters approach the town!`);
         
         // Start the battle turns
         for (let turn = 1; turn <= 60; turn++) {
-            console.log(`\n--- Turn ${turn} ---`);
+            if (channel && turn % 10 === 1) {
+                channel.send(`--- Turn ${turn} ---`);
+            }
             
-            if (!await attackTurn()) {
+            const battleResult = await attackTurn(channel);
+            if (!battleResult.continue) {
                 break; // Stop the battle if all monsters are defeated or have breached the defenses
             }
             
-            // Show battle state every 5 turns
-            if (turn % 5 === 0) {
-                await displayBattleState();
-            }
-            
-            // Wait for one minute between turns (reduced for testing)
-            await new Promise(resolve => setTimeout(resolve, 10000)); // 10 seconds for testing
+            // Wait between turns (reduced for testing)
+            await new Promise(resolve => setTimeout(resolve, 5000)); // 5 seconds for testing
         }
 
         // Conclude the battle
-        await endBattle();
+        await endBattle(channel);
     } catch (error) {
         console.error("Error during battle:", error);
+        if (channel) channel.send("❌ Battle encountered an error!");
     }
 
     lockArena = false;
-    console.log("Battle ended! The arena is unlocked.");
+    if (channel) channel.send("Battle ended! The arena is unlocked.");
 }
 
 async function displayBattleState() {
@@ -112,7 +111,7 @@ async function displayBattleState() {
 }
 
 
-async function attackTurn() {
+async function attackTurn(channel) {
     try {
         // Get current defenses and monsters
         const monsters = await db.get("Monsters") || {goblin: 0, mephit: 0, broodling: 0, ogre: 0, automaton: 0};
@@ -120,8 +119,8 @@ async function attackTurn() {
         // Calculate total monster count
         let totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
         if (totalMonsters === 0) {
-            console.log("No monsters left! Town has won!");
-            return false; // End battle
+            if (channel) channel.send("🎉 No monsters left! Town has won!");
+            return { continue: false, victory: true }; // End battle - town wins
         }
 
         // Calculate town damage for each wall layer
@@ -129,6 +128,7 @@ async function attackTurn() {
         
         // Apply town damage to monsters (starting with weakest)
         let remainingDamage = townDamage;
+        let totalKilled = 0;
         for (let i = 0; i < monsterArray.length && remainingDamage > 0; i++) {
             const monsterType = monsterArray[i];
             const monsterCount = monsters[monsterType];
@@ -137,7 +137,7 @@ async function attackTurn() {
                 if (monstersKilled > 0) {
                     await db.sub(`Monsters.${monsterType}`, monstersKilled);
                     remainingDamage -= monstersKilled * monsterHealthArray[i];
-                    console.log(`Town killed ${monstersKilled} ${monsterType}s`);
+                    totalKilled += monstersKilled;
                 }
             }
         }
@@ -146,40 +146,43 @@ async function attackTurn() {
         let monsterDamage = 0;
         for (let i = 0; i < monsterArray.length; i++) {
             const monsterType = monsterArray[i];
-            const monsterCount = monsters[monsterType] || 0;
+            const monsterCount = (await db.get(`Monsters.${monsterType}`)) || 0;
             monsterDamage += monsterCount * monsterDmgArray[i];
         }
 
         // Apply monster damage to walls (starting with ramparts)
-        await applyDamageToWalls(monsterDamage);
+        await applyDamageToWalls(monsterDamage, channel);
 
         // Check if castle is destroyed
         const castle = await db.get("castle") || 0;
         if (castle <= 0) {
-            console.log("Castle destroyed! Monsters have won!");
-            return false; // End battle
+            if (channel) channel.send("💀 Castle destroyed! Monsters have won!");
+            return { continue: false, victory: false }; // End battle - monsters win
         }
 
-        console.log(`Battle continues - Town dealt ${townDamage} damage, Monsters dealt ${monsterDamage} damage`);
-        return true; // Continue battle
+        return { continue: true, victory: null }; // Continue battle
     } catch (error) {
         console.error("Error in attack turn:", error);
-        return false;
+        return { continue: false, victory: null };
     }
 }
 
-async function endBattle() {
+async function endBattle(channel) {
     try {
         const castle = await db.get("castle") || 0;
         const monsters = await db.get("Monsters") || {};
         const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
         
         if (castle > 0 && totalMonsters === 0) {
-            console.log("🎉 VICTORY! The town has successfully defended against the monster attack!");
+            if (channel) channel.send("🎉 **VICTORY!** The town has successfully defended against the monster attack!");
             // Reset monsters for next battle
             await db.set("Monsters", {goblin: 0, mephit: 0, broodling: 0, ogre: 0, automaton: 0});
         } else if (castle <= 0) {
-            console.log("💀 DEFEAT! The monsters have breached the castle and conquered the town!");
+            if (channel) channel.send("💀 **DEFEAT!** The monsters have breached the castle and conquered the town!");
+            
+            // Handle bank stealing
+            await handleBankStealing(channel);
+            
             // Reset defenses for rebuild
             await setupNewGame();
         }
@@ -187,7 +190,7 @@ async function endBattle() {
         // Clear any remaining troop contracts
         await endTroopContract();
         
-        console.log("Battle concluded. Preparing for next conflict...");
+        if (channel) channel.send("Battle concluded. Preparing for next conflict...");
     } catch (error) {
         console.error("Error ending battle:", error);
     }
@@ -360,6 +363,11 @@ async function summonMonster(type, number, playerid) {
         if (playerMoney >= cost) {
             await db.sub(`money_${playerid}`, cost);
             await addMonster(type, number);
+            
+            // Track monster summoner for reward distribution
+            const currentContribution = await db.get(`monster_summoner_${playerid}`) || 0;
+            await db.set(`monster_summoner_${playerid}`, currentContribution + cost);
+            
             console.log(`Player ${playerid} summoned ${number} ${type}(s) for ${cost} kopeks`);
             return true;
         } else {
@@ -369,6 +377,102 @@ async function summonMonster(type, number, playerid) {
     } catch (error) {
         console.error("Error summoning monster:", error);
         return false;
+    }
+}
+
+async function handleBankStealing(channel) {
+    try {
+        // Get all bank accounts
+        const allEntries = await db.all();
+        const bankEntries = allEntries.filter(entry => entry.id.startsWith("bank_"));
+        
+        if (bankEntries.length === 0) {
+            if (channel) channel.send("💰 No bank accounts found to raid!");
+            return;
+        }
+        
+        let totalStolen = 0;
+        let stealingResults = [];
+        
+        // Steal from each player's bank (20-80%)
+        for (const entry of bankEntries) {
+            const userId = entry.id.split('_')[1];
+            const bankAmount = entry.value || 0;
+            
+            if (bankAmount > 0) {
+                const stealPercentage = Math.floor(Math.random() * 61) + 20; // 20-80%
+                const stolenAmount = Math.floor(bankAmount * (stealPercentage / 100));
+                
+                await db.sub(`bank_${userId}`, stolenAmount);
+                totalStolen += stolenAmount;
+                
+                stealingResults.push({
+                    userId: userId,
+                    stolen: stolenAmount,
+                    percentage: stealPercentage
+                });
+            }
+        }
+        
+        if (totalStolen === 0) {
+            if (channel) channel.send("💰 The monster army found no wealth to plunder!");
+            return;
+        }
+        
+        // Get monster summoners and their contributions
+        const summonerEntries = allEntries.filter(entry => entry.id.startsWith("monster_summoner_"));
+        let totalContributions = 0;
+        const summoners = [];
+        
+        for (const entry of summonerEntries) {
+            const userId = entry.id.split('_')[2];
+            const contribution = entry.value || 0;
+            if (contribution > 0) {
+                summoners.push({ userId, contribution });
+                totalContributions += contribution;
+            }
+        }
+        
+        // Distribute stolen funds to summoners
+        if (summoners.length > 0 && totalContributions > 0) {
+            for (const summoner of summoners) {
+                const share = Math.floor(totalStolen * (summoner.contribution / totalContributions));
+                await db.add(`money_${summoner.userId}`, share);
+            }
+        }
+        
+        // Clear summoner tracking for next battle
+        for (const entry of summonerEntries) {
+            await db.delete(entry.id);
+        }
+        
+        // Send results to Discord
+        if (channel) {
+            let message = `💰 **BANK RAID RESULTS** 💰\n`;
+            message += `Total stolen: **${totalStolen.toLocaleString()} kopeks**\n\n`;
+            
+            if (summoners.length > 0) {
+                message += `**Rewards distributed to monster summoners:**\n`;
+                for (const summoner of summoners) {
+                    const share = Math.floor(totalStolen * (summoner.contribution / totalContributions));
+                    const percentage = Math.round((summoner.contribution / totalContributions) * 100);
+                    message += `<@${summoner.userId}>: ${share.toLocaleString()} kopeks (${percentage}% of loot)\n`;
+                }
+            } else {
+                message += `No monster summoners found - stolen wealth vanishes into the void!\n`;
+            }
+            
+            message += `\n**Individual bank losses:**\n`;
+            for (const result of stealingResults) {
+                message += `<@${result.userId}>: -${result.stolen.toLocaleString()} kopeks (${result.percentage}%)\n`;
+            }
+            
+            channel.send(message);
+        }
+        
+    } catch (error) {
+        console.error("Error handling bank stealing:", error);
+        if (channel) channel.send("❌ Error processing bank raid!");
     }
 }
 
@@ -431,9 +535,10 @@ function calcArmy(field) {
     // Calculate the effectiveness or damage caused by the army
 }
 
-async function applyDamageToWalls(damage) {
+async function applyDamageToWalls(damage, channel) {
     try {
         let remainingDamage = damage;
+        let damageReport = [];
         
         // Damage ramparts first
         const ramparts = await db.get("rampart") || 0;
@@ -441,7 +546,7 @@ async function applyDamageToWalls(damage) {
             const rampartDamage = Math.min(remainingDamage, ramparts);
             await db.sub("rampart", rampartDamage);
             remainingDamage -= rampartDamage;
-            console.log(`Ramparts took ${rampartDamage} damage`);
+            damageReport.push(`🛡️ Ramparts: -${rampartDamage} HP`);
         }
         
         // Then damage walls
@@ -450,7 +555,7 @@ async function applyDamageToWalls(damage) {
             const wallDamage = Math.min(remainingDamage, walls);
             await db.sub("wall", wallDamage);
             remainingDamage -= wallDamage;
-            console.log(`Walls took ${wallDamage} damage`);
+            damageReport.push(`🧱 Walls: -${wallDamage} HP`);
         }
         
         // Finally damage castle
@@ -459,7 +564,11 @@ async function applyDamageToWalls(damage) {
             const castleDamage = Math.min(remainingDamage, castle);
             await db.sub("castle", castleDamage);
             remainingDamage -= castleDamage;
-            console.log(`Castle took ${castleDamage} damage`);
+            damageReport.push(`🏰 Castle: -${castleDamage} HP`);
+        }
+        
+        if (channel && damageReport.length > 0) {
+            channel.send(`💥 **Damage Report:** ${damageReport.join(", ")}`);
         }
     } catch (error) {
         console.error("Error applying damage to walls:", error);
@@ -507,5 +616,6 @@ module.exports = {
     startBattle,
     endBattle,
     endTroopContract,
+    handleBankStealing,
     lockArena
 };

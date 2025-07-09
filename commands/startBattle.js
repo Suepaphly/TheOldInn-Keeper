@@ -28,8 +28,8 @@ exports.run = async (client, message, args) => {
     message.channel.send(`⚔️ Battle commencing! ${totalMonsters} monsters are attacking the town!`);
     
     // Start the battle (this will run in background)
-    ptt.startBattle().then(() => {
-        message.channel.send("🏰 Battle has concluded! Check the console for results.");
+    ptt.startBattle(message.channel).then(() => {
+        message.channel.send("🏰 Battle has concluded!");
     }).catch(error => {
         console.error("Battle error:", error);
         message.channel.send("❌ Battle encountered an error!");
