@@ -72,8 +72,17 @@ async function startBattle(channel) {
         
         // Start the battle turns
         for (let turn = 1; turn <= 60; turn++) {
-            if (channel && turn % 10 === 1) {
-                channel.send(`--- Turn ${turn} ---`);
+            // Check if there are still monsters before each turn
+            const currentMonsters = await db.get("Monsters") || {};
+            const totalMonstersLeft = Object.values(currentMonsters).reduce((sum, count) => sum + count, 0);
+            
+            if (totalMonstersLeft === 0) {
+                if (channel) channel.send("🎉 All monsters have been defeated!");
+                break;
+            }
+            
+            if (channel && turn % 5 === 1) {
+                channel.send(`--- Turn ${turn} --- (${totalMonstersLeft} monsters remaining)`);
             }
             
             const battleResult = await attackTurn(channel);
@@ -82,7 +91,7 @@ async function startBattle(channel) {
             }
             
             // Wait between turns (reduced for testing)
-            await new Promise(resolve => setTimeout(resolve, 5000)); // 5 seconds for testing
+            await new Promise(resolve => setTimeout(resolve, 3000)); // 3 seconds for testing
         }
 
         // Conclude the battle
@@ -129,6 +138,7 @@ async function attackTurn(channel) {
         // Apply town damage to monsters (starting with weakest)
         let remainingDamage = townDamage;
         let totalKilled = 0;
+        let killReport = [];
         for (let i = 0; i < monsterArray.length && remainingDamage > 0; i++) {
             const monsterType = monsterArray[i];
             const monsterCount = monsters[monsterType];
@@ -138,8 +148,13 @@ async function attackTurn(channel) {
                     await db.sub(`Monsters.${monsterType}`, monstersKilled);
                     remainingDamage -= monstersKilled * monsterHealthArray[i];
                     totalKilled += monstersKilled;
+                    killReport.push(`${monstersKilled} ${monsterType}(s)`);
                 }
             }
+        }
+
+        if (channel && totalKilled > 0) {
+            channel.send(`⚔️ **Town strikes back!** Killed: ${killReport.join(", ")} (${townDamage} damage dealt)`);
         }
 
         // Calculate monster damage
