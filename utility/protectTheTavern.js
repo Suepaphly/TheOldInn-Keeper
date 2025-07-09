@@ -3,6 +3,10 @@ const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
 
+// Store reference to the Discord client for scheduled attacks
+let discordClient = null;
+let scheduledAttackChannel = null;
+
 const troopArray = ["town_guard", "mercenary", "soldier", "knight", "royal_guard"];
 const troopCostArray = [10, 20, 30, 50, 100];
 const troopHealthArray = [1, 5, 10, 25, 50];
@@ -761,6 +765,51 @@ async function addMonster(type, number) {
     }
 }
 
+// Function to schedule random monster attacks
+function scheduleRandomAttack() {
+    // Generate random time between 1-24 hours (in milliseconds)
+    const minHours = 1;
+    const maxHours = 24;
+    const randomHours = Math.random() * (maxHours - minHours) + minHours;
+    const randomMs = randomHours * 60 * 60 * 1000;
+    
+    console.log(`Next automatic monster attack scheduled in ${randomHours.toFixed(1)} hours`);
+    
+    setTimeout(async () => {
+        try {
+            // Check if there are monsters in the pool
+            const monsters = await db.get("Monsters") || {};
+            const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
+            
+            if (totalMonsters >= 10 && !lockArena && scheduledAttackChannel) {
+                console.log("Automatic monster attack triggered!");
+                scheduledAttackChannel.send("🌙 **AUTOMATIC MONSTER ATTACK!** The creatures of the night have grown restless and attack the town!");
+                
+                // Start the battle
+                await startBattle(scheduledAttackChannel);
+            } else {
+                console.log("Automatic attack skipped - not enough monsters or battle in progress");
+            }
+        } catch (error) {
+            console.error("Error during scheduled attack:", error);
+        }
+        
+        // Schedule the next random attack
+        scheduleRandomAttack();
+    }, randomMs);
+}
+
+// Function to initialize the monster attack scheduler
+function initializeScheduler(client, defaultChannel) {
+    discordClient = client;
+    scheduledAttackChannel = defaultChannel;
+    
+    // Start the first scheduled attack
+    scheduleRandomAttack();
+    
+    console.log("Random monster attack scheduler initialized!");
+}
+
 module.exports = {
     troopArray,
     troopCostArray,
@@ -790,5 +839,7 @@ module.exports = {
     endTroopContract,
     handleBankStealing,
     lockArena,
-    currentBattleTurn
+    currentBattleTurn,
+    initializeScheduler,
+    scheduleRandomAttack
 };

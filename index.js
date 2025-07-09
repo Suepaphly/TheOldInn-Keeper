@@ -46,6 +46,19 @@ client.on("ready", async () => {
     client.user.setActivity(config.activity.game, { type: 'WATCHING' }); // PLAYING, LISTENING, WATCHING
     client.user.setStatus('dnd'); // dnd, idle, online, invisible
   }
+  
+  // Initialize the random monster attack scheduler
+  // Find the first available text channel for attacks
+  const ptt = require("./utility/protectTheTavern.js");
+  const defaultChannel = client.channels.cache.find(channel => 
+    channel.type === 'GUILD_TEXT' && channel.permissionsFor(client.user).has('SEND_MESSAGES')
+  );
+  
+  if (defaultChannel) {
+    ptt.initializeScheduler(client, defaultChannel);
+  } else {
+    console.log("No suitable channel found for scheduled attacks");
+  }
 });
 
 client.on("messageCreate", async message => {
