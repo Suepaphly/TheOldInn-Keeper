@@ -70,8 +70,8 @@ async function startBattle(channel) {
         
         if (channel) channel.send(`⚔️ ${totalMonsters} monsters approach the town!`);
         
-        // Start the battle turns
-        for (let turn = 1; turn <= 60; turn++) {
+        // Start the battle turns (limited to 10 turns)
+        for (let turn = 1; turn <= 10; turn++) {
             // Check if there are still monsters before each turn
             const currentMonsters = await db.get("Monsters") || {};
             const totalMonstersLeft = Object.values(currentMonsters).reduce((sum, count) => sum + count, 0);
@@ -81,8 +81,9 @@ async function startBattle(channel) {
                 break;
             }
             
-            if (channel && turn % 5 === 1) {
-                channel.send(`--- Turn ${turn} --- (${totalMonstersLeft} monsters remaining)`);
+            // Show turn number every turn
+            if (channel) {
+                channel.send(`--- **Turn ${turn}/10** --- (${totalMonstersLeft} monsters remaining)`);
             }
             
             const battleResult = await attackTurn(channel);
@@ -90,8 +91,32 @@ async function startBattle(channel) {
                 break; // Stop the battle if all monsters are defeated or have breached the defenses
             }
             
-            // Wait between turns (reduced for testing)
-            await new Promise(resolve => setTimeout(resolve, 3000)); // 3 seconds for testing
+            // Check if this is the last turn - monsters retreat
+            if (turn === 10) {
+                const remainingMonsters = await db.get("Monsters") || {};
+                const remainingTotal = Object.values(remainingMonsters).reduce((sum, count) => sum + count, 0);
+                
+                if (remainingTotal > 0) {
+                    if (channel) {
+                        channel.send(`🏃‍♂️ **Monster Retreat!** ${remainingTotal} monsters flee back into the wilderness!`);
+                        channel.send("🎉 **VICTORY!** The town has successfully defended against the monster attack!");
+                    }
+                    
+                    // Clear all monsters and reset summoner claims
+                    await db.set("Monsters", {goblin: 0, mephit: 0, broodling: 0, ogre: 0, automaton: 0});
+                    
+                    // Clear monster summoner tracking (players lose claim to retreating monsters)
+                    const allEntries = await db.all();
+                    const summonerEntries = allEntries.filter(entry => entry.id.startsWith("monster_summoner_"));
+                    for (const entry of summonerEntries) {
+                        await db.delete(entry.id);
+                    }
+                }
+                break;
+            }
+            
+            // Wait between turns
+            await new Promise(resolve => setTimeout(resolve, 3000)); // 3 seconds between turns
         }
 
         // Conclude the battle
@@ -205,11 +230,7 @@ async function endBattle(channel) {
         const monsters = await db.get("Monsters") || {};
         const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
         
-        if (castle > 0 && totalMonsters === 0) {
-            if (channel) channel.send("🎉 **VICTORY!** The town has successfully defended against the monster attack!");
-            // Reset monsters for next battle
-            await db.set("Monsters", {goblin: 0, mephit: 0, broodling: 0, ogre: 0, automaton: 0});
-        } else if (castle <= 0) {
+        if (castle <= 0) {
             if (channel) channel.send("💀 **DEFEAT!** The monsters have breached the castle and conquered the town!");
             
             // Handle bank stealing
@@ -217,7 +238,11 @@ async function endBattle(channel) {
             
             // Reset defenses for rebuild
             await setupNewGame();
+        } else if (totalMonsters === 0) {
+            // Victory case is already handled in the battle loop
+            if (channel) channel.send("🎉 Town defenses held strong!");
         }
+        // Note: Monster retreat is handled in the battle loop at turn 10
         
         // Clear any remaining troop contracts
         await endTroopContract();
