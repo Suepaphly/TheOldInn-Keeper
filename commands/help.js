@@ -86,7 +86,8 @@ module.exports.run = async (client, message, args) => {
     .addFields(
       { name: "=cooldowns", value: "Check all cooldown timers", inline: true },
       { name: "=checklvl", value: "Check your skill levels", inline: true },
-      { name: "=lvl [skill]", value: "Level up skills", inline: true }
+      { name: "=lvl [skill]", value: "Level up skills", inline: true },
+      { name: "=townstatus", value: "Check town defenses & threats", inline: true }
     );
 
   // Create buttons
