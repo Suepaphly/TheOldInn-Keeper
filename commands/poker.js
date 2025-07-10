@@ -130,6 +130,17 @@ function createGameEmbed(game, title, description, showButtons = false) {
             { name: 'Bet Amount', value: `${game.betAmount} kopeks`, inline: true }
         );
     
+    // Show original hand if we're in round 2 (after draw)
+    if (game.round === 2 && game.originalHand) {
+        const originalHandString = game.originalHand.map((card, index) => {
+            const held = game.held[index] ? '🔒' : '';
+            return `${formatCard(card)} ${held}`;
+        }).join(' ');
+        embed.addFields(
+            { name: 'Original Hand', value: originalHandString, inline: false }
+        );
+    }
+    
     if (game.round === 2 && !showButtons) {
         const handRank = evaluateHand(game.hand);
         const payout = handRankings[handRank].payout * game.betAmount;
@@ -225,6 +236,7 @@ exports.run = async (client, message, args) => {
         betAmount: money,
         deck: createDeck(),
         hand: [],
+        originalHand: null,
         held: [false, false, false, false, false],
         round: 1,
         gameOver: false
@@ -265,10 +277,15 @@ exports.run = async (client, message, args) => {
                 createGameEmbed(game, "First Draw", "Select cards to hold, then draw new cards!", true)
             );
         } else if (interaction.customId === 'done_selecting') {
-            // Replace non-held cards immediately
+            // Store original hand before drawing
+            game.originalHand = [...game.hand];
+            
+            // Replace non-held cards (if user didn't hold all 5)
+            let cardsReplaced = 0;
             for (let i = 0; i < 5; i++) {
                 if (!game.held[i]) {
                     game.hand[i] = game.deck.pop();
+                    cardsReplaced++;
                 }
             }
             
@@ -283,9 +300,9 @@ exports.run = async (client, message, args) => {
                 await db.add(`money_${game.userId}`, payout);
             }
             
-            const resultDescription = payout > 0 ? 
-                `🎉 You won ${payout} kopeks with ${handRank}!` : 
-                `💸 No winning hand. Better luck next time!`;
+            const resultDescription = cardsReplaced === 0 ? 
+                `🔒 You held all 5 cards! ${payout > 0 ? `🎉 You won ${payout} kopeks with ${handRank}!` : `💸 No winning hand. Better luck next time!`}` :
+                `🔄 Drew ${cardsReplaced} new card${cardsReplaced === 1 ? '' : 's'}! ${payout > 0 ? `🎉 You won ${payout} kopeks with ${handRank}!` : `💸 No winning hand. Better luck next time!`}`;
             
             await interaction.update(
                 createGameEmbed(game, "Final Result", resultDescription, false)
