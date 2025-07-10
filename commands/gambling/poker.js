@@ -85,22 +85,53 @@ function generateOptimalWildCombinations(cards) {
     const nonAceSuits = nonAces.map(c => c.suit);
     const nonAceValues = nonAces.map(c => c.value).sort((a, b) => a - b);
     
-    // Strategy 1: Try to make pairs/trips/quads with existing ranks
+    // Strategy 1: Try to make pairs/trips/quads with existing non-ace ranks
     for (const rank of nonAceRanks) {
-        for (let i = 1; i <= aceCount; i++) {
+        // Try making pairs, three of a kind, four of a kind, etc.
+        for (let acesToUse = 1; acesToUse <= Math.min(aceCount, 4); acesToUse++) {
             const newHand = [...nonAces];
-            for (let j = 0; j < i; j++) {
+            
+            // Use some aces to match this rank
+            for (let j = 0; j < acesToUse; j++) {
                 newHand.push({ rank, suit: suits[j % 4], value: rankValues[rank] });
             }
-            // Fill remaining aces with different ranks
-            const remaining = aceCount - i;
-            for (let k = 0; k < remaining; k++) {
-                const fillRank = ranks[(ranks.indexOf(rank) + k + 1) % ranks.length];
+            
+            // Fill remaining aces with high cards or different ranks
+            const remainingAces = aceCount - acesToUse;
+            const usedRanks = new Set(newHand.map(c => c.rank));
+            
+            for (let k = 0; k < remainingAces; k++) {
+                // Try to fill with high cards that don't interfere
+                let fillRank = 'K';
+                if (usedRanks.has('K')) fillRank = 'Q';
+                if (usedRanks.has('Q')) fillRank = 'J';
+                if (usedRanks.has('J')) fillRank = '10';
+                
                 newHand.push({ rank: fillRank, suit: suits[k % 4], value: rankValues[fillRank] });
+                usedRanks.add(fillRank);
             }
+            
             if (newHand.length === 5) {
                 combinations.add(JSON.stringify(newHand.sort((a, b) => a.value - b.value)));
             }
+        }
+    }
+    
+    // Strategy 1b: Try using aces as natural aces to make ace pairs/trips
+    if (aceCount >= 2) {
+        const newHand = [...nonAces];
+        // Keep some aces as aces
+        for (let i = 0; i < Math.min(aceCount, 4); i++) {
+            newHand.push({ rank: 'A', suit: suits[i % 4], value: 14 });
+        }
+        
+        // Fill remaining slots with high cards
+        while (newHand.length < 5) {
+            newHand.push({ rank: 'K', suit: '♠', value: 13 });
+        }
+        
+        if (newHand.length === 5) {
+            combinations.add(JSON.stringify(newHand.sort((a, b) => a.value - b.value)));
         }
     }
     
