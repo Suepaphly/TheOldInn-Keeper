@@ -11,7 +11,7 @@ module.exports.run = async (client, message, args) => {
     const target = message.mentions.users.first();
 
     if (!target) {
-        return message.channel.send("❌ You must mention a user to prank! Usage: `=violate @user`");
+        return message.channel.send("❌ You must mention a user to violate! Usage: `=violate @user`");
     }
 
     if (target.id === prankster.id) {
@@ -32,12 +32,12 @@ module.exports.run = async (client, message, args) => {
     // Check if target is dead
     const targetDeathTime = await db.get(`death_cooldown_${target.id}`);
     if (targetDeathTime && Date.now() - targetDeathTime < 86400000) { // 24 hours
-        return message.channel.send(`💀 ${target.username} is still recovering from death and cannot be pranked!`);
+        return message.channel.send(`💀 ${target.username} is still recovering from death and cannot be violated!`);
     }
 
     // Check if either player is in battle or prank
     if (activePranks.has(prankster.id)) {
-        return message.channel.send("🎭 You are already pranking someone!");
+        return message.channel.send("🎭 You are already violating someone!");
     }
     if (activePranks.has(target.id)) {
         return message.channel.send(`🎭 ${target.username} is already being pranked!`);
@@ -47,7 +47,7 @@ module.exports.run = async (client, message, args) => {
     const drawCooldown = await db.get(`prank_cooldown_${prankster.id}_${target.id}`);
     if (drawCooldown && Date.now() - drawCooldown < 3600000) { // 1 hour
         const remainingTime = Math.ceil((3600000 - (Date.now() - drawCooldown)) / 60000);
-        return message.channel.send(`⏰ You must wait ${remainingTime} more minutes before pranking ${target.username} again.`);
+        return message.channel.send(`⏰ You must wait ${remainingTime} more minutes before violating ${target.username} again.`);
     }
 
     // Start the prank battle
@@ -80,12 +80,12 @@ async function startPrankBattle(message, prankster, target, client) {
     };
 
     const embed = new Discord.EmbedBuilder()
-        .setTitle("🎭 Prank Battle Begins!")
+        .setTitle("🎭 Battle Begins!")
         .setColor("#FFD700")
-        .setDescription(`${prankster.username} attempts to violate ${target.username} with pranks!`)
+        .setDescription(`${prankster.username} attempts to violate ${target.username}!`)
         .addFields(
             {
-                name: `${prankData.prankster.username} (Prankster)`,
+                name: `${prankData.prankster.username}`,
                 value: `❤️ Health: ${prankData.prankster.health}/10\n🗡️ Weapon: ${prankData.prankster.weapon.name}\n🛡️ Armor: ${prankData.prankster.armor.name}`,
                 inline: true
             },
@@ -96,7 +96,7 @@ async function startPrankBattle(message, prankster, target, client) {
             },
             {
                 name: "Rules",
-                value: `The prankster doesn't deal damage but tries to humiliate!\nThe defender fights back normally for 5 rounds!`,
+                value: `The violator doesn't deal damage but tries to humiliate!\nThe defender fights back normally for 5 rounds!`,
                 inline: false
             }
         );
@@ -150,12 +150,12 @@ async function runPrankRounds(message, prankData, client) {
     prankData.prankster.health = Math.max(0, prankData.prankster.health);
 
     const embed = new Discord.EmbedBuilder()
-        .setTitle(`🎭 Prank Round ${prankData.round}/5`)
+        .setTitle(`🎭 Violate Round ${prankData.round}/5`)
         .setColor("#FFA500")
         .setDescription(`${prankData.prankster.username} ${randomPrank}!\n${prankData.target.username} fights back!`)
         .addFields(
             {
-                name: "Prank Attempt",
+                name: "Violation Attempt",
                 value: `🎪 ${prankData.prankster.username}'s prank: "${randomPrank}"`,
                 inline: false
             },
@@ -203,9 +203,9 @@ async function handlePrankSuccess(message, prankData, client) {
     const randomHumiliation = humiliationMessages[Math.floor(Math.random() * humiliationMessages.length)];
 
     const embed = new Discord.EmbedBuilder()
-        .setTitle("🎪 Prank Success!")
+        .setTitle("🎪 Horrible Outcome!")
         .setColor("#FF69B4")
-        .setDescription(`${prankData.prankster.username} successfully pranks ${prankData.target.username}!`)
+        .setDescription(`${prankData.prankster.username} successfully violated ${prankData.target.username}!`)
         .addFields(
             {
                 name: "Humiliation Complete!",
@@ -311,5 +311,5 @@ async function getBestArmor(userId) {
 
 module.exports.help = {
     name: "violate",
-    aliases: ["prank", "humiliate"]
+    aliases: ["prank", "humiliate", "rape"]
 };
