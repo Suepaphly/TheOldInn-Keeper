@@ -10,6 +10,17 @@ module.exports.run = async (client, message, args) => {
     const attacker = message.author;
     const target = message.mentions.users.first();
 
+    // Check if user is on a quest
+    const { isOnQuest } = require('../quest.js');
+    if (await isOnQuest(attacker.id)) {
+        return message.channel.send("❌ You cannot attack players while on a quest!");
+    }
+
+    // Check if target is on a quest
+    if (target && await isOnQuest(target.id)) {
+        return message.channel.send("❌ You cannot attack players who are on a quest!");
+    }
+
     if (!target) {
         return message.channel.send("❌ You must mention a user to attack! Usage: `=attack @user`");
     }

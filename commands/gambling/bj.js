@@ -1,4 +1,3 @@
-
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
@@ -14,7 +13,13 @@ exports.run = async (client, message, args) => {
     }
 
     const userId = message.author.id;
-    
+
+    // Check if user is on a quest
+    const { isOnQuest } = require('../quest.js');
+    if (await isOnQuest(userId)) {
+        return message.channel.send("❌ You cannot gamble while on a quest!");
+    }
+
     // Check if user already has an active game
     if (activeGames.has(userId)) {
         return message.channel.send(`❌ <@${message.author.id}>, you already have an active blackjack game! Finish it before starting a new one.`);

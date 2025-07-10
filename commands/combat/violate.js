@@ -6,8 +6,19 @@ const Discord = require("discord.js");
 const activePranks = new Map();
 
 module.exports.run = async (client, message, args) => {
-    const prankster = message.author;
+    const user = message.author;
     const target = message.mentions.users.first();
+
+    // Check if user is on a quest
+    const { isOnQuest } = require('../quest.js');
+    if (await isOnQuest(user.id)) {
+        return message.channel.send("❌ You cannot violate players while on a quest!");
+    }
+
+    // Check if target is on a quest
+    if (target && await isOnQuest(target.id)) {
+        return message.channel.send("❌ You cannot violate players who are on a quest!");
+    }
 
     if (!target) {
         return message.channel.send(
@@ -15,7 +26,7 @@ module.exports.run = async (client, message, args) => {
         );
     }
 
-    if (target.id === prankster.id) {
+    if (target.id === user.id) {
         return message.channel.send("❌ You cannot prank yourself!");
     }
 
@@ -24,7 +35,7 @@ module.exports.run = async (client, message, args) => {
     }
 
     // Check if prankster is dead
-    const pranksterDeathTime = await db.get(`death_cooldown_${prankster.id}`);
+    const pranksterDeathTime = await db.get(`death_cooldown_${user.id}`);
     if (pranksterDeathTime && Date.now() - pranksterDeathTime < 86400000) {
         // 24 hours
         const remainingTime = Math.ceil(
@@ -50,7 +61,7 @@ module.exports.run = async (client, message, args) => {
     }
 
     // Check if either player is in battle or prank
-    if (activePranks.has(prankster.id)) {
+    if (activePranks.has(user.id)) {
         return message.channel.send("🎭 You are already violating someone!");
     }
     if (activePranks.has(target.id)) {
@@ -61,7 +72,7 @@ module.exports.run = async (client, message, args) => {
 
     // Check draw cooldown
     const drawCooldown = await db.get(
-        `prank_cooldown_${prankster.id}_${target.id}`,
+        `prank_cooldown_${user.id}_${target.id}`,
     );
     if (drawCooldown && Date.now() - drawCooldown < 3600000) {
         // 1 hour
@@ -74,7 +85,7 @@ module.exports.run = async (client, message, args) => {
     }
 
     // Start the prank battle
-    await startPrankBattle(message, prankster, target, client);
+    await startPrankBattle(message, user, target, client);
 };
 
 async function startPrankBattle(message, prankster, target, client) {

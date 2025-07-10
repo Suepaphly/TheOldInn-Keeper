@@ -1,15 +1,22 @@
-
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const ptt = require("../../utility/protectTheTavern.js");
 module.exports.run = async (client, message, args) => {
+
+    let user = message.author;
+
+    // Check if user is on a quest
+    const { isOnQuest } = require('../quest.js');
+    if (await isOnQuest(user.id)) {
+        return message.channel.send("❌ You cannot beg while on a quest!");
+    }
+
     // Check if town is under attack
     if (ptt.lockArena) {
         return message.channel.send("⚔️ The town is under attack! All civilian activities are suspended until the battle ends.");
     }
 
-    const user = message.author;
     const stimmy = require("./stimmy.js");
     const activeStimulus = stimmy.getActiveStimulus();
 
@@ -38,7 +45,7 @@ module.exports.run = async (client, message, args) => {
 
     // Give reward
     await db.add(`money_${user.id}`, activeStimulus.individualReward);
-    
+
     // Update stimulus state
     activeStimulus.claimedUsers.push(user.id);
     activeStimulus.remainingSlots--;
