@@ -813,7 +813,48 @@ function initializeScheduler(client, defaultChannel) {
     // Start the first scheduled attack
     scheduleRandomAttack();
     
+    // Initialize automatic monster spawning
+    initializeMonsterSpawning();
+    
     console.log("Random monster attack scheduler initialized!");
+}
+
+// Function to initialize automatic monster spawning
+function initializeMonsterSpawning() {
+    // Convert milliseconds to cron expressions and start spawning
+    for (let i = 0; i < monsterArray.length; i++) {
+        const monsterType = monsterArray[i];
+        const intervalMs = monsterTimeArray[i];
+        
+        // Convert milliseconds to minutes for cron
+        const intervalMinutes = Math.floor(intervalMs / 60000);
+        
+        // Create cron expression for the interval
+        let cronExpression;
+        if (intervalMinutes >= 60) {
+            const hours = Math.floor(intervalMinutes / 60);
+            cronExpression = `0 */${hours} * * *`; // Every X hours
+        } else {
+            cronExpression = `*/${intervalMinutes} * * * *`; // Every X minutes
+        }
+        
+        // Schedule the monster spawning
+        cron.schedule(cronExpression, async () => {
+            try {
+                console.log(`Automatic spawn: Adding 1 ${monsterType}`);
+                await addMonster(monsterType, 1);
+                
+                // Notify the channel if available
+                if (scheduledAttackChannel) {
+                    scheduledAttackChannel.send(`🌟 A wild ${monsterType} has appeared and joined the monster army!`);
+                }
+            } catch (error) {
+                console.error(`Error spawning ${monsterType}:`, error);
+            }
+        });
+        
+        console.log(`Automatic ${monsterType} spawning scheduled every ${intervalMinutes} minutes`);
+    }
 }
 
 module.exports = {
@@ -831,6 +872,7 @@ module.exports = {
     monsterCostArray,
     monsterHealthArray,
     monsterDmgArray,
+    monsterTimeArray,
     buyArmy,
     buyTrap,
     buyWall,
