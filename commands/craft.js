@@ -71,13 +71,21 @@ module.exports.run = async (client, message, args) => {
         }
 
         if (!args[0]) {
-            message.channel.send(
-                `**CRAFTING MINIGAME:** - :tools:\n${member}, you crafted a ${
-                    fisharray[fishresult[0]][fishresult[1]]
-                } and earned \`${fishresult[2]}\` kopeks.`,
-            );
-            await db.add(`money_${user.id}`, fishresult[2]);
-            db.set(`craft_${user.id}`, Date.now());
+            // Validate fishresult to prevent undefined errors
+            if (fishresult && fishresult.length >= 3 && 
+                fishresult[0] >= 0 && fishresult[0] < fisharray.length &&
+                fishresult[1] >= 0 && fishresult[1] < fisharray[fishresult[0]].length) {
+                
+                message.channel.send(
+                    `**CRAFTING MINIGAME:** - :tools:\n${member}, you crafted a ${
+                        fisharray[fishresult[0]][fishresult[1]]
+                    } and earned \`${fishresult[2]}\` kopeks.`,
+                );
+                await db.add(`money_${user.id}`, fishresult[2]);
+                db.set(`craft_${user.id}`, Date.now());
+            } else {
+                message.channel.send(`**CRAFTING MINIGAME:** - :tools:\n${member}, something went wrong with your crafting attempt!`);
+            }
         }
     }
 };

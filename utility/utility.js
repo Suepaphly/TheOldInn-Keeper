@@ -68,6 +68,7 @@ function skillMinigame (type, userlevel) {
      else if(choose <= upper[1] && choose >= lower[1]) { choose = 1; min = reward[0]; max = reward[1];  }
      else if(choose <= upper[2] && choose >= lower[2]) { choose = 2; min = reward[1]; max = reward[2];  }
      else if(choose <= upper[3] && choose >= lower[3]) { choose = 3; min = reward[2]; max = reward[3];  }
+     else { choose = 0; min = 0; max = reward[0]; } // Default fallback
 
      let amount = Math.floor(Math.random() * ( max - min ) + 1 + min); //choose reward amount
  
