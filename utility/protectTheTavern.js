@@ -884,8 +884,8 @@ module.exports = {
     endBattle,
     endTroopContract,
     handleBankStealing,
-    lockArena,
-    currentBattleTurn,
+    get lockArena() { return lockArena; },
+    get currentBattleTurn() { return currentBattleTurn; },
     initializeScheduler,
     scheduleRandomAttack
 };
