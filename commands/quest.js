@@ -201,6 +201,9 @@ const trolleyScenarios = [
 ];
 
 module.exports.run = async (client, message, args) => {
+    // Quest command is temporarily disabled
+    return message.channel.send("🚧 The quest system is temporarily disabled for maintenance. Please try again later!");
+    
     const userId = message.author.id;
 
     // Check for debug mode (owner only) - Replace '217069557263286273' with your actual Discord user ID

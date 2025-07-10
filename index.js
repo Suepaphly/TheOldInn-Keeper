@@ -32,6 +32,12 @@ commandDirs.forEach(dir => {
     let jsfile = files.filter(f => f.split(".").pop() === "js");
     
     jsfile.forEach((f, i) => {
+      // Skip loading quest.js - command temporarily disabled
+      if (f === 'quest.js') {
+        console.log(`${f} DISABLED - skipped loading from ${dir}!`);
+        return;
+      }
+      
       let props = require(`${dir}${f}`);
       console.log(`${f} loaded from ${dir}!`);
       client.commands.set(props.help.name, props);
