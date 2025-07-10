@@ -25,10 +25,11 @@ exports.run = async (client, message, args) => {
     // Deduct the cost
     await db.sub(`money_${user.id}`, cost);
 
-    // Reset the automatic attack timer by scheduling the next attack immediately
-    ptt.scheduleRandomAttack(0); // 0 milliseconds = immediate
-    
+    // Start the battle immediately
     message.channel.send(`⚡ **${user.username} pays ${cost} kopeks to force an immediate battle!** The monster army of ${totalMonsters} creatures attacks now!`);
+    
+    // Start the battle directly
+    await ptt.startBattle(message.channel);
 };
 
 module.exports.help = {
