@@ -19,6 +19,40 @@ module.exports.run = async (client, message, args) => {
     )
     .setFooter({ text: "The Tavernkeeper thanks you for playing! 🍺" });
 
+  // How to Play embed
+  const howToPlayEmbed = new EmbedBuilder()
+    .setTitle("🎮 HOW TO PLAY - PROTECT THE TAVERN")
+    .setColor("#FFD700")
+    .setDescription("**Welcome to Protect the Tavern!** A cooperative defense game where players work together to defend their town from monster attacks.")
+    .addFields(
+      { 
+        name: "🎯 Game Objective", 
+        value: "Work with other players to build defenses and survive monster invasions. Monsters attack automatically and players must cooperate to defend the town!", 
+        inline: false 
+      },
+      { 
+        name: "🏰 Town Defenses", 
+        value: "• **Walls**: rampart (100k), wall (500k), castle (5000k)\n• **Troops**: Hired defenders (dismissed after each battle)\n• **Traps**: Permanent defenses that fire when walls breach\n• Use `=buy` command to purchase defenses", 
+        inline: false 
+      },
+      { 
+        name: "⚔️ Battles & Combat", 
+        value: "• Monsters spawn automatically and attack every few hours\n• Battles start when 50+ monsters gather\n• Players can `=attack` once per turn during battles\n• Defeating monsters grants kopek rewards based on combat skill\n• If defenses fail, monsters rob the town!", 
+        inline: false 
+      },
+      { 
+        name: "💰 Earning Kopeks", 
+        value: "• **Activities**: gather, hunt, fish, craft, work (all have cooldowns)\n• **Gambling**: blackjack, craps, slots\n• **Combat**: Slay monsters for bounties\n• **Banking**: Keep kopeks safe from monster raids\n• Level up skills for better rewards!", 
+        inline: false 
+      },
+      { 
+        name: "📚 Need More Details?", 
+        value: "Use the other help buttons to see specific commands for each category. Check `=map` for current threats and `=townstatus` for defense status!", 
+        inline: false 
+      }
+    )
+    .setFooter({ text: "Good luck, defender! The town is counting on you! 🛡️" });
+
   // Economy embed
   const economyEmbed = new EmbedBuilder()
     .setTitle("💰 ECONOMY COMMANDS")
@@ -98,17 +132,21 @@ module.exports.run = async (client, message, args) => {
         .setLabel('🏠 Home')
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
+        .setCustomId('howtoplay')
+        .setLabel('🎮 How to Play')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
         .setCustomId('economy')
         .setLabel('💰 Economy')
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId('earning')
-        .setLabel('⚔️ Earning')
         .setStyle(ButtonStyle.Success)
     );
 
   const row2 = new ActionRowBuilder()
     .addComponents(
+      new ButtonBuilder()
+        .setCustomId('earning')
+        .setLabel('⚔️ Earning')
+        .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId('gambling')
         .setLabel('🎲 Gambling')
@@ -116,25 +154,26 @@ module.exports.run = async (client, message, args) => {
       new ButtonBuilder()
         .setCustomId('defense')
         .setLabel('🏰 Defense')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId('combat')
-        .setLabel('⚡ Combat')
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Primary)
     );
 
   const row3 = new ActionRowBuilder()
     .addComponents(
+      new ButtonBuilder()
+        .setCustomId('combat')
+        .setLabel('⚡ Combat')
+        .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
         .setCustomId('status')
         .setLabel('📊 Status')
         .setStyle(ButtonStyle.Secondary)
     );
 
-  // Send message with buttons
-  const helpMessage = await message.channel.send({ 
+  // Send message with buttons (ephemeral - only visible to command user)
+  const helpMessage = await message.reply({ 
     embeds: [mainEmbed], 
-    components: [row1, row2, row3] 
+    components: [row1, row2, row3],
+    ephemeral: false // Note: reply() to message makes it contextual to the user
   });
 
   // Create button collector
@@ -146,6 +185,9 @@ module.exports.run = async (client, message, args) => {
     switch (interaction.customId) {
       case 'home':
         embed = mainEmbed;
+        break;
+      case 'howtoplay':
+        embed = howToPlayEmbed;
         break;
       case 'economy':
         embed = economyEmbed;
