@@ -114,10 +114,9 @@ module.exports.run = async (client, message, args) => {
         await message.channel.send({ embeds: [betEmbed] });
     }
 
-    // Reset timer if this is the first bet of the round
-    if (global.rouletteGame.bets.length === 1 && global.rouletteGame.timer) {
-        clearTimeout(global.rouletteGame.timer);
-        // The timer will be reset in the main roulette module
+    // Reset timing when a bet is placed (extends the betting period)
+    if (global.rouletteGame.bets.length === 1) {
+        global.rouletteGame.roundStartTime = Date.now();
     }
 };
 

@@ -5,6 +5,7 @@ const {
     ButtonStyle,
 } = require("discord.js");
 const { QuickDB } = require("quick.db");
+const cron = require("node-cron");
 const db = new QuickDB();
 
 // Global roulette game state
@@ -14,8 +15,10 @@ if (!global.rouletteGame) {
         bets: [],
         channel: null,
         timer: null,
+        cronJob: null,
         turnCount: 0,
         lastNumbers: [],
+        roundStartTime: null,
     };
 }
 
@@ -141,6 +144,8 @@ function isValidBet(betType) {
 }
 
 async function startBettingRound() {
+    global.rouletteGame.roundStartTime = Date.now();
+    
     const embed = new EmbedBuilder()
         .setTitle("🎰 ROULETTE - PLACE YOUR BETS!")
         .setColor("#FF6B6B")
@@ -164,21 +169,39 @@ async function startBettingRound() {
 
     await global.rouletteGame.channel.send({ embeds: [embed] });
 
-    global.rouletteGame.timer = setTimeout(async () => {
-        if (global.rouletteGame.bets.length === 0) {
-            global.rouletteGame.turnCount++;
-            if (global.rouletteGame.turnCount >= 2) {
-                await endGame("No bets were placed. Roulette game ended.");
-            } else {
-                await lastCallForBets();
-            }
-        } else {
-            await spinWheel();
+    // Start a cron job that runs every second to check timing
+    global.rouletteGame.cronJob = cron.schedule('* * * * * *', async () => {
+        if (!global.rouletteGame.active || !global.rouletteGame.roundStartTime) {
+            return;
         }
-    }, 15000);
+
+        const elapsed = Date.now() - global.rouletteGame.roundStartTime;
+        
+        if (elapsed >= 15000) { // 15 seconds have passed
+            global.rouletteGame.cronJob.stop();
+            global.rouletteGame.cronJob.destroy();
+            global.rouletteGame.cronJob = null;
+            
+            if (global.rouletteGame.bets.length === 0) {
+                global.rouletteGame.turnCount++;
+                if (global.rouletteGame.turnCount >= 2) {
+                    await endGame("No bets were placed. Roulette game ended.");
+                } else {
+                    await lastCallForBets();
+                }
+            } else {
+                await spinWheel();
+            }
+        }
+    }, {
+        scheduled: true,
+        timezone: "UTC"
+    });
 }
 
 async function lastCallForBets() {
+    global.rouletteGame.roundStartTime = Date.now();
+    
     const embed = new EmbedBuilder()
         .setTitle("🎰 ROULETTE - LAST CALL!")
         .setColor("#FFA500")
@@ -189,13 +212,28 @@ async function lastCallForBets() {
 
     await global.rouletteGame.channel.send({ embeds: [embed] });
 
-    global.rouletteGame.timer = setTimeout(async () => {
-        if (global.rouletteGame.bets.length === 0) {
-            await endGame("No bets were placed. Roulette game ended.");
-        } else {
-            await spinWheel();
+    global.rouletteGame.cronJob = cron.schedule('* * * * * *', async () => {
+        if (!global.rouletteGame.active || !global.rouletteGame.roundStartTime) {
+            return;
         }
-    }, 15000);
+
+        const elapsed = Date.now() - global.rouletteGame.roundStartTime;
+        
+        if (elapsed >= 15000) { // 15 seconds have passed
+            global.rouletteGame.cronJob.stop();
+            global.rouletteGame.cronJob.destroy();
+            global.rouletteGame.cronJob = null;
+            
+            if (global.rouletteGame.bets.length === 0) {
+                await endGame("No bets were placed. Roulette game ended.");
+            } else {
+                await spinWheel();
+            }
+        }
+    }, {
+        scheduled: true,
+        timezone: "UTC"
+    });
 }
 
 async function spinWheel() {
@@ -207,8 +245,19 @@ async function spinWheel() {
 
     await global.rouletteGame.channel.send({ embeds: [noMoreBetsEmbed] });
 
-    // Simulate wheel spinning delay
-    setTimeout(async () => {
+    // Simulate wheel spinning delay with cron
+    global.rouletteGame.roundStartTime = Date.now();
+    global.rouletteGame.cronJob = cron.schedule('* * * * * *', async () => {
+        if (!global.rouletteGame.active || !global.rouletteGame.roundStartTime) {
+            return;
+        }
+
+        const elapsed = Date.now() - global.rouletteGame.roundStartTime;
+        
+        if (elapsed >= 3000) { // 3 seconds spinning delay
+            global.rouletteGame.cronJob.stop();
+            global.rouletteGame.cronJob.destroy();
+            global.rouletteGame.cronJob = null;
         const winningNumber = Math.floor(Math.random() * 37); // 0-36
         const color = rouletteWheel[winningNumber];
 
@@ -285,12 +334,21 @@ async function spinWheel() {
 
         await global.rouletteGame.channel.send({ embeds: [resultEmbed] });
         await endGame();
-    }, 3000);
+        }
+    }, {
+        scheduled: true,
+        timezone: "UTC"
+    });
 }
 
 async function endGame(message = null) {
     if (global.rouletteGame.timer) {
         clearTimeout(global.rouletteGame.timer);
+    }
+    
+    if (global.rouletteGame.cronJob) {
+        global.rouletteGame.cronJob.stop();
+        global.rouletteGame.cronJob.destroy();
     }
 
     const channel = global.rouletteGame.channel;
@@ -299,7 +357,9 @@ async function endGame(message = null) {
     global.rouletteGame.bets = [];
     global.rouletteGame.channel = null;
     global.rouletteGame.timer = null;
+    global.rouletteGame.cronJob = null;
     global.rouletteGame.turnCount = 0;
+    global.rouletteGame.roundStartTime = null;
 
     if (message && channel) {
         const endEmbed = new EmbedBuilder()
@@ -331,8 +391,10 @@ module.exports.run = async (client, message, args) => {
                 bets: [],
                 channel: null,
                 timer: null,
+                cronJob: null,
                 turnCount: 0,
                 lastNumbers: [],
+                roundStartTime: null,
             };
         }
 
