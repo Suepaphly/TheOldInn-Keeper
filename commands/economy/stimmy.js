@@ -2,13 +2,13 @@
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
+const ptt = require("../../utility/protectTheTavern.js");
 
 // Global stimulus state
 let activeStimulus = null;
 
 module.exports.run = async (client, message, args) => {
     // Check if town is under attack
-    const ptt = require("../utility/protectTheTavern.js");
     if (ptt.lockArena) {
         return message.channel.send("⚔️ The town is under attack! All civilian activities are suspended until the battle ends.");
     }

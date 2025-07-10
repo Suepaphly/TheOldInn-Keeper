@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
+const ptt = require("../../utility/protectTheTavern.js");
 
 // Import roulette game state (this will be shared)
 const rouletteModule = require('./roulette.js');
@@ -20,7 +21,6 @@ function isValidBet(betType) {
 
 module.exports.run = async (client, message, args) => {
     // Check if town is under attack
-    const ptt = require("../utility/protectTheTavern.js");
     if (ptt.lockArena) {
         return message.channel.send("⚔️ The town is under attack! All civilian activities are suspended until the battle ends.");
     }
