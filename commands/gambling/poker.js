@@ -45,19 +45,29 @@ function shuffleDeck(deck) {
 
 function evaluateHand(cards) {
     const aceCount = cards.filter(card => card.rank === 'A').length;
-    const nonAces = cards.filter(card => card.rank !== 'A');
 
-    // Generate all possible hands by replacing aces with other cards
-    const allPossibleHands = generateAceWildCombinations(cards, aceCount);
+    // First check the natural hand (including ace pairs)
+    const naturalResult = evaluateNaturalHand(cards);
+    let bestHand = naturalResult;
+    let bestRank = handRankings[naturalResult].rank;
 
-    let bestHand = 'High Card';
-    let bestRank = 0;
+    // If we have aces, check if using them as wild cards gives a better result
+    if (aceCount > 0) {
+        // Special case: if we have a pair of aces, that's already three of a kind with aces wild
+        if (aceCount >= 2) {
+            bestHand = 'Three of a Kind';
+            bestRank = handRankings['Three of a Kind'].rank;
+        }
 
-    for (const hand of allPossibleHands) {
-        const result = evaluateNaturalHand(hand);
-        if (handRankings[result].rank > bestRank) {
-            bestRank = handRankings[result].rank;
-            bestHand = result;
+        // Try other wild card combinations
+        const allPossibleHands = generateAceWildCombinations(cards, aceCount);
+
+        for (const hand of allPossibleHands) {
+            const result = evaluateNaturalHand(hand);
+            if (handRankings[result].rank > bestRank) {
+                bestRank = handRankings[result].rank;
+                bestHand = result;
+            }
         }
     }
 
@@ -110,7 +120,7 @@ function generateAceWildCombinations(cards, aceCount) {
         // Try to complete straights
         for (let aceIdx = 0; aceIdx < aceCount; aceIdx++) {
             const testHand = [...nonAces];
-            
+
             // Try values that could complete straights
             const testValues = [1, 14]; // Ace low and high
             for (let i = 0; i < values.length; i++) {
@@ -119,7 +129,7 @@ function generateAceWildCombinations(cards, aceCount) {
                     if (gap === 2) testValues.push(values[i] + 1);
                 }
             }
-            
+
             // Also try values around existing cards
             values.forEach(v => {
                 testValues.push(v - 1, v + 1);
@@ -137,7 +147,7 @@ function generateAceWildCombinations(cards, aceCount) {
                     }
                 }
             }
-            
+
             if (testHand.length === 5) {
                 smartCombinations.push(testHand);
             }
