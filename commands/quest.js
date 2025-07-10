@@ -57,6 +57,56 @@ const riddles = [
         question: "I am not alive, but I grow. I don't have lungs, but I need air. What am I?",
         options: ["A plant", "Fire", "A balloon"],
         correct: 1
+    },
+    {
+        question: "What has keys but no locks, space but no room, and you can enter but not go inside?",
+        options: ["A piano", "A keyboard", "A house"],
+        correct: 1
+    },
+    {
+        question: "I am tall when I am young, and short when I am old. What am I?",
+        options: ["A tree", "A candle", "A person"],
+        correct: 1
+    },
+    {
+        question: "What gets wetter the more it dries?",
+        options: ["A sponge", "A towel", "Rain"],
+        correct: 1
+    },
+    {
+        question: "I have a head and a tail, but no body. What am I?",
+        options: ["A snake", "A coin", "A comet"],
+        correct: 1
+    },
+    {
+        question: "What can travel around the world while staying in a corner?",
+        options: ["A stamp", "A spider", "Light"],
+        correct: 0
+    },
+    {
+        question: "I am always hungry and will die if not fed, but whatever I touch will soon turn red. What am I?",
+        options: ["A vampire", "Fire", "Rust"],
+        correct: 1
+    },
+    {
+        question: "What has many teeth but cannot bite?",
+        options: ["A shark", "A comb", "A saw"],
+        correct: 1
+    },
+    {
+        question: "I am light as a feather, yet the strongest person cannot hold me for much longer than a minute. What am I?",
+        options: ["Air", "Your breath", "A thought"],
+        correct: 1
+    },
+    {
+        question: "What breaks but never falls, and what falls but never breaks?",
+        options: ["Dawn and night", "Glass and rain", "Silence and tears"],
+        correct: 0
+    },
+    {
+        question: "I have no beginning, end, or middle. What am I?",
+        options: ["A circle", "Time", "Space"],
+        correct: 0
     }
 ];
 
