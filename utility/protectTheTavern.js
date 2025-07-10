@@ -592,10 +592,6 @@ async function endTroopContract() {
     }
 }
 
-function getPlayerAttack() {
-    // Adds and returns all the player attacks for the turn
-}
-
 async function calculateTownDamage() {
     try {
         let totalDamage = 0;
