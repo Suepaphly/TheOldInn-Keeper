@@ -9,7 +9,26 @@ module.exports.run = async (client, message, args) => {
     const member = message.guild.members.cache.get(user.id);
     
     if (!args[0] || !args[1]) {
-        return message.channel.send("❌ Usage: `=summon [monster_type] [amount]`\nMonster types: goblin, mephit, broodling, ogre, automaton");
+        let helpMessage = "👹 **MONSTER SUMMONING GUIDE** 👹\n\n";
+        helpMessage += "**Usage:** `=summon [monster_type] [amount]`\n";
+        helpMessage += "**Max amount per summon:** 20\n\n";
+        helpMessage += "**Available Monsters:**\n";
+        
+        for (let i = 0; i < ptt.monsterArray.length; i++) {
+            const monsterType = ptt.monsterArray[i];
+            const cost = ptt.monsterCostArray[i];
+            const health = ptt.monsterHealthArray[i];
+            const damage = ptt.monsterDmgArray[i];
+            
+            helpMessage += `• **${monsterType.charAt(0).toUpperCase() + monsterType.slice(1)}** - ${cost} kopeks\n`;
+            helpMessage += `  ❤️ Health: ${health} | ⚔️ Damage: ${damage}\n\n`;
+        }
+        
+        helpMessage += "**Examples:**\n";
+        helpMessage += "`=summon goblin 5` - Summon 5 goblins\n";
+        helpMessage += "`=summon ogre 2` - Summon 2 ogres";
+        
+        return message.channel.send(helpMessage);
     }
     
     const monsterType = args[0].toLowerCase();
