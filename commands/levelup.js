@@ -7,6 +7,41 @@ module.exports.run = async (client, message, args) => {
   const item = args[0];
   const money = await db.get(`money_${user.id}`) || 0;
 
+  // Check for reset command
+  if (item === "reset") {
+    const ownerID = ["367445249376649217"];
+    if (!ownerID.includes(message.author.id)) {
+      return message.channel.send("❌ You do not have permission to reset levels.");
+    }
+
+    const targetUser = message.mentions.members.first();
+    if (!targetUser) {
+      return message.channel.send("❌ You must mention a user to reset their levels! Usage: `=lvl reset @username`");
+    }
+
+    // Reset all skill levels to 0
+    const skills = {
+      rob: ['thieflevel', 'Robbery'],
+      gather: ['gatheringlevel', 'Gathering'],
+      fish: ['fishinglevel', 'Fishing'],
+      hunt: ['huntinglevel', 'Hunting'],
+      craft: ['craftinglevel', 'Crafting'],
+      work: ['workinglevel', 'Working'],
+      combat: ['combatlevel', 'Combat']
+    };
+
+    try {
+      for (const [skillName, [dbKey, displayName]] of Object.entries(skills)) {
+        await db.set(`${dbKey}_${targetUser.id}`, 0);
+      }
+      message.channel.send(`🔄 **Levels Reset!** All skill levels for ${targetUser.user.username} have been reset to 0.`);
+    } catch (error) {
+      console.error("Error resetting levels:", error);
+      message.channel.send("❌ An error occurred while resetting levels.");
+    }
+    return;
+  }
+
   // Skill configuration: [dbKey, displayName, baseCost, maxLevel]
   const skills = {
     rob: ['thieflevel', 'Robbery', 2000, 5],
