@@ -1,9 +1,17 @@
-
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
-exports.run = async (bot, message, args) => {
+exports.run = async (client, message, args) => {
+    // Check if town is under attack
+    const ptt = require("../utility/protectTheTavern.js");
+    if (ptt.lockArena) {
+        return message.channel.send("⚔️ The town is under attack! All civilian activities are suspended until the battle ends.");
+    }
+
+    const Discord = require("discord.js");
+    const { QuickDB } = require("quick.db");
+    const db = new QuickDB();
 
     let user = message.author;
     let money = Math.abs(parseInt(args[0]));
@@ -31,7 +39,7 @@ exports.run = async (bot, message, args) => {
 
       var numCardsPulled = 0;
       var gameOver = false;    
-    
+
       var player = {
           cards: [],
           score: 0,
@@ -183,7 +191,7 @@ exports.run = async (bot, message, args) => {
                           .setLabel('Double Down')
                           .setStyle(ButtonStyle.Success)
                   );
-              
+
               return { embeds: [gambleEmbed], components: [row] };
           } else {
               return { embeds: [gambleEmbed] };
@@ -317,7 +325,7 @@ exports.run = async (bot, message, args) => {
                   .setTitle('Game Timeout')
                   .setDescription(`**${message.author.username}**, you took too long to respond. You've lost your bet of ${money} kopeks.`)
                   .setFooter({ text: 'The Tavernkeeper thanks you for playing.' });
-              
+
               await gameMessage.edit({ embeds: [timeoutEmbed], components: [] });
           }
       });

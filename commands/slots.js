@@ -4,6 +4,15 @@ const db = new QuickDB();
 const { EmbedBuilder } = require('discord.js');
 
 module.exports.run = async (client, message, args) => {
+    // Check if town is under attack
+    const ptt = require("../utility/protectTheTavern.js");
+    if (ptt.lockArena) {
+        return message.channel.send("⚔️ The town is under attack! All civilian activities are suspended until the battle ends.");
+    }
+
+    const Discord = require("discord.js");
+    const { QuickDB } = require("quick.db");
+    const db = new QuickDB();
 
     let user = message.author;
     let moneydb = await db.get(`money_${user.id}`)

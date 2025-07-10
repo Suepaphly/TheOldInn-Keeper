@@ -3,6 +3,14 @@ const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
+    // Check if town is under attack
+    const ptt = require("../utility/protectTheTavern.js");
+    if (ptt.lockArena) {
+        return message.channel.send("⚔️ The town is under attack! All civilian activities are suspended until the battle ends.");
+    }
+
+    const { QuickDB } = require("quick.db");
+    const db = new QuickDB();
 
   // Import parse-ms dynamically
   let ms;

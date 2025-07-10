@@ -4,14 +4,19 @@ const db = new QuickDB();
 const mg = require("../utility/utility.js");
 
 module.exports.run = async (client, message, args) => {
+    // Check if town is under attack
+    const ptt = require("../utility/protectTheTavern.js");
+    if (ptt.lockArena) {
+        return message.channel.send("⚔️ The town is under attack! All civilian activities are suspended until the battle ends.");
+    }
 
-  let ms;
-  try {
-    ms = (await import("parse-ms")).default;
-  } catch (error) {
-    console.error("Failed to import parse-ms", error);
-    return;
-  }
+    let ms;
+    try {
+        ms = (await import("parse-ms")).default;
+    } catch (error) {
+        console.error("Failed to import parse-ms", error);
+        return;
+    }
 
     const member = message.mentions.members.first() || message.guild.members.cache.get(args[0]) || message.member;
     let user = message.author;
@@ -19,16 +24,16 @@ module.exports.run = async (client, message, args) => {
  let userlevel = await db.get(`workinglevel_${user.id}`)
 
     let timeout = 18000000;
-    
+
     if (author !== null && timeout - (Date.now() - author) > 0) {
         let time = ms(timeout - (Date.now() - author));
-    
-    
+
+
         message.channel.send(`**${member.user.tag}**, you already worked recently, try again in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`)
       } else {
 
 
-      
+
     let rarehunt = [
         "**:guard: (Royal Guard)**",
         "**:health_worker: (Doctor)**",
@@ -36,7 +41,7 @@ module.exports.run = async (client, message, args) => {
         "**:judge: (Judge)**",
         "**:people_wrestling: (Gladiator)**"
     ]
-    
+
     let bighunt = [
         "**:firefighter: (Firefighter)**",
         "**:pilot: (Boat Captain)**",
@@ -44,7 +49,7 @@ module.exports.run = async (client, message, args) => {
         "**:construction_worker: (Builder)**",
         "**:horse_racing: (Courier)**"
     ]
-    
+
     let hunt = [
         "**:factory_worker: (Blacksmith)**",
         "**:mechanic: (Tinkerer)**",
@@ -60,11 +65,11 @@ module.exports.run = async (client, message, args) => {
         "**:person_in_tuxedo: (Servant)**",
         "**:person_juggling: (Jester)**"
     ]
- 
+
 
    var fisharray = [trash, hunt, bighunt, rarehunt];
    var fishresult;
-       
+
    if(userlevel != null){ 
       fishresult = mg.skillMinigame("work", userlevel);
    } else {

@@ -4,6 +4,14 @@ const Discord = require("discord.js");
 const mg = require("../utility/utility.js");
 
 module.exports.run = async (client, message, args) => {
+    // Check if town is under attack
+    const ptt = require("../utility/protectTheTavern.js");
+    if (ptt.lockArena) {
+        return message.channel.send("⚔️ The town is under attack! Banking services are closed during the battle!");
+    }
+
+    const { QuickDB } = require("quick.db");
+    const db = new QuickDB();
 
   let ms;
   try {
@@ -12,7 +20,7 @@ module.exports.run = async (client, message, args) => {
     console.error("Failed to import parse-ms", error);
     return;
   }
-   
+
     let user = message.author;
     const member = message.mentions.members.first() || message.guild.members.cache.get(args[0]) || message.member;
 
@@ -37,7 +45,7 @@ module.exports.run = async (client, message, args) => {
             message.channel.send(`${user.username} Please send a valid amount of Kopeks`);
         }
     }
-  
+
  }
 
 
