@@ -126,68 +126,80 @@ async function startPlayerBattle(message, attacker, target, client) {
             }
         );
 
-    message.channel.send({ embeds: [embed] });
+    const battleMessage = await message.channel.send({ embeds: [embed] });
 
     // Start battle rounds
     setTimeout(() => {
-        runBattleRounds(message, battleData, players, 0, client);
+        runBattleRounds(message, battleData, players, 0, client, battleMessage);
     }, 3000);
 }
 
-async function runBattleRounds(message, battleData, players, currentPlayerIndex, client) {
+async function runBattleRounds(message, battleData, players, currentPlayerIndex, client, battleMessage = null) {
     if (battleData.round >= 4) {
         // Draw - both players survive
         await handleDraw(message, battleData);
         return;
     }
 
-    if (battleData.attacker.health <= 0 || battleData.target.health <= 0) {
-        // Someone died
-        await handleBattleEnd(message, battleData, client);
+    if (battleData.attacker.health <= 0) {
+        await handleBattleEnd(message, battleData, battleData.target, battleData.attacker, client);
+        return;
+    }
+
+    if (battleData.target.health <= 0) {
+        await handleBattleEnd(message, battleData, battleData.attacker, battleData.target, client);
         return;
     }
 
     battleData.round++;
+
     const currentPlayer = players[currentPlayerIndex];
     const otherPlayer = players[1 - currentPlayerIndex];
 
     // Calculate damage
-    const combatDamage = currentPlayer.combatLevel + 1; // +1 damage for each combat level
+    const combatDamage = currentPlayer.combatLevel + 1;
     const weaponDamage = Math.floor(Math.random() * (currentPlayer.weapon.maxDamage - currentPlayer.weapon.minDamage + 1)) + currentPlayer.weapon.minDamage;
     const totalDamage = combatDamage + weaponDamage;
     const finalDamage = Math.max(1, totalDamage - otherPlayer.armor.defense);
 
+    // Apply damage
     otherPlayer.health -= finalDamage;
     otherPlayer.health = Math.max(0, otherPlayer.health);
+
+    // Update battleData with new health values
+    if (currentPlayerIndex === 0) {
+        battleData.target.health = otherPlayer.health;
+    } else {
+        battleData.attacker.health = otherPlayer.health;
+    }
 
     const embed = new Discord.EmbedBuilder()
         .setTitle(`⚔️ Round ${battleData.round}/4`)
         .setColor("#FFA500")
-        .setDescription(`${currentPlayer.username} attacks ${otherPlayer.username}!`)
+        .setDescription(`${currentPlayer.username} attacks for ${finalDamage} damage!`)
         .addFields(
             {
-                name: "Attack Details",
-                value: `🗡️ Combat Damage: ${combatDamage}\n⚔️ Weapon Damage: ${weaponDamage}\n🛡️ Armor Blocked: ${Math.min(totalDamage, otherPlayer.armor.defense)}\n💥 Final Damage: ${finalDamage}`,
-                inline: false
-            },
-            {
                 name: `${battleData.attacker.username}`,
-                value: `❤️ Health: ${battleData.attacker.health}/${battleData.attacker.maxHealth}`,
+                value: `❤️ ${battleData.attacker.health}/${battleData.attacker.maxHealth}`,
                 inline: true
             },
             {
                 name: `${battleData.target.username}`,
-                value: `❤️ Health: ${battleData.target.health}/${battleData.target.maxHealth}`,
+                value: `❤️ ${battleData.target.health}/${battleData.target.maxHealth}`,
                 inline: true
             }
         );
 
-    message.channel.send({ embeds: [embed] });
+    if (battleMessage) {
+        await battleMessage.edit({ embeds: [embed] });
+    } else {
+        battleMessage = await message.channel.send({ embeds: [embed] });
+    }
 
-    // Continue battle after 5 seconds
+    // Continue battle after 3 seconds
     setTimeout(() => {
-        runBattleRounds(message, battleData, players, 1 - currentPlayerIndex, client);
-    }, 5000);
+        runBattleRounds(message, battleData, players, 1 - currentPlayerIndex, client, battleMessage);
+    }, 3000);
 }
 
 async function handleDraw(message, battleData) {

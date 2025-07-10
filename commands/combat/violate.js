@@ -131,15 +131,15 @@ async function startPrankBattle(message, prankster, target, client) {
             }
         );
 
-    message.channel.send({ embeds: [embed] });
+    const battleMessage = await message.channel.send({ embeds: [embed] });
 
     // Start prank rounds
     setTimeout(() => {
-        runPrankRounds(message, prankData, client);
+        runPrankRounds(message, prankData, client, battleMessage);
     }, 3000);
 }
 
-async function runPrankRounds(message, prankData, client) {
+async function runPrankRounds(message, prankData, client, battleMessage = null) {
     if (prankData.round >= 4) {
         // Prankster wins - target gets humiliated
         await handlePrankSuccess(message, prankData, client);
@@ -172,7 +172,7 @@ async function runPrankRounds(message, prankData, client) {
         prankMessages[Math.floor(Math.random() * prankMessages.length)];
 
     // Target's turn - fight back
-    const combatDamage = prankData.target.combatLevel + 1; // +1 damage for each combat level
+    const combatDamage = prankData.target.combatLevel + 1;
     const weaponDamage =
         Math.floor(
             Math.random() *
@@ -192,36 +192,30 @@ async function runPrankRounds(message, prankData, client) {
     const embed = new Discord.EmbedBuilder()
         .setTitle(`🎭 Violate Round ${prankData.round}/4`)
         .setColor("#FFA500")
-        .setDescription(`${prankData.prankster.username} ${randomPrank}!\n${prankData.target.username} fights back!`)
+        .setDescription(`${prankData.prankster.username} ${randomPrank}!\n${prankData.target.username} counters for ${finalDamage} damage!`)
         .addFields(
             {
-                name: "Violation Attempt",
-                value: `🎪 ${prankData.prankster.username}'s prank: "${randomPrank}"`,
-                inline: false
-            },
-            {
-                name: "Counter Attack",
-                value: `🗡️ Combat Damage: ${combatDamage}\n⚔️ Weapon Damage: ${weaponDamage}\n🛡️ Armor Blocked: ${Math.min(totalDamage, prankData.prankster.armor.defense)}\n💥 Final Damage: ${finalDamage}`,
-                inline: false
-            },
-            {
                 name: `${prankData.prankster.username} (Prankster)`,
-                value: `❤️ Health: ${prankData.prankster.health}/${prankData.prankster.maxHealth}`,
+                value: `❤️ ${prankData.prankster.health}/${prankData.prankster.maxHealth}`,
                 inline: true
             },
             {
                 name: `${prankData.target.username} (Defender)`,
-                value: `❤️ Health: ${prankData.target.health}/${prankData.target.maxHealth}`,
+                value: `❤️ ${prankData.target.health}/${prankData.target.maxHealth}`,
                 inline: true
             }
         );
 
-    message.channel.send({ embeds: [embed] });
+    if (battleMessage) {
+        await battleMessage.edit({ embeds: [embed] });
+    } else {
+        battleMessage = await message.channel.send({ embeds: [embed] });
+    }
 
-    // Continue battle after 5 seconds
+    // Continue battle after 3 seconds
     setTimeout(() => {
-        runPrankRounds(message, prankData, client);
-    }, 5000);
+        runPrankRounds(message, prankData, client, battleMessage);
+    }, 3000);
 }
 
 async function handlePrankSuccess(message, prankData, client) {
