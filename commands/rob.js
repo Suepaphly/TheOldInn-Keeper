@@ -39,9 +39,9 @@ module.exports.run = async (bot, message, args) => {
         db.get(`rob_${message.author.id}`)
     ]);
 
-    if (lastRob && (36000000 - (Date.now() - lastRob) > 0)) {
-        let time = ms(36000000 - (Date.now() - lastRob));
-        message.channel.send(`:pirate_flag: ${message.author.username}, you have already robbed someone\n\nTry again in ${time.hours}h ${time.minutes}m ${time.seconds}s`);
+    if (lastRob && (3600000 - (Date.now() - lastRob) > 0)) {
+        let time = ms(3600000 - (Date.now() - lastRob));
+        message.channel.send(`**${message.author.username}**, you already robbed someone recently, try again in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`);
         return;
     }
 
