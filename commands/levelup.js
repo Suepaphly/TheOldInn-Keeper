@@ -3,173 +3,72 @@ const db = new QuickDB();
 const Discord = require("discord.js");
 
 module.exports.run = async (client, message, args) => {
+  const user = message.author;
+  const item = args[0];
+  const money = await db.get(`money_${user.id}`) || 0;
 
-  let ms;
-  try {
-    ms = (await import("parse-ms")).default;
-  } catch (error) {
-    console.error("Failed to import parse-ms", error);
+  // Skill configuration: [dbKey, displayName, baseCost, maxLevel]
+  const skills = {
+    rob: ['thieflevel', 'Robbery', 2000, 5],
+    gather: ['gatheringlevel', 'Gathering', 5000, 5],
+    fish: ['fishinglevel', 'Fishing', 10000, 5],
+    hunt: ['huntinglevel', 'Hunting', 15000, 5],
+    craft: ['craftinglevel', 'Crafting', 20000, 5],
+    work: ['workinglevel', 'Working', 25000, 5],
+    combat: ['combatlevel', 'Combat', 25000, 5]
+  };
+
+  if (!item) {
+    let buyMessage = "```css\n" +
+        "Level Up Your Skills\n" +
+        "Just type the skill name after =lvl to purchase the upgrade.\n" +
+        "Maximum level is 5, players start at level 0. Ex: '=lvl rob'\n" +
+        "Cost Formula: Base Cost × Next Level\n\n";
+
+    for (const [skillName, [dbKey, displayName, baseCost, maxLevel]] of Object.entries(skills)) {
+      buyMessage += `${displayName}: '${skillName}' => ${baseCost.toLocaleString()} Kopeks (base)\n`;
+    }
+
+    buyMessage += "\nThe Tavernkeeper thanks you for playing.\n```";
+    message.channel.send(buyMessage);
     return;
   }
 
-  let user = message.author;
-  let item = args[0];
-  let money = await db.get(`money_${message.author.id}`);
+  // Check if the skill exists
+  if (!skills[item]) {
+    message.channel.send(`${user.username}, that's not a valid skill! Use =lvl to see available skills.`);
+    return;
+  }
 
+  const [dbKey, displayName, baseCost, maxLevel] = skills[item];
+  const currentLevel = await db.get(`${dbKey}_${user.id}`) || 0;
+  const nextLevel = currentLevel + 1;
+  const upgradeCost = baseCost * nextLevel;
 
-  if(!item){
-    let buyMessage = "```css\n" +
-        "Level Up Your Skills\n" +
-        "Just type the word in quotes after =lvl to purchase the item.\n" +
-        "Maximum level is 5, players start at level 0. Ex: '=lvl rob'\n" +
-        "Increase Rob: 'rob' => 2,000 Kopeks\n" +
-        "Increase Gathering: 'gather' => 5,000 Kopeks\n" +
-        "Increase Fishing: 'fish' => 10,000 Kopeks\n" +
-        "Increase Hunting: 'hunt' => 15,000 Kopeks\n" +
-        "Increase Crafting: 'craft' => 20,000 Kopeks\n" +
-        "Increase Work: 'work' => 25,000 Kopeks\n" +
-        "Increase Combat: 'combat' => 25,000 Kopeks\n" +
-        "The Tavernkeeper thanks you for playing.\n" +
-        "```";
-    message.channel.send(buyMessage);
-  } else if (item === "gather") {
+  // Check if already at max level
+  if (currentLevel >= maxLevel) {
+    message.channel.send(`${user.username} is already max level in ${displayName}!`);
+    return;
+  }
 
-    let level = await db.get(`gatheringlevel_${message.author.id}`);
+  // Check if user has enough money
+  if (money < upgradeCost) {
+    message.channel.send(`${user.username} doesn't have enough money! Need ${upgradeCost.toLocaleString()} kopeks, but only have ${money.toLocaleString()}.`);
+    return;
+  }
 
-    if(money >= 5000 && level < 5){
-      level++;
-      await db.sub(`money_${message.author.id}`, 5000);
-      await db.add(`gatheringlevel_${message.author.id}`, 1);
-      message.channel.send(user.username + " just purchased a Level in Gathering! New Level: " + level);
-    } else if (money < 5000) {
-      message.channel.send(user.username + " doesn't have enough money!");            
-    } else if (level === 5) {
-      message.channel.send(user.username + " is already max level!");
-    } else {
-      message.channel.send(user.username + " sorry, something went wrong.");            
-    }
+  // Process the upgrade
+  try {
+    await db.sub(`money_${user.id}`, upgradeCost);
+    await db.set(`${dbKey}_${user.id}`, nextLevel);
+    message.channel.send(`${user.username} just purchased a Level in ${displayName}! New Level: ${nextLevel} (Cost: ${upgradeCost.toLocaleString()} kopeks)`);
+  } catch (error) {
+    console.error("Error processing level up:", error);
+    message.channel.send(`${user.username}, sorry, something went wrong with the upgrade.`);
+  }
+};
 
-  } else if (item === "fish") {
-
-    let level = await db.get(`fishinglevel_${message.author.id}`);
-
-    if(money >= 10000 && level < 5){
-      level++;
-      await db.sub(`money_${message.author.id}`, 10000);
-      await db.add(`fishinglevel_${message.author.id}`, 1);
-      message.channel.send(user.username + " just purchased a Level in Fishing! New Level: " + level);
-    } else if (money < 10000) {
-      message.channel.send(user.username + " doesn't have enough money!");            
-    } else if (level === 5) {
-      message.channel.send(user.username + " is already max level!");
-    } else {
-      message.channel.send(user.username + " sorry, something went wrong.");            
-    }
-
-  } else if (item === "hunt") {
-
-    let level = await db.get(`huntinglevel_${message.author.id}`);
-
-    if(money >= 15000 && level < 5){
-      level++;
-      await db.sub(`money_${message.author.id}`, 15000);
-      await db.add(`huntinglevel_${message.author.id}`, 1);
-      message.channel.send(user.username + " just purchased a Level in Hunting! New Level: " + level);
-    } else if (money < 15000) {
-      message.channel.send(user.username + " doesn't have enough money!");            
-    } else if (level === 5) {
-      message.channel.send(user.username + " is already max level!");
-    } else {
-      message.channel.send(user.username + " sorry, something went wrong.");            
-    }
-
-  } else if (item === "craft") {
-
-    let level = await db.get(`craftinglevel_${message.author.id}`);
-
-    if(money >= 20000 && level < 5){
-      level++;
-      await db.sub(`money_${message.author.id}`, 20000);
-      await db.add(`craftinglevel_${message.author.id}`, 1);
-      message.channel.send(user.username + " just purchased a Level in Crafting! New Level: " + level);
-    } else if (money < 20000) {
-      message.channel.send(user.username + " doesn't have enough money!");            
-    } else if (level === 5) {
-      message.channel.send(user.username + " is already max level!");
-    } else {
-      message.channel.send(user.username + " sorry, something went wrong.");            
-    }
-
-  } else if (item === "work") {
-
-    let level = await db.get(`workinglevel_${message.author.id}`);
-
-    if(money >= 25000 && level < 5){
-      level++;
-      await db.sub(`money_${message.author.id}`, 25000);
-      await db.add(`workinglevel_${message.author.id}`, 1);
-      message.channel.send(user.username + " just purchased a Level in Working! New Level: " + level);
-    } else if (money < 25000) {
-      message.channel.send(user.username + " doesn't have enough money!");            
-    } else if (level === 5) {
-      message.channel.send(user.username + " is already max level!");
-    } else {
-      message.channel.send(user.username + " sorry, something went wrong.");            
-    }
-
-  }  else if (item === "rob") {
-
-    let level = await db.get(`thieflevel_${message.author.id}`);
-
-    if(money >= 2000 && level < 5){
-      level++;
-      await db.sub(`money_${message.author.id}`, 2000);
-      await db.add(`thieflevel_${message.author.id}`, 1);
-      message.channel.send(user.username + " just purchased a Level in Robbery! New Level: " + level);
-    } else if (money < 2000) {
-      message.channel.send(user.username + " doesn't have enough money!");            
-    } else if (level === 5) {
-      message.channel.send(user.username + " is already max level!");
-    } else {
-      message.channel.send(user.username + " sorry, something went wrong.");            
-    }
-
-  } else if (item === "combat") {
-
-    let level = await db.get(`combatlevel_${message.author.id}`);
-
-    // Check cooldown (same as rob command - 1 hour)
-    const lastUpgrade = await db.get(`levelup_${message.author.id}`);
-    if (lastUpgrade && (3600000 - (Date.now() - lastUpgrade) > 0)) {
-        let ms;
-        try {
-            ms = (await import("parse-ms")).default;
-        } catch (error) {
-            console.error("Failed to import parse-ms", error);
-            return;
-        }
-        let time = ms(3600000 - (Date.now() - lastUpgrade));
-        message.channel.send(`**${message.author.username}**, you already upgraded recently, try again in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`);
-        return;
-    }
-
-    if(money >= 25000 && level < 5){
-      level++;
-      await db.sub(`money_${message.author.id}`, 25000);
-      await db.add(`combatlevel_${message.author.id}`, 1);
-      await db.set(`levelup_${message.author.id}`, Date.now());
-      message.channel.send(user.username + " just purchased a Level in Combat! New Level: " + level);
-    } else if (money < 25000) {
-      message.channel.send(user.username + " doesn't have enough money!");            
-    } else if (level === 5) {
-      message.channel.send(user.username + " is already max level!");
-    } else {
-      message.channel.send(user.username + " sorry, something went wrong.");            
-    }
-
-  }       
-}
 module.exports.help = {
-    name:"levelup",
-    aliases: ["level", "up", "lvl"]
-}
+  name: "levelup",
+  aliases: ["level", "up", "lvl"]
+};
