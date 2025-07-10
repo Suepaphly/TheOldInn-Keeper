@@ -757,6 +757,12 @@ async function handleMazeChoice(interaction, userId, collector) {
 async function startTrolleyQuest(interaction, userId) {
     const scenario = trolleyScenarios[Math.floor(Math.random() * trolleyScenarios.length)];
     
+    const quest = activeQuests.get(userId);
+    quest.data = {
+        scenario: scenario,
+        choice: null
+    };
+    
     const embed = new EmbedBuilder()
         .setTitle("🚃 THE TROLLEY PROBLEM")
         .setColor("#696969")
@@ -789,31 +795,196 @@ async function startTrolleyQuest(interaction, userId) {
             return;
         }
         
-        let choice;
-        if (i.customId === 'trolley_pull') {
-            choice = `You pulled the lever. ${scenario.one} died to save ${scenario.many}. The weight of this choice will stay with you forever.`;
-        } else {
-            choice = `You walked away. ${scenario.many} died while you did nothing. Sometimes inaction is also a choice.`;
+        if (i.customId === 'trolley_vengeance_continue') {
+            await completeQuest(i, userId);
+            collector.stop();
+            return;
         }
         
+        let choice;
+        let shouldTriggerVengeance = false;
+        
+        if (i.customId === 'trolley_pull') {
+            choice = `You pulled the lever. ${scenario.one} died to save ${scenario.many}. The weight of this choice will stay with you forever.`;
+            quest.data.choice = 'pull';
+            
+            // 50% chance of vengeance
+            if (Math.random() < 0.5) {
+                shouldTriggerVengeance = true;
+            }
+        } else {
+            choice = `You walked away. ${scenario.many} died while you did nothing. Sometimes inaction is also a choice.`;
+            quest.data.choice = 'walk';
+        }
+        
+        if (shouldTriggerVengeance) {
+            // Start vengeance combat
+            const embed = new EmbedBuilder()
+                .setTitle("🚃 THE TROLLEY PROBLEM - VENGEANCE")
+                .setColor("#8B0000")
+                .setDescription(`${choice}\n\n**Suddenly, a relative of the deceased appears!**\n\n*"You killed my family! I will have my revenge!"*\n\nThey draw a pistol and attack you!`)
+                .addFields(
+                    { name: "⚔️ Combat", value: "You must fight for your life!", inline: false }
+                );
+            
+            await i.update({ embeds: [embed], components: [] });
+            
+            // Set up vengeance combat after a delay
+            setTimeout(() => {
+                startVengeanceCombat(i, userId, collector);
+            }, 3000);
+        } else {
+            // Normal continue
+            const embed = new EmbedBuilder()
+                .setTitle("🚃 THE TROLLEY PROBLEM - CHOICE MADE")
+                .setColor("#696969")
+                .setDescription(choice)
+                .addFields(
+                    { name: "Reflection", value: "In life, we must live with the consequences of our choices... or our refusal to choose.", inline: false }
+                );
+            
+            const continueRow = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('trolley_continue')
+                        .setLabel('➡️ Continue Quest')
+                        .setStyle(ButtonStyle.Primary)
+                );
+            
+            await i.update({ embeds: [embed], components: [continueRow] });
+        }
+    });
+}
+
+async function startVengeanceCombat(interaction, userId, parentCollector) {
+    const quest = activeQuests.get(userId);
+    const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
+    
+    quest.data.combat = {
+        playerHealth: 5 + (combatLevel * 2),
+        playerMaxHealth: 5 + (combatLevel * 2),
+        playerWeapon: await getBestWeapon(userId),
+        playerArmor: await getBestArmor(userId),
+        combatLevel: combatLevel,
+        vengeanceHealth: 7,
+        vengeanceMaxHealth: 7,
+        round: 0
+    };
+    
+    const embed = new EmbedBuilder()
+        .setTitle("⚔️ VENGEANCE COMBAT")
+        .setColor("#FF0000")
+        .setDescription("A grief-stricken relative seeks revenge!")
+        .addFields(
+            { name: "Your Health", value: `${quest.data.combat.playerHealth}/${quest.data.combat.playerMaxHealth} HP`, inline: true },
+            { name: "Your Weapon", value: quest.data.combat.playerWeapon.name, inline: true },
+            { name: "Your Armor", value: quest.data.combat.playerArmor.name, inline: true },
+            { name: "Enemy Health", value: `${quest.data.combat.vengeanceHealth}/${quest.data.combat.vengeanceMaxHealth} HP`, inline: true },
+            { name: "Enemy Weapon", value: "Pistol", inline: true }
+        );
+    
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('vengeance_attack')
+                .setLabel('⚔️ Attack')
+                .setStyle(ButtonStyle.Danger)
+        );
+    
+    await interaction.editReply({ embeds: [embed], components: [row] });
+    
+    // Set up vengeance combat collector
+    const filter = (i) => i.user.id === userId;
+    const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+    
+    collector.on('collect', async (i) => {
+        await handleVengeanceCombat(i, userId, collector, parentCollector);
+    });
+}
+
+async function handleVengeanceCombat(interaction, userId, collector, parentCollector) {
+    const quest = activeQuests.get(userId);
+    if (!quest || !quest.data.combat) return;
+    
+    quest.data.combat.round++;
+    
+    // Player attacks first
+    const playerCombatDamage = quest.data.combat.combatLevel + 1;
+    const playerWeaponDamage = Math.floor(Math.random() * (quest.data.combat.playerWeapon.maxDamage - quest.data.combat.playerWeapon.minDamage + 1)) + quest.data.combat.playerWeapon.minDamage;
+    const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
+    const playerFinalDamage = Math.max(1, playerTotalDamage); // No armor for vengeance enemy
+    
+    quest.data.combat.vengeanceHealth -= playerFinalDamage;
+    quest.data.combat.vengeanceHealth = Math.max(0, quest.data.combat.vengeanceHealth);
+    
+    let battleText = `You attack for ${playerFinalDamage} damage!`;
+    
+    // Check if vengeance enemy is defeated
+    if (quest.data.combat.vengeanceHealth <= 0) {
+        // Player wins - give rewards
+        await db.add(`money_${userId}`, 25);
+        await db.add(`weapon_pistol_${userId}`, 1);
+        
         const embed = new EmbedBuilder()
-            .setTitle("🚃 THE TROLLEY PROBLEM - CHOICE MADE")
-            .setColor("#696969")
-            .setDescription(choice)
+            .setTitle("🏆 VENGEANCE DEFEATED")
+            .setColor("#00FF00")
+            .setDescription(`${battleText}\n\nYou have defeated your attacker in self-defense!\n\n**Rewards:**\n💰 +25 kopeks\n🔫 +1 pistol`)
             .addFields(
-                { name: "Reflection", value: "In life, we must live with the consequences of our choices... or our refusal to choose.", inline: false }
+                { name: "Victory", value: "You continue your quest with a heavy heart.", inline: false }
             );
         
         const continueRow = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId('trolley_continue')
+                    .setCustomId('trolley_vengeance_continue')
                     .setLabel('➡️ Continue Quest')
                     .setStyle(ButtonStyle.Primary)
             );
         
-        await i.update({ embeds: [embed], components: [continueRow] });
-    });
+        await interaction.update({ embeds: [embed], components: [continueRow] });
+        collector.stop();
+        return;
+    }
+    
+    // Enemy attacks back (pistol damage: 3-5)
+    const enemyDamage = Math.floor(Math.random() * 3) + 3; // 3-5 damage
+    const enemyFinalDamage = Math.max(1, enemyDamage - quest.data.combat.playerArmor.defense);
+    quest.data.combat.playerHealth -= enemyFinalDamage;
+    quest.data.combat.playerHealth = Math.max(0, quest.data.combat.playerHealth);
+    
+    battleText += `\nThe attacker shoots back for ${enemyFinalDamage} damage!`;
+    
+    // Check if player died
+    if (quest.data.combat.playerHealth <= 0) {
+        // Player dies in quest - this ends the quest in failure
+        await endQuest(interaction, userId, false, "You were killed by the vengeful relative! Your quest ends in tragedy.");
+        collector.stop();
+        parentCollector.stop();
+        return;
+    }
+    
+    // Combat continues
+    const embed = new EmbedBuilder()
+        .setTitle(`⚔️ VENGEANCE COMBAT - Round ${quest.data.combat.round}`)
+        .setColor("#FF0000")
+        .setDescription(`${battleText}\n\nThe fight continues!`)
+        .addFields(
+            { name: "Your Health", value: `${quest.data.combat.playerHealth}/${quest.data.combat.playerMaxHealth} HP`, inline: true },
+            { name: "Your Weapon", value: quest.data.combat.playerWeapon.name, inline: true },
+            { name: "Your Armor", value: quest.data.combat.playerArmor.name, inline: true },
+            { name: "Enemy Health", value: `${quest.data.combat.vengeanceHealth}/${quest.data.combat.vengeanceMaxHealth} HP`, inline: true },
+            { name: "Enemy Weapon", value: "Pistol", inline: true }
+        );
+    
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('vengeance_attack')
+                .setLabel('⚔️ Attack')
+                .setStyle(ButtonStyle.Danger)
+        );
+    
+    await interaction.update({ embeds: [embed], components: [row] });
 }
 
 async function completeQuest(interaction, userId, trolleyMessage = null) {
