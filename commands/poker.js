@@ -117,8 +117,8 @@ function formatCard(card) {
 
 function createGameEmbed(game, title, description, showButtons = false) {
     const handString = game.hand.map((card, index) => {
-        const held = game.held[index] ? '🔒' : '';
-        return `${formatCard(card)} ${held}`;
+        const cardText = formatCard(card);
+        return game.held[index] ? `**${cardText}**` : cardText;
     }).join(' ');
     
     const embed = new EmbedBuilder()
@@ -133,8 +133,8 @@ function createGameEmbed(game, title, description, showButtons = false) {
     // Show original hand if we're in round 2 (after draw)
     if (game.round === 2 && game.originalHand) {
         const originalHandString = game.originalHand.map((card, index) => {
-            const held = game.held[index] ? '🔒' : '';
-            return `${formatCard(card)} ${held}`;
+            const cardText = formatCard(card);
+            return game.held[index] ? `**${cardText}**` : cardText;
         }).join(' ');
         embed.addFields(
             { name: 'Original Hand', value: originalHandString, inline: false }
@@ -170,7 +170,7 @@ function createHoldButtons(game) {
         row1.addComponents(
             new ButtonBuilder()
                 .setCustomId(`hold_${i}`)
-                .setLabel(`Card ${i + 1} ${isHeld ? '🔒' : ''}`)
+                .setLabel(`Card ${i + 1}${isHeld ? ' (Held)' : ''}`)
                 .setStyle(isHeld ? ButtonStyle.Success : ButtonStyle.Secondary)
         );
     }
@@ -207,6 +207,28 @@ exports.run = async (client, message, args) => {
     // Check if user already has an active game
     if (activePokerGames.has(userId)) {
         return message.channel.send(`❌ <@${message.author.id}>, you already have an active poker game! Finish it before starting a new one.`);
+    }
+
+    // Show poker info if no arguments provided
+    if (!args[0]) {
+        const rewardsEmbed = new EmbedBuilder()
+            .setTitle('🃏 Poker - Hand Rankings & Payouts')
+            .setColor('#4CAF50')
+            .setDescription('**Usage:** `=poker <bet amount>`\n\nSelect cards to hold, then draw new ones to make the best possible hand!')
+            .addFields(
+                { name: 'Royal Flush', value: '250x your bet', inline: true },
+                { name: 'Straight Flush', value: '50x your bet', inline: true },
+                { name: 'Four of a Kind', value: '25x your bet', inline: true },
+                { name: 'Full House', value: '9x your bet', inline: true },
+                { name: 'Flush', value: '6x your bet', inline: true },
+                { name: 'Straight', value: '4x your bet', inline: true },
+                { name: 'Three of a Kind', value: '3x your bet', inline: true },
+                { name: 'Two Pair', value: '2x your bet', inline: true },
+                { name: 'Jacks or Better', value: '1x your bet', inline: true }
+            )
+            .setFooter({ text: 'Hold cards by clicking the buttons, bold cards are held!' });
+        
+        return message.channel.send({ embeds: [rewardsEmbed] });
     }
 
     let money = Math.abs(parseInt(args[0]));
