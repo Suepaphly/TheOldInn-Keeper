@@ -25,15 +25,25 @@ module.exports.run = async (client, message, args) => {
 
     // Check if attacker is dead
     const attackerDeathTime = await db.get(`death_cooldown_${attacker.id}`);
-    if (attackerDeathTime && Date.now() - attackerDeathTime < 86400000) { // 24 hours
-        const remainingTime = Math.ceil((86400000 - (Date.now() - attackerDeathTime)) / 3600000);
-        return message.channel.send(`💀 You are still recovering from death! Wait ${remainingTime} more hours.`);
+    if (attackerDeathTime) {
+        if (Date.now() - attackerDeathTime < 86400000) { // 24 hours
+            const remainingTime = Math.ceil((86400000 - (Date.now() - attackerDeathTime)) / 3600000);
+            return message.channel.send(`💀 You are still recovering from death! Wait ${remainingTime} more hours.`);
+        } else {
+            // Timer expired, clean up the database
+            await db.delete(`death_cooldown_${attacker.id}`);
+        }
     }
 
     // Check if target is dead
     const targetDeathTime = await db.get(`death_cooldown_${target.id}`);
-    if (targetDeathTime && Date.now() - targetDeathTime < 86400000) { // 24 hours
-        return message.channel.send(`💀 ${target.username} is still recovering from death and cannot be attacked!`);
+    if (targetDeathTime) {
+        if (Date.now() - targetDeathTime < 86400000) { // 24 hours
+            return message.channel.send(`💀 ${target.username} is still recovering from death and cannot be attacked!`);
+        } else {
+            // Timer expired, clean up the database
+            await db.delete(`death_cooldown_${target.id}`);
+        }
     }
 
     // Check if either player is in battle

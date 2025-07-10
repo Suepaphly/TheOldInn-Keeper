@@ -37,11 +37,16 @@ module.exports.run = async (client, message, args) => {
 
     // Check if target is dead
     const targetDeathTime = await db.get(`death_cooldown_${target.id}`);
-    if (targetDeathTime && Date.now() - targetDeathTime < 86400000) {
-        // 24 hours
-        return message.channel.send(
-            `💀 ${target.username} is still recovering from death and cannot be violated!`,
-        );
+    if (targetDeathTime) {
+        if (Date.now() - targetDeathTime < 86400000) {
+            // 24 hours
+            return message.channel.send(
+                `💀 ${target.username} is still recovering from death and cannot be violated!`,
+            );
+        } else {
+            // Timer expired, clean up the database
+            await db.delete(`death_cooldown_${target.id}`);
+        }
     }
 
     // Check if either player is in battle or prank
