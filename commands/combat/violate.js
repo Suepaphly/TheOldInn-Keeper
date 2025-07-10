@@ -10,14 +10,18 @@ module.exports.run = async (client, message, args) => {
     const target = message.mentions.users.first();
 
     // Check if user is on a quest
-    const { isOnQuest } = require('../quest.js');
+    const { isOnQuest } = require("../quest.js");
     if (await isOnQuest(user.id)) {
-        return message.channel.send("❌ You cannot violate players while on a quest!");
+        return message.channel.send(
+            "❌ You cannot violate players while on a quest!",
+        );
     }
 
     // Check if target is on a quest
-    if (target && await isOnQuest(target.id)) {
-        return message.channel.send("❌ You cannot violate players who are on a quest!");
+    if (target && (await isOnQuest(target.id))) {
+        return message.channel.send(
+            "❌ You cannot violate players who are on a quest!",
+        );
     }
 
     if (!target) {
@@ -71,9 +75,7 @@ module.exports.run = async (client, message, args) => {
     }
 
     // Check draw cooldown
-    const drawCooldown = await db.get(
-        `prank_cooldown_${user.id}_${target.id}`,
-    );
+    const drawCooldown = await db.get(`prank_cooldown_${user.id}_${target.id}`);
     if (drawCooldown && Date.now() - drawCooldown < 3600000) {
         // 1 hour
         const remainingTime = Math.ceil(
@@ -93,29 +95,30 @@ async function startPrankBattle(message, prankster, target, client) {
     activePranks.set(prankster.id, target.id);
     activePranks.set(target.id, prankster.id);
 
-    const pranksterCombatLevel = await db.get(`combatlevel_${prankster.id}`) || 0;
-    const targetCombatLevel = await db.get(`combatlevel_${target.id}`) || 0;
+    const pranksterCombatLevel =
+        (await db.get(`combatlevel_${prankster.id}`)) || 0;
+    const targetCombatLevel = (await db.get(`combatlevel_${target.id}`)) || 0;
 
     const prankData = {
         prankster: {
             id: prankster.id,
             username: prankster.username,
-            health: 5 + (pranksterCombatLevel * 2),
-            maxHealth: 5 + (pranksterCombatLevel * 2),
+            health: 5 + pranksterCombatLevel * 2,
+            maxHealth: 5 + pranksterCombatLevel * 2,
             weapon: await getBestWeapon(prankster.id),
             armor: await getBestArmor(prankster.id),
-            combatLevel: pranksterCombatLevel
+            combatLevel: pranksterCombatLevel,
         },
         target: {
             id: target.id,
             username: target.username,
-            health: 5 + (targetCombatLevel * 2),
-            maxHealth: 5 + (targetCombatLevel * 2),
+            health: 5 + targetCombatLevel * 2,
+            maxHealth: 5 + targetCombatLevel * 2,
             weapon: await getBestWeapon(target.id),
             armor: await getBestArmor(target.id),
-            combatLevel: targetCombatLevel
+            combatLevel: targetCombatLevel,
         },
-        round: 0
+        round: 0,
     };
 
     const embed = new Discord.EmbedBuilder()
@@ -128,18 +131,18 @@ async function startPrankBattle(message, prankster, target, client) {
             {
                 name: `${prankData.prankster.username}`,
                 value: `❤️ Health: ${prankData.prankster.health}/${prankData.prankster.maxHealth}\n🗡️ Weapon: ${prankData.prankster.weapon.name}\n🛡️ Armor: ${prankData.prankster.armor.name}`,
-                inline: true
+                inline: true,
             },
             {
                 name: `${prankData.target.username} (Defender)`,
                 value: `❤️ Health: ${prankData.target.health}/${prankData.target.maxHealth}\n🗡️ Weapon: ${prankData.target.weapon.name}\n🛡️ Armor: ${prankData.target.armor.name}`,
-                inline: true
+                inline: true,
             },
             {
                 name: "Rules",
                 value: `The violator doesn't deal damage but tries to humiliate!\nThe defender fights back normally for 4 rounds!`,
-                inline: false
-            }
+                inline: false,
+            },
         );
 
     const battleMessage = await message.channel.send({ embeds: [embed] });
@@ -150,7 +153,12 @@ async function startPrankBattle(message, prankster, target, client) {
     }, 3000);
 }
 
-async function runPrankRounds(message, prankData, client, battleMessage = null) {
+async function runPrankRounds(
+    message,
+    prankData,
+    client,
+    battleMessage = null,
+) {
     if (prankData.round >= 4) {
         // Prankster wins - target gets humiliated
         await handlePrankSuccess(message, prankData, client);
@@ -203,18 +211,20 @@ async function runPrankRounds(message, prankData, client, battleMessage = null) 
     const embed = new Discord.EmbedBuilder()
         .setTitle(`🎭 Violate Round ${prankData.round}/4`)
         .setColor("#FFA500")
-        .setDescription(`${prankData.prankster.username} ${randomPrank}!\n${prankData.target.username} counters for ${finalDamage} damage!`)
+        .setDescription(
+            `${prankData.prankster.username} ${randomPrank}!\n${prankData.target.username} counters for ${finalDamage} damage!`,
+        )
         .addFields(
             {
                 name: `${prankData.prankster.username} (Prankster)`,
                 value: `❤️ ${prankData.prankster.health}/${prankData.prankster.maxHealth}`,
-                inline: true
+                inline: true,
             },
             {
                 name: `${prankData.target.username} (Defender)`,
                 value: `❤️ ${prankData.target.health}/${prankData.target.maxHealth}`,
-                inline: true
-            }
+                inline: true,
+            },
         );
 
     if (battleMessage) {
@@ -260,13 +270,13 @@ async function handlePrankSuccess(message, prankData, client) {
             {
                 name: "Humiliation Complete!",
                 value: `${prankData.target.username} ${randomHumiliation}`,
-                inline: false
+                inline: false,
             },
             {
                 name: "Result",
                 value: `${prankData.prankster.username} gains nothing but satisfaction!\n${prankData.target.username} suffers only embarrassment!`,
-                inline: false
-            }
+                inline: false,
+            },
         );
 
     message.channel.send({ embeds: [embed] });
@@ -295,22 +305,22 @@ async function handlePrankFailed(message, prankData, client) {
     if (pranksterBestWeapon.type !== "none") {
         await db.sub(
             `weapon_${pranksterBestWeapon.type}_${prankData.prankster.id}`,
-            1
+            1,
         );
         await db.add(
             `weapon_${pranksterBestWeapon.type}_${prankData.target.id}`,
-            1
+            1,
         );
     }
 
     if (pranksterBestArmor.type !== "none") {
         await db.sub(
             `armor_${pranksterBestArmor.type}_${prankData.prankster.id}`,
-            1
+            1,
         );
         await db.add(
             `armor_${pranksterBestArmor.type}_${prankData.target.id}`,
-            1
+            1,
         );
     }
 
@@ -324,13 +334,13 @@ async function handlePrankFailed(message, prankData, client) {
             {
                 name: "Justice Served!",
                 value: `💰 Kopeks Stolen: ${pranksterMoney.toLocaleString()}\n🗡️ Weapon Taken: ${pranksterBestWeapon.name}\n🛡️ Armor Taken: ${pranksterBestArmor.name}`,
-                inline: false
+                inline: false,
             },
             {
                 name: "Death Penalty",
                 value: `${prankData.prankster.username} cannot attack anyone for 24 hours.`,
-                inline: false
-            }
+                inline: false,
+            },
         );
 
     message.channel.send({ embeds: [embed] });
@@ -342,7 +352,7 @@ async function getBestWeapon(userId) {
         { type: "shotgun", name: "Shotgun", minDamage: 4, maxDamage: 10 },
         { type: "pistol", name: "Pistol", minDamage: 3, maxDamage: 5 },
         { type: "sword", name: "Sword", minDamage: 2, maxDamage: 4 },
-        { type: "knife", name: "Knife", minDamage: 1, maxDamage: 3 }
+        { type: "knife", name: "Knife", minDamage: 1, maxDamage: 3 },
     ];
 
     for (const weapon of weapons) {
@@ -361,7 +371,7 @@ async function getBestArmor(userId) {
         { type: "studded", name: "Studded Armor", defense: 5 },
         { type: "chainmail", name: "Chainmail Armor", defense: 3 },
         { type: "leather", name: "Leather Armor", defense: 2 },
-        { type: "cloth", name: "Cloth Armor", defense: 1 }
+        { type: "cloth", name: "Cloth Armor", defense: 1 },
     ];
 
     for (const armor of armors) {
@@ -376,5 +386,5 @@ async function getBestArmor(userId) {
 
 module.exports.help = {
     name: "violate",
-    aliases: ["prank", "humiliate", "rape"]
+    aliases: ["prank", "humiliate", "grape"],
 };
