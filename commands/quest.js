@@ -25,8 +25,8 @@ const locations = {
 // Quest types and their monster values
 const questTypes = {
     monster: {
-        name: "🐲 Monster Hunt",
-        description: "Battle through monsters"
+        name: "⚔️ Ambush",
+        description: "Fight off an ambush of monsters"
     },
     riddle: {
         name: "🧩 Ancient Riddle",
@@ -380,9 +380,9 @@ async function startMonsterQuest(interaction, userId) {
     quest.data.currentMonsterMaxHealth = monsterStats.health;
     
     const embed = new EmbedBuilder()
-        .setTitle(`🐲 MONSTER HUNT - ${currentMonster} (${quest.data.round}/2)`)
+        .setTitle(`⚔️ AMBUSH - ${currentMonster} (${quest.data.round}/2)`)
         .setColor("#FF0000")
-        .setDescription(`You encounter a **${currentMonster}**!`)
+        .setDescription(`You are ambushed by a **${currentMonster}**!`)
         .addFields(
             { name: "Your Health", value: `${quest.data.playerHealth}/${quest.data.playerMaxHealth} HP`, inline: true },
             { name: "Your Weapon", value: quest.data.playerWeapon.name, inline: true },
@@ -447,7 +447,7 @@ async function handleMonsterCombat(interaction, userId, collector) {
         quest.data.currentMonsterMaxHealth = nextMonsterStats.health;
         
         const embed = new EmbedBuilder()
-            .setTitle(`🐲 MONSTER HUNT - ${nextMonster} (${quest.data.round}/2)`)
+            .setTitle(`⚔️ AMBUSH - ${nextMonster} (${quest.data.round}/2)`)
             .setColor("#FF0000")
             .setDescription(`${battleText}\n\n**${currentMonster} defeated!** You advance to the next monster.\n\nA **${nextMonster}** appears!`)
             .addFields(
@@ -486,7 +486,7 @@ async function handleMonsterCombat(interaction, userId, collector) {
     
     // Combat continues
     const embed = new EmbedBuilder()
-        .setTitle(`🐲 MONSTER HUNT - ${currentMonster} (${quest.data.round}/2)`)
+        .setTitle(`⚔️ AMBUSH - ${currentMonster} (${quest.data.round}/2)`)
         .setColor("#FF0000")
         .setDescription(`${battleText}\n\nThe battle continues!`)
         .addFields(
@@ -707,38 +707,9 @@ async function handleMazeChoice(interaction, userId, collector) {
             await endQuest(interaction, userId, false, `You triggered a trap! Spikes shoot from the ground, and you lose ${loss} kopeks before escaping.`);
             collector.stop();
         } else {
-            // Combat - lose some health but continue
-            const damage = Math.floor(Math.random() * 30) + 20;
-            quest.data.stage = 2;
-            
-            const embed = new EmbedBuilder()
-                .setTitle("🌿 HEDGE MAZE - Stage 2/2")
-                .setColor("#228B22")
-                .setDescription(`A vine beast attacks! You take ${damage} damage but defeat it and advance.\n\n⚠️ **FINAL STAGE** - Choose very carefully:`)
-                .addFields(
-                    { name: "🚪 Path 1", value: "A golden archway beckoning", inline: true },
-                    { name: "🚪 Path 2", value: "A dark tunnel with echoes", inline: true },
-                    { name: "🚪 Path 3", value: "A bright exit with sunlight", inline: true },
-                    { name: "💀 DANGER", value: "Wrong choice here means death!", inline: false }
-                );
-            
-            const row = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('maze_1')
-                        .setLabel('🚪 Path 1')
-                        .setStyle(ButtonStyle.Secondary),
-                    new ButtonBuilder()
-                        .setCustomId('maze_2')
-                        .setLabel('🚪 Path 2')
-                        .setStyle(ButtonStyle.Secondary),
-                    new ButtonBuilder()
-                        .setCustomId('maze_3')
-                        .setLabel('🚪 Path 3')
-                        .setStyle(ButtonStyle.Secondary)
-                );
-            
-            await interaction.update({ embeds: [embed], components: [row] });
+            // Combat - fight a vine beast
+            quest.data.mazeCombat = true;
+            await startMazeCombat(interaction, userId, collector);
         }
     } else {
         // Final stage
@@ -753,6 +724,148 @@ async function handleMazeChoice(interaction, userId, collector) {
             collector.stop();
         }
     }
+}
+
+async function startMazeCombat(interaction, userId, parentCollector) {
+    const quest = activeQuests.get(userId);
+    const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
+    
+    quest.data.mazeCombatData = {
+        playerHealth: 5 + (combatLevel * 2),
+        playerMaxHealth: 5 + (combatLevel * 2),
+        playerWeapon: await getBestWeapon(userId),
+        playerArmor: await getBestArmor(userId),
+        combatLevel: combatLevel,
+        monsterHealth: 15 + (combatLevel * 3), // Vine beast is stronger
+        monsterMaxHealth: 15 + (combatLevel * 3),
+        monsterDamage: 3 + combatLevel,
+        monsterDefense: Math.floor(combatLevel * 0.5),
+        round: 0
+    };
+    
+    const embed = new EmbedBuilder()
+        .setTitle("🌿 HEDGE MAZE - VINE BEAST COMBAT")
+        .setColor("#FF0000")
+        .setDescription("A massive vine beast blocks your path!")
+        .addFields(
+            { name: "Your Health", value: `${quest.data.mazeCombatData.playerHealth}/${quest.data.mazeCombatData.playerMaxHealth} HP`, inline: true },
+            { name: "Your Weapon", value: quest.data.mazeCombatData.playerWeapon.name, inline: true },
+            { name: "Your Armor", value: quest.data.mazeCombatData.playerArmor.name, inline: true },
+            { name: "Vine Beast Health", value: `${quest.data.mazeCombatData.monsterHealth}/${quest.data.mazeCombatData.monsterMaxHealth} HP`, inline: true },
+            { name: "Enemy", value: "Vine Beast", inline: true }
+        );
+    
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('maze_combat_attack')
+                .setLabel('⚔️ Attack')
+                .setStyle(ButtonStyle.Danger)
+        );
+    
+    await interaction.update({ embeds: [embed], components: [row] });
+    
+    // Set up maze combat collector
+    const filter = (i) => i.user.id === userId;
+    const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+    
+    collector.on('collect', async (i) => {
+        await handleMazeCombatAttack(i, userId, collector, parentCollector);
+    });
+}
+
+async function handleMazeCombatAttack(interaction, userId, collector, parentCollector) {
+    const quest = activeQuests.get(userId);
+    if (!quest || !quest.data.mazeCombatData) return;
+    
+    quest.data.mazeCombatData.round++;
+    
+    // Player attacks first
+    const playerCombatDamage = quest.data.mazeCombatData.combatLevel + 1;
+    const playerWeaponDamage = Math.floor(Math.random() * (quest.data.mazeCombatData.playerWeapon.maxDamage - quest.data.mazeCombatData.playerWeapon.minDamage + 1)) + quest.data.mazeCombatData.playerWeapon.minDamage;
+    const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
+    const playerFinalDamage = Math.max(1, playerTotalDamage - quest.data.mazeCombatData.monsterDefense);
+    
+    quest.data.mazeCombatData.monsterHealth -= playerFinalDamage;
+    quest.data.mazeCombatData.monsterHealth = Math.max(0, quest.data.mazeCombatData.monsterHealth);
+    
+    let battleText = `You attack the vine beast for ${playerFinalDamage} damage!`;
+    
+    // Check if vine beast is defeated
+    if (quest.data.mazeCombatData.monsterHealth <= 0) {
+        // Player wins - continue to stage 2
+        quest.data.stage = 2;
+        
+        const embed = new EmbedBuilder()
+            .setTitle("🌿 HEDGE MAZE - Stage 2/2")
+            .setColor("#228B22")
+            .setDescription(`${battleText}\n\n**Vine beast defeated!** You advance deeper into the maze.\n\n⚠️ **FINAL STAGE** - Choose very carefully:`)
+            .addFields(
+                { name: "🚪 Path 1", value: "A golden archway beckoning", inline: true },
+                { name: "🚪 Path 2", value: "A dark tunnel with echoes", inline: true },
+                { name: "🚪 Path 3", value: "A bright exit with sunlight", inline: true },
+                { name: "💀 DANGER", value: "Wrong choice here means death!", inline: false }
+            );
+        
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('maze_1')
+                    .setLabel('🚪 Path 1')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('maze_2')
+                    .setLabel('🚪 Path 2')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('maze_3')
+                    .setLabel('🚪 Path 3')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+        
+        await interaction.update({ embeds: [embed], components: [row] });
+        collector.stop();
+        return;
+    }
+    
+    // Monster attacks back
+    const monsterFinalDamage = Math.max(1, quest.data.mazeCombatData.monsterDamage - quest.data.mazeCombatData.playerArmor.defense);
+    quest.data.mazeCombatData.playerHealth -= monsterFinalDamage;
+    quest.data.mazeCombatData.playerHealth = Math.max(0, quest.data.mazeCombatData.playerHealth);
+    
+    battleText += `\nThe vine beast lashes back for ${monsterFinalDamage} damage!`;
+    
+    // Check if player died
+    if (quest.data.mazeCombatData.playerHealth <= 0) {
+        // Player dies in quest
+        await endQuest(interaction, userId, false, "You were defeated by the vine beast! Your quest ends in failure.");
+        collector.stop();
+        parentCollector.stop();
+        return;
+    }
+    
+    // Combat continues
+    const embed = new EmbedBuilder()
+        .setTitle(`🌿 HEDGE MAZE - VINE BEAST COMBAT - Round ${quest.data.mazeCombatData.round}`)
+        .setColor("#FF0000")
+        .setDescription(`${battleText}\n\nThe battle continues!`)
+        .addFields(
+            { name: "Your Health", value: `${quest.data.mazeCombatData.playerHealth}/${quest.data.mazeCombatData.playerMaxHealth} HP`, inline: true },
+            { name: "Your Weapon", value: quest.data.mazeCombatData.playerWeapon.name, inline: true },
+            { name: "Your Armor", value: quest.data.mazeCombatData.playerArmor.name, inline: true },
+            { name: "Vine Beast Health", value: `${quest.data.mazeCombatData.monsterHealth}/${quest.data.mazeCombatData.monsterMaxHealth} HP`, inline: true },
+            { name: "Enemy", value: "Vine Beast", inline: true }
+        );
+    
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('maze_combat_attack')
+                .setLabel('⚔️ Attack')
+                .setStyle(ButtonStyle.Danger)
+        );
+    
+    await interaction.update({ embeds: [embed], components: [row] });
 }
 
 async function startTrolleyQuest(interaction, userId) {
