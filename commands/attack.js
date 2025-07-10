@@ -29,22 +29,36 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send("🎉 All monsters have been defeated! The battle will end soon.");
     }
 
-    // Deal 1 damage to monsters (kill 1 goblin if available, otherwise damage stronger monsters)
-    let damageDealt = 0;
+    // Deal 1 damage to monsters
+    let damageDealt = 1;
     let killedMonster = "";
+    let hitMonster = "";
     
-    // Try to kill monsters starting with weakest
     const monsterArray = ["goblin", "mephit", "broodling", "ogre", "automaton"];
     const monsterHealthArray = [1, 5, 10, 25, 50];
     
+    // Find the first available monster to attack
     for (let i = 0; i < monsterArray.length; i++) {
         const monsterType = monsterArray[i];
         const monsterCount = monsters[monsterType] || 0;
         
         if (monsterCount > 0) {
-            await db.sub(`Monsters.${monsterType}`, 1);
-            damageDealt = monsterHealthArray[i];
-            killedMonster = monsterType;
+            hitMonster = monsterType;
+            
+            // Get current damage for this monster type
+            const currentDamage = await db.get(`monster_damage_${monsterType}`) || 0;
+            const newDamage = currentDamage + 1;
+            
+            // Check if monster dies
+            if (newDamage >= monsterHealthArray[i]) {
+                // Monster dies - remove it and reset damage
+                await db.sub(`Monsters.${monsterType}`, 1);
+                await db.set(`monster_damage_${monsterType}`, 0);
+                killedMonster = monsterType;
+            } else {
+                // Monster survives - record damage
+                await db.set(`monster_damage_${monsterType}`, newDamage);
+            }
             break;
         }
     }
@@ -58,6 +72,10 @@ module.exports.run = async (client, message, args) => {
 
     if (killedMonster) {
         message.channel.send(`⚔️ ${member} slays a ${killedMonster}! ${remainingMonsters} monsters remaining.`);
+    } else if (hitMonster) {
+        const currentDamage = await db.get(`monster_damage_${hitMonster}`) || 0;
+        const maxHealth = monsterHealthArray[monsterArray.indexOf(hitMonster)];
+        message.channel.send(`⚔️ ${member} hits a ${hitMonster} for 1 damage! (${currentDamage}/${maxHealth} damage) ${remainingMonsters} monsters remaining.`);
     } else {
         message.channel.send(`⚔️ ${member} attacks but misses! ${remainingMonsters} monsters remaining.`);
     }
