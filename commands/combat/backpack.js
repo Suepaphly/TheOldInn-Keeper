@@ -2,7 +2,6 @@
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
-const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
     const user = message.author;
