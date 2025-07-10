@@ -293,6 +293,9 @@ async function buyArmy(type, number, location, player, message) {
         var locWall = await db.get(`${wallArray[locIndex]}`) || 0;
         var wBal = await db.get(`money_${player.id}`) || 0;
         
+        // Ensure number is parsed as integer
+        number = parseInt(number);
+        
         // Calculate player's current troops at this location
         var playerTroops = await db.get(`player_troops_${player.id}_${wallArray[locIndex]}`) || 0;
         
@@ -323,6 +326,9 @@ async function buyTrap(type, number, location, player, message) {
         var locIndex = wallArray.indexOf(location);
         var locWall = await db.get(`${wallArray[locIndex]}`) || 0;
         var wBal = await db.get(`money_${player.id}`) || 0;
+        
+        // Ensure number is parsed as integer
+        number = parseInt(number);
         
         // Calculate player's current traps at this location
         var playerTraps = await db.get(`player_traps_${player.id}_${wallArray[locIndex]}`) || 0;
