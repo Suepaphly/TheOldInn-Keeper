@@ -50,8 +50,8 @@ module.exports.run = async (bot, message, args) => {
         return;
     }
 
-    if (thiefMoney < 200 || targetUserMoney < 200) {
-        message.channel.send(`:pirate_flag: ${message.author.username}, you need at least 200 kopeks in both wallets to rob someone.`);
+    if (!thiefMoney || !targetUserMoney) {
+        message.channel.send(`:pirate_flag: ${message.author.username}, both users need to have some kopeks to rob.`);
         return;
     }
 
