@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const mg = require("../utility/utility.js");
+const mg = require("../../utility/utility.js");
 
 module.exports.run = async (client, message, args) => {
     // Check if town is under attack
