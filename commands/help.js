@@ -86,7 +86,10 @@ module.exports.run = async (client, message, args) => {
     .addFields(
       { name: "=bj [bet]", value: "Play blackjack", inline: true },
       { name: "=craps [bet]", value: "Play craps", inline: true },
-      { name: "=slots [bet]", value: "Play slots", inline: true }
+      { name: "=slots [bet]", value: "Play slots", inline: true },
+      { name: "=startroulette", value: "Start roulette game", inline: true },
+      { name: "=rbet [type] [amount]", value: "Place roulette bet", inline: true },
+      { name: "=rhelp", value: "Roulette rules & bets", inline: true }
     );
 
   // Defense embed

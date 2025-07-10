@@ -1,4 +1,3 @@
-
 const { EmbedBuilder } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -12,9 +11,9 @@ function isValidBet(betType) {
         '1st12', '2nd12', '3rd12', 'first12', 'second12', 'third12',
         'col1', 'col2', 'col3', 'column1', 'column2', 'column3'
     ];
-    
+
     if (validBets.includes(betType.toLowerCase())) return true;
-    
+
     const num = parseInt(betType);
     return !isNaN(num) && num >= 0 && num <= 36;
 }
@@ -63,20 +62,20 @@ module.exports.run = async (client, message, args) => {
     }
 
     const userMoney = await db.get(`money_${message.author.id}`) || 0;
-    
+
     if (userMoney < betAmount) {
         return message.channel.send(`❌ **Insufficient funds!** You have ${userMoney} kopeks but tried to bet ${betAmount} kopeks.`);
     }
 
     // Check if user already has a bet
     const existingBetIndex = global.rouletteGame.bets.findIndex(bet => bet.userId === message.author.id);
-    
+
     if (existingBetIndex !== -1) {
         // Update existing bet
         const oldBet = global.rouletteGame.bets[existingBetIndex];
         await db.add(`money_${message.author.id}`, oldBet.amount); // Refund old bet
         await db.sub(`money_${message.author.id}`, betAmount); // Deduct new bet
-        
+
         global.rouletteGame.bets[existingBetIndex] = {
             userId: message.author.id,
             username: message.author.username,
@@ -94,7 +93,7 @@ module.exports.run = async (client, message, args) => {
     } else {
         // Place new bet
         await db.sub(`money_${message.author.id}`, betAmount);
-        
+
         global.rouletteGame.bets.push({
             userId: message.author.id,
             username: message.author.username,

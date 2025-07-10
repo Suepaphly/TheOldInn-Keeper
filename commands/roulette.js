@@ -165,7 +165,7 @@ async function startBettingRound() {
                           .join("\n"),
             inline: false,
         })
-        .setFooter({ text: "Good luck, gamblers!" });
+        .setFooter({ text: "Game continues until 2 turns pass with no bets!" });
 
     await global.rouletteGame.channel.send({ embeds: [embed] });
 
@@ -333,7 +333,17 @@ async function spinWheel() {
             });
 
         await global.rouletteGame.channel.send({ embeds: [resultEmbed] });
-        await endGame();
+        
+        // Reset for next round
+        global.rouletteGame.bets = [];
+        global.rouletteGame.turnCount = 0;
+        
+        // Wait 3 seconds then start next betting round
+        setTimeout(() => {
+            if (global.rouletteGame.active) {
+                startBettingRound();
+            }
+        }, 3000);
         }
     }, {
         scheduled: true,
