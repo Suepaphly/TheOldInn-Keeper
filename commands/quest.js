@@ -1,4 +1,3 @@
-
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -203,34 +202,34 @@ const trolleyScenarios = [
 
 module.exports.run = async (client, message, args) => {
     const userId = message.author.id;
-    
+
     // Check for debug mode (owner only)
     if (args[0] === 'debug' && userId === '217069557263286273') { // Replace with actual owner ID
         if (!args[1]) {
             return message.channel.send("❌ Usage: `=quest debug <questtype>`\nAvailable types: monster, riddle, maze, trolley");
         }
-        
+
         const questType = args[1].toLowerCase();
         if (!questTypes[questType]) {
             return message.channel.send("❌ Invalid quest type! Available: monster, riddle, maze, trolley");
         }
-        
+
         // Start debug quest immediately
         await startDebugQuest(message, userId, questType);
         return;
     }
-    
+
     // Check if user is already on a quest
     if (activeQuests.has(userId)) {
         return message.channel.send("❌ You are already on a quest! Complete it first before starting another.");
     }
-    
+
     // Check if user is dead
     const deathTimer = await db.get(`death_cooldown_${userId}`);
     if (deathTimer && Date.now() - deathTimer < 86400000) { // 24 hours
         return message.channel.send("💀 You cannot go on quests while dead! Use `=revive` first.");
     }
-    
+
     // Create location selection embed
     const embed = new EmbedBuilder()
         .setTitle("🗺️ CHOOSE YOUR DESTINATION")
@@ -241,7 +240,7 @@ module.exports.run = async (client, message, args) => {
             { name: locations.forest.name, value: `${locations.forest.description}\n*Leads to: ${locations.forest.second}*`, inline: false }
         )
         .setFooter({ text: "⏰ You have 30 minutes to complete once started!" });
-    
+
     // Create buttons
     const row = new ActionRowBuilder()
         .addComponents(
@@ -258,22 +257,22 @@ module.exports.run = async (client, message, args) => {
                 .setLabel('❌ Cancel')
                 .setStyle(ButtonStyle.Secondary)
         );
-    
+
     const questMessage = await message.channel.send({ 
         embeds: [embed], 
         components: [row] 
     });
-    
+
     // Set up collector
     const filter = (interaction) => {
         return interaction.user.id === message.author.id;
     };
-    
+
     const collector = questMessage.createMessageComponentCollector({
         filter,
         time: 60000 // 1 minute to choose
     });
-    
+
     collector.on('collect', async (interaction) => {
         if (interaction.customId === 'quest_cancel') {
             await interaction.update({
@@ -286,13 +285,13 @@ module.exports.run = async (client, message, args) => {
             collector.stop();
             return;
         }
-        
+
         // Start the selected location
         const location = interaction.customId.replace('location_', '');
         await startLocationQuest(interaction, location, userId);
         collector.stop();
     });
-    
+
     collector.on('end', (collected, reason) => {
         if (reason === 'time' && !collected.size) {
             questMessage.edit({
@@ -315,21 +314,21 @@ async function startLocationQuest(interaction, location, userId) {
         totalMonsterValue: 0,
         currentQuest: null
     };
-    
+
     activeQuests.set(userId, questData);
     await db.set(`on_quest_${userId}`, true);
-    
+
     // Set 30 minute timeout
     setTimeout(async () => {
         if (activeQuests.has(userId)) {
             activeQuests.delete(userId);
             await db.delete(`on_quest_${userId}`);
-            
+
             const timeoutEmbed = new EmbedBuilder()
                 .setTitle("⏰ Quest Timeout")
                 .setColor("#FF0000")
                 .setDescription("Your quest has timed out after 30 minutes. You can start a new quest when ready.");
-            
+
             try {
                 await interaction.followUp({ embeds: [timeoutEmbed] });
             } catch (err) {
@@ -337,11 +336,11 @@ async function startLocationQuest(interaction, location, userId) {
             }
         }
     }, 1800000); // 30 minutes
-    
+
     // Randomly select first quest type
     const questTypeNames = Object.keys(questTypes);
     const randomQuest = questTypeNames[Math.floor(Math.random() * questTypeNames.length)];
-    
+
     const locationData = locations[location];
     const embed = new EmbedBuilder()
         .setTitle(`${locationData.name} - Quest 1/2`)
@@ -350,9 +349,19 @@ async function startLocationQuest(interaction, location, userId) {
         .addFields(
             { name: "Progress", value: "0/2 quests completed", inline: false }
         );
-    
-    await interaction.update({ embeds: [embed], components: [] });
-    
+
+    try {
+        await interaction.update({ embeds: [embed], components: [] });
+    } catch (error) {
+        if (error.code === 10062) {
+            // Interaction expired, send a new message instead
+            await interaction.followUp({ embeds: [embed], components: [] });
+        } else {
+            console.error('Error updating interaction:', error);
+            throw error;
+        }
+    }
+
     // Start the specific quest
     questData.currentQuest = randomQuest;
     setTimeout(() => {
@@ -376,7 +385,7 @@ async function startLocationQuest(interaction, location, userId) {
 async function startMonsterQuest(interaction, userId) {
     const quest = activeQuests.get(userId);
     const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
-    
+
     quest.data = {
         round: 1,
         playerHealth: 5 + (combatLevel * 2),
@@ -388,13 +397,13 @@ async function startMonsterQuest(interaction, userId) {
         currentMonsterHealth: 0,
         currentMonsterMaxHealth: 0
     };
-    
+
     // Initialize first monster
     const currentMonster = quest.data.monsters[quest.data.round - 1];
     const monsterStats = getMonsterStats(currentMonster, combatLevel);
     quest.data.currentMonsterHealth = monsterStats.health;
     quest.data.currentMonsterMaxHealth = monsterStats.health;
-    
+
     const embed = new EmbedBuilder()
         .setTitle(`⚔️ AMBUSH - ${currentMonster} (${quest.data.round}/2)`)
         .setColor("#FF0000")
@@ -406,7 +415,7 @@ async function startMonsterQuest(interaction, userId) {
             { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
             { name: "Enemy", value: currentMonster, inline: true }
         );
-    
+
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -414,13 +423,23 @@ async function startMonsterQuest(interaction, userId) {
                 .setLabel('⚔️ Attack')
                 .setStyle(ButtonStyle.Danger)
         );
-    
-    await interaction.editReply({ embeds: [embed], components: [row] });
-    
+
+    try {
+        await interaction.editReply({ embeds: [embed], components: [row] });
+    } catch (error) {
+        if (error.code === 10062) {
+            // Interaction expired, send a new message instead
+            await interaction.followUp({ embeds: [embed], components: [row] });
+        } else {
+            console.error('Error editing reply:', error);
+            throw error;
+        }
+    }
+
     // Set up monster combat collector
     const filter = (i) => i.user.id === userId;
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
-    
+
     collector.on('collect', async (i) => {
         await handleMonsterCombat(i, userId, collector);
     });
@@ -429,39 +448,39 @@ async function startMonsterQuest(interaction, userId) {
 async function handleMonsterCombat(interaction, userId, collector) {
     const quest = activeQuests.get(userId);
     if (!quest) return;
-    
+
     const currentMonster = quest.data.monsters[quest.data.round - 1];
     const monsterStats = getMonsterStats(currentMonster, quest.data.combatLevel);
-    
+
     // Player attacks monster
     const playerCombatDamage = quest.data.combatLevel + 1;
     const playerWeaponDamage = Math.floor(Math.random() * (quest.data.playerWeapon.maxDamage - quest.data.playerWeapon.minDamage + 1)) + quest.data.playerWeapon.minDamage;
     const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
     const playerFinalDamage = Math.max(1, playerTotalDamage - monsterStats.defense);
-    
+
     quest.data.currentMonsterHealth -= playerFinalDamage;
     quest.data.currentMonsterHealth = Math.max(0, quest.data.currentMonsterHealth);
-    
+
     let battleText = `You attack the ${currentMonster} for ${playerFinalDamage} damage!`;
-    
+
     // Check if monster is defeated
     if (quest.data.currentMonsterHealth <= 0) {
         quest.totalMonsterValue += monsterStats.value;
         quest.data.round++;
-        
+
         if (quest.data.round > 2) {
             // Monster quest complete!
             await completeQuest(interaction, userId);
             collector.stop();
             return;
         }
-        
+
         // Next monster
         const nextMonster = quest.data.monsters[quest.data.round - 1];
         const nextMonsterStats = getMonsterStats(nextMonster, quest.data.combatLevel);
         quest.data.currentMonsterHealth = nextMonsterStats.health;
         quest.data.currentMonsterMaxHealth = nextMonsterStats.health;
-        
+
         const embed = new EmbedBuilder()
             .setTitle(`⚔️ AMBUSH - ${nextMonster} (${quest.data.round}/2)`)
             .setColor("#FF0000")
@@ -473,7 +492,7 @@ async function handleMonsterCombat(interaction, userId, collector) {
                 { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
                 { name: "Enemy", value: nextMonster, inline: true }
             );
-        
+
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -481,25 +500,35 @@ async function handleMonsterCombat(interaction, userId, collector) {
                     .setLabel('⚔️ Attack')
                     .setStyle(ButtonStyle.Danger)
             );
-        
-        await interaction.update({ embeds: [embed], components: [row] });
+
+        try {
+            await interaction.update({ embeds: [embed], components: [row] });
+        } catch (error) {
+            if (error.code === 10062) {
+                // Interaction expired, send a new message instead
+                await interaction.followUp({ embeds: [embed], components: [row] });
+            } else {
+                console.error('Error updating interaction:', error);
+                throw error;
+            }
+        }
         return;
     }
-    
+
     // Monster attacks back
     const monsterFinalDamage = Math.max(1, monsterStats.damage - quest.data.playerArmor.defense);
     quest.data.playerHealth -= monsterFinalDamage;
     quest.data.playerHealth = Math.max(0, quest.data.playerHealth);
-    
+
     battleText += `\nThe ${currentMonster} retaliates for ${monsterFinalDamage} damage!`;
-    
+
     // Check if player died
     if (quest.data.playerHealth <= 0) {
         await endQuest(interaction, userId, false, "You were defeated in combat!");
         collector.stop();
         return;
     }
-    
+
     // Combat continues
     const embed = new EmbedBuilder()
         .setTitle(`⚔️ AMBUSH - ${currentMonster} (${quest.data.round}/2)`)
@@ -512,7 +541,7 @@ async function handleMonsterCombat(interaction, userId, collector) {
             { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
             { name: "Enemy", value: currentMonster, inline: true }
         );
-    
+
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -520,8 +549,18 @@ async function handleMonsterCombat(interaction, userId, collector) {
                 .setLabel('⚔️ Attack')
                 .setStyle(ButtonStyle.Danger)
         );
-    
-    await interaction.update({ embeds: [embed], components: [row] });
+
+    try {
+        await interaction.update({ embeds: [embed], components: [row] });
+    } catch (error) {
+        if (error.code === 10062) {
+            // Interaction expired, send a new message instead
+            await interaction.followUp({ embeds: [embed], components: [row] });
+        } else {
+            console.error('Error updating interaction:', error);
+            throw error;
+        }
+    }
 }
 
 async function startRiddleQuest(interaction, userId) {
@@ -531,9 +570,9 @@ async function startRiddleQuest(interaction, userId) {
         solved: 0,
         required: 2
     };
-    
+
     const riddle = riddles[quest.data.riddleIndex];
-    
+
     const embed = new EmbedBuilder()
         .setTitle("🧩 ANCIENT RIDDLE - 1/2")
         .setColor("#4B0082")
@@ -541,7 +580,7 @@ async function startRiddleQuest(interaction, userId) {
         .addFields(
             { name: "Progress", value: `${quest.data.solved}/${quest.data.required} riddles solved`, inline: false }
         );
-    
+
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -557,12 +596,22 @@ async function startRiddleQuest(interaction, userId) {
                 .setLabel(riddle.options[2])
                 .setStyle(ButtonStyle.Secondary)
         );
-    
-    await interaction.editReply({ embeds: [embed], components: [row] });
-    
+
+    try {
+        await interaction.editReply({ embeds: [embed], components: [row] });
+    } catch (error) {
+        if (error.code === 10062) {
+            // Interaction expired, send a new message instead
+            await interaction.followUp({ embeds: [embed], components: [row] });
+        } else {
+            console.error('Error editing reply:', error);
+            throw error;
+        }
+    }
+
     const filter = (i) => i.user.id === userId;
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
-    
+
     collector.on('collect', async (i) => {
         await handleRiddleAnswer(i, userId, collector);
     });
@@ -571,29 +620,29 @@ async function startRiddleQuest(interaction, userId) {
 async function handleRiddleAnswer(interaction, userId, collector) {
     const quest = activeQuests.get(userId);
     if (!quest) return;
-    
+
     const answerIndex = parseInt(interaction.customId.replace('riddle_', ''));
     const riddle = riddles[quest.data.riddleIndex];
-    
+
     if (answerIndex === riddle.correct) {
         quest.data.solved++;
-        
+
         if (quest.data.solved >= quest.data.required) {
             // Riddle quest complete!
             await completeQuest(interaction, userId);
             collector.stop();
             return;
         }
-        
+
         // Next riddle
         let newRiddleIndex;
         do {
             newRiddleIndex = Math.floor(Math.random() * riddles.length);
         } while (newRiddleIndex === quest.data.riddleIndex);
-        
+
         quest.data.riddleIndex = newRiddleIndex;
         const newRiddle = riddles[newRiddleIndex];
-        
+
         const embed = new EmbedBuilder()
             .setTitle("🧩 ANCIENT RIDDLE - 2/2")
             .setColor("#4B0082")
@@ -601,7 +650,7 @@ async function handleRiddleAnswer(interaction, userId, collector) {
             .addFields(
                 { name: "Progress", value: `${quest.data.solved}/${quest.data.required} riddles solved`, inline: false }
             );
-        
+
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -617,8 +666,18 @@ async function handleRiddleAnswer(interaction, userId, collector) {
                     .setLabel(newRiddle.options[2])
                     .setStyle(ButtonStyle.Secondary)
             );
-        
-        await interaction.update({ embeds: [embed], components: [row] });
+
+        try {
+            await interaction.update({ embeds: [embed], components: [row] });
+        } catch (error) {
+            if (error.code === 10062) {
+                // Interaction expired, send a new message instead
+                await interaction.followUp({ embeds: [embed], components: [row] });
+            } else {
+                console.error('Error updating interaction:', error);
+                throw error;
+            }
+        }
     } else {
         // Wrong answer - sphinx devours the player
         await db.set(`death_cooldown_${userId}`, Date.now());
@@ -633,7 +692,7 @@ async function startMazeQuest(interaction, userId) {
         stage: 1,
         maxStage: 2
     };
-    
+
     const embed = new EmbedBuilder()
         .setTitle("🌿 HEDGE MAZE - Stage 1/2")
         .setColor("#228B22")
@@ -644,7 +703,7 @@ async function startMazeQuest(interaction, userId) {
             { name: "🚪 Path 3", value: "A winding path with fresh air", inline: true },
             { name: "⚠️ Warning", value: "Choose wisely - one leads forward, one leads to danger, one leads to traps!", inline: false }
         );
-    
+
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -660,12 +719,22 @@ async function startMazeQuest(interaction, userId) {
                 .setLabel('🚪 Path 3')
                 .setStyle(ButtonStyle.Secondary)
         );
-    
-    await interaction.editReply({ embeds: [embed], components: [row] });
-    
+
+    try {
+        await interaction.editReply({ embeds: [embed], components: [row] });
+    } catch (error) {
+        if (error.code === 10062) {
+            // Interaction expired, send a new message instead
+            await interaction.followUp({ embeds: [embed], components: [row] });
+        } else {
+            console.error('Error editing reply:', error);
+            throw error;
+        }
+    }
+
     const filter = (i) => i.user.id === userId;
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
-    
+
     collector.on('collect', async (i) => {
         await handleMazeChoice(i, userId, collector);
     });
@@ -674,12 +743,12 @@ async function startMazeQuest(interaction, userId) {
 async function handleMazeChoice(interaction, userId, collector) {
     const quest = activeQuests.get(userId);
     if (!quest) return;
-    
+
     const pathChoice = parseInt(interaction.customId.replace('maze_', ''));
     const outcomes = [1, 2, 3]; // 1=forward, 2=trap, 3=combat
     const shuffled = outcomes.sort(() => Math.random() - 0.5);
     const result = shuffled[pathChoice - 1];
-    
+
     if (quest.data.stage === 1) {
         // First stage
         if (result === 1) {
@@ -695,7 +764,7 @@ async function handleMazeChoice(interaction, userId, collector) {
                     { name: "🚪 Path 3", value: "A bright exit with sunlight", inline: true },
                     { name: "💀 DANGER", value: "Wrong choice here means death!", inline: false }
                 );
-            
+
             const row = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
@@ -711,14 +780,23 @@ async function handleMazeChoice(interaction, userId, collector) {
                         .setLabel('🚪 Path 3')
                         .setStyle(ButtonStyle.Secondary)
                 );
-            
-            await interaction.update({ embeds: [embed], components: [row] });
+
+            try {
+                await interaction.update({ embeds: [embed], components: [row] });
+            } catch (error) {
+                if (error.code === 10062) {
+                    // Interaction expired, send a new message instead
+                    await interaction.followUp({ embeds: [embed], components: [row] });
+                } else {
+                    console.error('Error updating interaction:', error);
+                    throw error;
+                }
+            }
         } else if (result === 2) {
             // Trap - lose money
             const loss = Math.floor(Math.random() * 500) + 200;
             const currentMoney = await db.get(`money_${userId}`) || 0;
-            if (currentMoney >= loss) {
-                await db.sub(`money_${userId}`, loss);
+            if (currentMoney >= loss) {await db.sub(`money_${userId}`, loss);
             }
             await endQuest(interaction, userId, false, `You triggered a trap! Spikes shoot from the ground, and you lose ${loss} kopeks before escaping.`);
             collector.stop();
@@ -745,7 +823,7 @@ async function handleMazeChoice(interaction, userId, collector) {
 async function startMazeCombat(interaction, userId, parentCollector) {
     const quest = activeQuests.get(userId);
     const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
-    
+
     quest.data.mazeCombatData = {
         playerHealth: 5 + (combatLevel * 2),
         playerMaxHealth: 5 + (combatLevel * 2),
@@ -758,7 +836,7 @@ async function startMazeCombat(interaction, userId, parentCollector) {
         monsterDefense: Math.floor(combatLevel * 0.5),
         round: 0
     };
-    
+
     const embed = new EmbedBuilder()
         .setTitle("🌿 HEDGE MAZE - VINE BEAST COMBAT")
         .setColor("#FF0000")
@@ -770,7 +848,7 @@ async function startMazeCombat(interaction, userId, parentCollector) {
             { name: "Vine Beast Health", value: `${quest.data.mazeCombatData.monsterHealth}/${quest.data.mazeCombatData.monsterMaxHealth} HP`, inline: true },
             { name: "Enemy", value: "Vine Beast", inline: true }
         );
-    
+
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -778,13 +856,23 @@ async function startMazeCombat(interaction, userId, parentCollector) {
                 .setLabel('⚔️ Attack')
                 .setStyle(ButtonStyle.Danger)
         );
-    
-    await interaction.update({ embeds: [embed], components: [row] });
-    
+
+    try {
+        await interaction.update({ embeds: [embed], components: [row] });
+    } catch (error) {
+        if (error.code === 10062) {
+            // Interaction expired, send a new message instead
+            await interaction.followUp({ embeds: [embed], components: [row] });
+        } else {
+            console.error('Error updating interaction:', error);
+            throw error;
+        }
+    }
+
     // Set up maze combat collector
     const filter = (i) => i.user.id === userId;
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
-    
+
     collector.on('collect', async (i) => {
         await handleMazeCombatAttack(i, userId, collector, parentCollector);
     });
@@ -793,25 +881,25 @@ async function startMazeCombat(interaction, userId, parentCollector) {
 async function handleMazeCombatAttack(interaction, userId, collector, parentCollector) {
     const quest = activeQuests.get(userId);
     if (!quest || !quest.data.mazeCombatData) return;
-    
+
     quest.data.mazeCombatData.round++;
-    
+
     // Player attacks first
     const playerCombatDamage = quest.data.mazeCombatData.combatLevel + 1;
     const playerWeaponDamage = Math.floor(Math.random() * (quest.data.mazeCombatData.playerWeapon.maxDamage - quest.data.mazeCombatData.playerWeapon.minDamage + 1)) + quest.data.mazeCombatData.playerWeapon.minDamage;
     const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
     const playerFinalDamage = Math.max(1, playerTotalDamage - quest.data.mazeCombatData.monsterDefense);
-    
+
     quest.data.mazeCombatData.monsterHealth -= playerFinalDamage;
     quest.data.mazeCombatData.monsterHealth = Math.max(0, quest.data.mazeCombatData.monsterHealth);
-    
+
     let battleText = `You attack the vine beast for ${playerFinalDamage} damage!`;
-    
+
     // Check if vine beast is defeated
     if (quest.data.mazeCombatData.monsterHealth <= 0) {
         // Player wins - continue to stage 2
         quest.data.stage = 2;
-        
+
         const embed = new EmbedBuilder()
             .setTitle("🌿 HEDGE MAZE - Stage 2/2")
             .setColor("#228B22")
@@ -822,7 +910,7 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
                 { name: "🚪 Path 3", value: "A bright exit with sunlight", inline: true },
                 { name: "💀 DANGER", value: "Wrong choice here means death!", inline: false }
             );
-        
+
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -838,19 +926,29 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
                     .setLabel('🚪 Path 3')
                     .setStyle(ButtonStyle.Secondary)
             );
-        
-        await interaction.update({ embeds: [embed], components: [row] });
+
+        try {
+            await interaction.update({ embeds: [embed], components: [row] });
+        } catch (error) {
+            if (error.code === 10062) {
+                // Interaction expired, send a new message instead
+                await interaction.followUp({ embeds: [embed], components: [row] });
+            } else {
+                console.error('Error updating interaction:', error);
+                throw error;
+            }
+        }
         collector.stop();
         return;
     }
-    
+
     // Monster attacks back
     const monsterFinalDamage = Math.max(1, quest.data.mazeCombatData.monsterDamage - quest.data.mazeCombatData.playerArmor.defense);
     quest.data.mazeCombatData.playerHealth -= monsterFinalDamage;
     quest.data.mazeCombatData.playerHealth = Math.max(0, quest.data.mazeCombatData.playerHealth);
-    
+
     battleText += `\nThe vine beast lashes back for ${monsterFinalDamage} damage!`;
-    
+
     // Check if player died
     if (quest.data.mazeCombatData.playerHealth <= 0) {
         // Player dies in quest
@@ -859,7 +957,7 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
         parentCollector.stop();
         return;
     }
-    
+
     // Combat continues
     const embed = new EmbedBuilder()
         .setTitle(`🌿 HEDGE MAZE - VINE BEAST COMBAT - Round ${quest.data.mazeCombatData.round}`)
@@ -872,7 +970,7 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
             { name: "Vine Beast Health", value: `${quest.data.mazeCombatData.monsterHealth}/${quest.data.mazeCombatData.monsterMaxHealth} HP`, inline: true },
             { name: "Enemy", value: "Vine Beast", inline: true }
         );
-    
+
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -880,19 +978,29 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
                 .setLabel('⚔️ Attack')
                 .setStyle(ButtonStyle.Danger)
         );
-    
-    await interaction.update({ embeds: [embed], components: [row] });
+
+    try {
+            await interaction.update({ embeds: [embed], components: [row] });
+        } catch (error) {
+            if (error.code === 10062) {
+                // Interaction expired, send a new message instead
+                await interaction.followUp({ embeds: [embed], components: [row] });
+            } else {
+                console.error('Error updating interaction:', error);
+                throw error;
+            }
+        }
 }
 
 async function startTrolleyQuest(interaction, userId) {
     const scenario = trolleyScenarios[Math.floor(Math.random() * trolleyScenarios.length)];
-    
+
     const quest = activeQuests.get(userId);
     quest.data = {
         scenario: scenario,
         choice: null
     };
-    
+
     const embed = new EmbedBuilder()
         .setTitle("🚃 THE TROLLEY PROBLEM")
         .setColor("#696969")
@@ -900,7 +1008,7 @@ async function startTrolleyQuest(interaction, userId) {
         .addFields(
             { name: "The Choice", value: "There is no right answer. You must live with whatever you choose.", inline: false }
         );
-    
+
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -912,32 +1020,42 @@ async function startTrolleyQuest(interaction, userId) {
                 .setLabel('🚶 Walk Away')
                 .setStyle(ButtonStyle.Secondary)
         );
-    
-    await interaction.editReply({ embeds: [embed], components: [row] });
-    
+
+    try {
+        await interaction.editReply({ embeds: [embed], components: [row] });
+    } catch (error) {
+        if (error.code === 10062) {
+            // Interaction expired, send a new message instead
+            await interaction.followUp({ embeds: [embed], components: [row] });
+        } else {
+            console.error('Error editing reply:', error);
+            throw error;
+        }
+    }
+
     const filter = (i) => i.user.id === userId;
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
-    
+
     collector.on('collect', async (i) => {
         if (i.customId === 'trolley_continue') {
             await completeQuest(i, userId);
             collector.stop();
             return;
         }
-        
+
         if (i.customId === 'trolley_vengeance_continue') {
             await completeQuest(i, userId);
             collector.stop();
             return;
         }
-        
+
         let choice;
         let shouldTriggerVengeance = false;
-        
+
         if (i.customId === 'trolley_pull') {
             choice = `You pulled the lever. ${scenario.one} died to save ${scenario.many}. The weight of this choice will stay with you forever.`;
             quest.data.choice = 'pull';
-            
+
             // 50% chance of vengeance
             if (Math.random() < 0.5) {
                 shouldTriggerVengeance = true;
@@ -946,7 +1064,7 @@ async function startTrolleyQuest(interaction, userId) {
             choice = `You walked away. ${scenario.many} died while you did nothing. Sometimes inaction is also a choice.`;
             quest.data.choice = 'walk';
         }
-        
+
         if (shouldTriggerVengeance) {
             // Start vengeance combat
             const embed = new EmbedBuilder()
@@ -956,9 +1074,19 @@ async function startTrolleyQuest(interaction, userId) {
                 .addFields(
                     { name: "⚔️ Combat", value: "You must fight for your life!", inline: false }
                 );
-            
-            await i.update({ embeds: [embed], components: [] });
-            
+
+            try {
+                 await i.update({ embeds: [embed], components: [] });
+            } catch (error) {
+                if (error.code === 10062) {
+                    // Interaction expired, send a new message instead
+                    await i.followUp({ embeds: [embed], components: [] });
+                } else {
+                    console.error('Error updating interaction:', error);
+                    throw error;
+                }
+            }
+
             // Set up vengeance combat after a delay
             setTimeout(() => {
                 startVengeanceCombat(i, userId, collector);
@@ -972,7 +1100,7 @@ async function startTrolleyQuest(interaction, userId) {
                 .addFields(
                     { name: "Reflection", value: "In life, we must live with the consequences of our choices... or our refusal to choose.", inline: false }
                 );
-            
+
             const continueRow = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
@@ -980,8 +1108,18 @@ async function startTrolleyQuest(interaction, userId) {
                         .setLabel('➡️ Continue Quest')
                         .setStyle(ButtonStyle.Primary)
                 );
-            
-            await i.update({ embeds: [embed], components: [continueRow] });
+
+            try {
+                await i.update({ embeds: [embed], components: [continueRow] });
+            } catch (error) {
+                if (error.code === 10062) {
+                    // Interaction expired, send a new message instead
+                    await i.followUp({ embeds: [embed], components: [continueRow] });
+                } else {
+                    console.error('Error updating interaction:', error);
+                    throw error;
+                }
+            }
         }
     });
 }
@@ -989,7 +1127,7 @@ async function startTrolleyQuest(interaction, userId) {
 async function startVengeanceCombat(interaction, userId, parentCollector) {
     const quest = activeQuests.get(userId);
     const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
-    
+
     quest.data.combat = {
         playerHealth: 5 + (combatLevel * 2),
         playerMaxHealth: 5 + (combatLevel * 2),
@@ -1000,7 +1138,7 @@ async function startVengeanceCombat(interaction, userId, parentCollector) {
         vengeanceMaxHealth: 7,
         round: 0
     };
-    
+
     const embed = new EmbedBuilder()
         .setTitle("⚔️ VENGEANCE COMBAT")
         .setColor("#FF0000")
@@ -1012,7 +1150,7 @@ async function startVengeanceCombat(interaction, userId, parentCollector) {
             { name: "Enemy Health", value: `${quest.data.combat.vengeanceHealth}/${quest.data.combat.vengeanceMaxHealth} HP`, inline: true },
             { name: "Enemy Weapon", value: "Pistol", inline: true }
         );
-    
+
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -1020,13 +1158,23 @@ async function startVengeanceCombat(interaction, userId, parentCollector) {
                 .setLabel('⚔️ Attack')
                 .setStyle(ButtonStyle.Danger)
         );
-    
-    await interaction.editReply({ embeds: [embed], components: [row] });
-    
+
+    try {
+        await interaction.editReply({ embeds: [embed], components: [row] });
+    } catch (error) {
+        if (error.code === 10062) {
+            // Interaction expired, send a new message instead
+            await interaction.followUp({ embeds: [embed], components: [row] });
+        } else {
+            console.error('Error editing reply:', error);
+            throw error;
+        }
+    }
+
     // Set up vengeance combat collector
     const filter = (i) => i.user.id === userId;
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
-    
+
     collector.on('collect', async (i) => {
         await handleVengeanceCombat(i, userId, collector, parentCollector);
     });
@@ -1035,26 +1183,26 @@ async function startVengeanceCombat(interaction, userId, parentCollector) {
 async function handleVengeanceCombat(interaction, userId, collector, parentCollector) {
     const quest = activeQuests.get(userId);
     if (!quest || !quest.data.combat) return;
-    
+
     quest.data.combat.round++;
-    
+
     // Player attacks first
     const playerCombatDamage = quest.data.combat.combatLevel + 1;
     const playerWeaponDamage = Math.floor(Math.random() * (quest.data.combat.playerWeapon.maxDamage - quest.data.combat.playerWeapon.minDamage + 1)) + quest.data.combat.playerWeapon.minDamage;
     const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
     const playerFinalDamage = Math.max(1, playerTotalDamage); // No armor for vengeance enemy
-    
+
     quest.data.combat.vengeanceHealth -= playerFinalDamage;
     quest.data.combat.vengeanceHealth = Math.max(0, quest.data.combat.vengeanceHealth);
-    
+
     let battleText = `You attack for ${playerFinalDamage} damage!`;
-    
+
     // Check if vengeance enemy is defeated
     if (quest.data.combat.vengeanceHealth <= 0) {
         // Player wins - give rewards
         await db.add(`money_${userId}`, 25);
         await db.add(`weapon_pistol_${userId}`, 1);
-        
+
         const embed = new EmbedBuilder()
             .setTitle("🏆 VENGEANCE DEFEATED")
             .setColor("#00FF00")
@@ -1062,7 +1210,7 @@ async function handleVengeanceCombat(interaction, userId, collector, parentColle
             .addFields(
                 { name: "Victory", value: "You continue your quest with a heavy heart.", inline: false }
             );
-        
+
         const continueRow = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -1070,20 +1218,30 @@ async function handleVengeanceCombat(interaction, userId, collector, parentColle
                     .setLabel('➡️ Continue Quest')
                     .setStyle(ButtonStyle.Primary)
             );
-        
-        await interaction.update({ embeds: [embed], components: [continueRow] });
+
+        try {
+             await interaction.update({ embeds: [embed], components: [continueRow] });
+        } catch (error) {
+            if (error.code === 10062) {
+                // Interaction expired, send a new message instead
+                await interaction.followUp({ embeds: [embed], components: [continueRow] });
+            } else {
+                console.error('Error updating interaction:', error);
+                throw error;
+            }
+        }
         collector.stop();
         return;
     }
-    
+
     // Enemy attacks back (pistol damage: 3-5)
     const enemyDamage = Math.floor(Math.random() * 3) + 3; // 3-5 damage
     const enemyFinalDamage = Math.max(1, enemyDamage - quest.data.combat.playerArmor.defense);
     quest.data.combat.playerHealth -= enemyFinalDamage;
     quest.data.combat.playerHealth = Math.max(0, quest.data.combat.playerHealth);
-    
+
     battleText += `\nThe attacker shoots back for ${enemyFinalDamage} damage!`;
-    
+
     // Check if player died
     if (quest.data.combat.playerHealth <= 0) {
         // Player dies in quest - this ends the quest in failure
@@ -1092,7 +1250,7 @@ async function handleVengeanceCombat(interaction, userId, collector, parentColle
         parentCollector.stop();
         return;
     }
-    
+
     // Combat continues
     const embed = new EmbedBuilder()
         .setTitle(`⚔️ VENGEANCE COMBAT - Round ${quest.data.combat.round}`)
@@ -1105,7 +1263,7 @@ async function handleVengeanceCombat(interaction, userId, collector, parentColle
             { name: "Enemy Health", value: `${quest.data.combat.vengeanceHealth}/${quest.data.combat.vengeanceMaxHealth} HP`, inline: true },
             { name: "Enemy Weapon", value: "Pistol", inline: true }
         );
-    
+
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -1113,14 +1271,24 @@ async function handleVengeanceCombat(interaction, userId, collector, parentColle
                 .setLabel('⚔️ Attack')
                 .setStyle(ButtonStyle.Danger)
         );
-    
-    await interaction.update({ embeds: [embed], components: [row] });
+
+    try {
+         await interaction.update({ embeds: [embed], components: [row] });
+    } catch (error) {
+        if (error.code === 10062) {
+            // Interaction expired, send a new message instead
+            await interaction.followUp({ embeds: [embed], components: [row] });
+        } else {
+            console.error('Error updating interaction:', error);
+            throw error;
+        }
+    }
 }
 
 async function completeQuest(interaction, userId, trolleyMessage = null) {
     const quest = activeQuests.get(userId);
     if (!quest) return;
-    
+
     // Handle debug mode - complete immediately
     if (quest.isDebug) {
         let rewardText = "🔧 **DEBUG QUEST COMPLETED!**\n\nThis was a test quest - no rewards given.";
@@ -1130,39 +1298,39 @@ async function completeQuest(interaction, userId, trolleyMessage = null) {
         await endQuest(interaction, userId, true, rewardText);
         return;
     }
-    
+
     quest.questsCompleted++;
-    
+
     if (quest.questsCompleted >= 2) {
         // Both quests completed - give final reward
         let totalReward = 250; // Base reward
         let rewardText = "You have completed both quests and earned 250 kopeks!";
-        
+
         if (quest.totalMonsterValue > 0) {
             const monsterBonus = Math.floor(quest.totalMonsterValue / 2);
             totalReward += monsterBonus;
             rewardText = `You have completed both quests and earned 250 kopeks + ${monsterBonus} kopeks bonus from slaying monsters (total: ${totalReward} kopeks)!`;
         }
-        
+
         if (trolleyMessage) {
             rewardText = `${trolleyMessage}\n\n${rewardText}`;
         }
-        
+
         await db.add(`money_${userId}`, totalReward);
         await endQuest(interaction, userId, true, rewardText);
     } else {
         // First quest completed, move to second location
         const location = locations[quest.location];
-        
+
         let completionMessage = "Quest completed!";
         if (trolleyMessage) {
             completionMessage = trolleyMessage;
         }
-        
+
         // Randomly select second quest type
         const questTypeNames = Object.keys(questTypes);
         const randomQuest = questTypeNames[Math.floor(Math.random() * questTypeNames.length)];
-        
+
         const embed = new EmbedBuilder()
             .setTitle(`${location.second} - Quest 2/2`)
             .setColor("#4169E1")
@@ -1170,9 +1338,19 @@ async function completeQuest(interaction, userId, trolleyMessage = null) {
             .addFields(
                 { name: "Progress", value: "1/2 quests completed", inline: false }
             );
-        
-        await interaction.update({ embeds: [embed], components: [] });
-        
+
+        try {
+            await interaction.update({ embeds: [embed], components: [] });
+        } catch (error) {
+            if (error.code === 10062) {
+                // Interaction expired, send a new message instead
+                await interaction.followUp({ embeds: [embed], components: [] });
+            } else {
+                console.error('Error updating interaction:', error);
+                throw error;
+            }
+        }
+
         // Start the second quest
         quest.currentQuest = randomQuest;
         setTimeout(() => {
@@ -1197,13 +1375,23 @@ async function completeQuest(interaction, userId, trolleyMessage = null) {
 async function endQuest(interaction, userId, success, message) {
     activeQuests.delete(userId);
     await db.delete(`on_quest_${userId}`);
-    
+
     const embed = new EmbedBuilder()
         .setTitle(success ? "✅ Quest Complete!" : "❌ Quest Failed")
         .setColor(success ? "#00FF00" : "#FF0000")
         .setDescription(message);
-    
-    await interaction.update({ embeds: [embed], components: [] });
+
+    try {
+        await interaction.update({ embeds: [embed], components: [] });
+    } catch (error) {
+        if (error.code === 10062) {
+            // Interaction expired, send a new message instead
+            await interaction.followUp({ embeds: [embed], components: [] });
+        } else {
+            console.error('Error updating interaction:', error);
+            throw error;
+        }
+    }
 }
 
 // Function to check if user is on quest (for use in other commands)
@@ -1221,21 +1409,21 @@ async function startDebugQuest(message, userId, questType) {
         currentQuest: questType,
         isDebug: true
     };
-    
+
     activeQuests.set(userId, questData);
     await db.set(`on_quest_${userId}`, true);
-    
+
     // Set 30 minute timeout
     setTimeout(async () => {
         if (activeQuests.has(userId)) {
             activeQuests.delete(userId);
             await db.delete(`on_quest_${userId}`);
-            
+
             const timeoutEmbed = new EmbedBuilder()
                 .setTitle("⏰ Debug Quest Timeout")
                 .setColor("#FF0000")
                 .setDescription("Your debug quest has timed out after 30 minutes.");
-            
+
             try {
                 await message.channel.send({ embeds: [timeoutEmbed] });
             } catch (err) {
@@ -1243,7 +1431,7 @@ async function startDebugQuest(message, userId, questType) {
             }
         }
     }, 1800000); // 30 minutes
-    
+
     const embed = new EmbedBuilder()
         .setTitle(`🔧 DEBUG QUEST - ${questTypes[questType].name}`)
         .setColor("#FFA500")
@@ -1251,9 +1439,9 @@ async function startDebugQuest(message, userId, questType) {
         .addFields(
             { name: "Quest Type", value: questType, inline: false }
         );
-    
+
     const debugMessage = await message.channel.send({ embeds: [embed] });
-    
+
     // Start the specific quest after delay
     setTimeout(() => {
         // Create a fake interaction object for compatibility
@@ -1263,7 +1451,7 @@ async function startDebugQuest(message, userId, questType) {
             message: debugMessage,
             user: message.author
         };
-        
+
         switch (questType) {
             case 'monster':
                 startMonsterQuest(fakeInteraction, userId);
@@ -1290,7 +1478,7 @@ module.exports.help = {
 function getMonsterStats(monsterName, playerCombatLevel) {
     const basePlayerHealth = 5 + (playerCombatLevel * 2);
     const basePlayerDamage = 1 + playerCombatLevel;
-    
+
     const monsterConfigs = {
         "Goblin Scout": {
             healthMultiplier: 0.8,
@@ -1305,9 +1493,9 @@ function getMonsterStats(monsterName, playerCombatLevel) {
             value: 40
         }
     };
-    
+
     const config = monsterConfigs[monsterName] || monsterConfigs["Goblin Scout"];
-    
+
     return {
         health: Math.floor(basePlayerHealth * config.healthMultiplier) + 5,
         damage: Math.floor(basePlayerDamage * config.damageMultiplier) + 2,
