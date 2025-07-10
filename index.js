@@ -19,21 +19,25 @@ const token = process.env.DISCORD_TOKEN;
 client.commands = new Collection();
 client.aliases = new Collection();
 
-// Load command files
-fs.readdir("./commands/", (err, files) => {
-  if (err) console.log(err);
-  let jsfile = files.filter(f => f.split(".").pop() === "js");
-  if (jsfile.length <= 0) {
-    console.log("Couldn't find commands.");
-    return;
-  }
+// Load command files from all directories
+const commandDirs = ['./commands/', './economy/', './gambling/', './skills/', './defense/', './combat/', './admin/'];
 
-  jsfile.forEach((f, i) => {
-    let props = require(`./commands/${f}`);
-    console.log(`${f} loaded!`);
-    client.commands.set(props.help.name, props);
-    props.help.aliases.forEach(alias => {
-      client.aliases.set(alias, props.help.name);
+commandDirs.forEach(dir => {
+  fs.readdir(dir, (err, files) => {
+    if (err) {
+      console.log(`Directory ${dir} not found or error reading:`, err);
+      return;
+    }
+    
+    let jsfile = files.filter(f => f.split(".").pop() === "js");
+    
+    jsfile.forEach((f, i) => {
+      let props = require(`${dir}${f}`);
+      console.log(`${f} loaded from ${dir}!`);
+      client.commands.set(props.help.name, props);
+      props.help.aliases.forEach(alias => {
+        client.aliases.set(alias, props.help.name);
+      });
     });
   });
 });
