@@ -67,51 +67,38 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send(`❌ **Insufficient funds!** You have ${userMoney} kopeks but tried to bet ${betAmount} kopeks.`);
     }
 
-    // Check if user already has a bet
-    const existingBetIndex = global.rouletteGame.bets.findIndex(bet => bet.userId === message.author.id);
+    // Deduct money and add new bet (multiple bets allowed)
+    await db.sub(`money_${message.author.id}`, betAmount);
+    global.rouletteGame.bets.push({
+        userId: message.author.id,
+        username: message.author.username,
+        type: betType.toLowerCase(),
+        amount: betAmount
+    });
 
-    if (existingBetIndex !== -1) {
-        // Update existing bet
-        const oldBet = global.rouletteGame.bets[existingBetIndex];
-        await db.add(`money_${message.author.id}`, oldBet.amount); // Refund old bet
-        await db.sub(`money_${message.author.id}`, betAmount); // Deduct new bet
+    // Group bets by user for display
+    const betsByUser = {};
+    global.rouletteGame.bets.forEach(bet => {
+        if (!betsByUser[bet.userId]) {
+            betsByUser[bet.userId] = [];
+        }
+        betsByUser[bet.userId].push(`${bet.type} (${bet.amount})`);
+    });
 
-        global.rouletteGame.bets[existingBetIndex] = {
-            userId: message.author.id,
-            username: message.author.username,
-            type: betType.toLowerCase(),
-            amount: betAmount
-        };
+    const betDisplay = Object.entries(betsByUser)
+        .map(([userId, bets]) => `<@${userId}>: ${bets.join(', ')} kopeks`)
+        .join('\n');
 
-        const updateEmbed = new EmbedBuilder()
-            .setTitle("🎰 BET UPDATED!")
-            .setColor("#FFA500")
-            .setDescription(`<@${message.author.id}> updated their bet to **${betType}** for **${betAmount}** kopeks!`)
-            .setFooter({ text: "Previous bet was refunded automatically." });
+    const betEmbed = new EmbedBuilder()
+        .setTitle("🎰 BET PLACED!")
+        .setColor("#4CAF50")
+        .setDescription(`<@${message.author.id}> bet **${betAmount}** kopeks on **${betType}**!`)
+        .addFields(
+            { name: "Current Bets", value: betDisplay, inline: false }
+        )
+        .setFooter({ text: "You can place more bets! The wheel will spin when betting time ends." });
 
-        await message.channel.send({ embeds: [updateEmbed] });
-    } else {
-        // Place new bet
-        await db.sub(`money_${message.author.id}`, betAmount);
-
-        global.rouletteGame.bets.push({
-            userId: message.author.id,
-            username: message.author.username,
-            type: betType.toLowerCase(),
-            amount: betAmount
-        });
-
-        const betEmbed = new EmbedBuilder()
-            .setTitle("🎰 BET PLACED!")
-            .setColor("#4CAF50")
-            .setDescription(`<@${message.author.id}> bet **${betAmount}** kopeks on **${betType}**!`)
-            .addFields(
-                { name: "Current Bets", value: global.rouletteGame.bets.map(bet => `<@${bet.userId}>: ${bet.type} - ${bet.amount} kopeks`).join('\n'), inline: false }
-            )
-            .setFooter({ text: "Good luck! The wheel will spin when betting time ends." });
-
-        await message.channel.send({ embeds: [betEmbed] });
-    }
+    await message.channel.send({ embeds: [betEmbed] });
 
     // Reset timing when a bet is placed (extends the betting period)
     if (global.rouletteGame.bets.length === 1) {

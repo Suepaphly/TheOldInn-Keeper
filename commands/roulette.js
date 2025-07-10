@@ -157,12 +157,18 @@ async function startBettingRound() {
             value:
                 global.rouletteGame.bets.length === 0
                     ? "No bets placed yet"
-                    : global.rouletteGame.bets
-                          .map(
-                              (bet) =>
-                                  `<@${bet.userId}>: ${bet.type} - ${bet.amount} kopeks`,
-                          )
-                          .join("\n"),
+                    : (() => {
+                        const betsByUser = {};
+                        global.rouletteGame.bets.forEach(bet => {
+                            if (!betsByUser[bet.userId]) {
+                                betsByUser[bet.userId] = [];
+                            }
+                            betsByUser[bet.userId].push(`${bet.type} (${bet.amount})`);
+                        });
+                        return Object.entries(betsByUser)
+                            .map(([userId, bets]) => `<@${userId}>: ${bets.join(', ')} kopeks`)
+                            .join('\n');
+                    })(),
             inline: false,
         })
         .setFooter({ text: "Game continues until 2 turns pass with no bets!" });
