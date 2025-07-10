@@ -32,7 +32,7 @@ module.exports.run = async (client, message, args) => {
         const time = ms(timeout - (Date.now() - author));
 
         message.channel.send(
-            `**${member.user.tag}**, you already crafted recently. Try again in ${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds.`,
+            `**${member.user.tag}**, you already crafted recently, try again in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`,
         );
     } else {
         const rarefish = [

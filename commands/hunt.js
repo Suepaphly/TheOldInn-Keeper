@@ -34,7 +34,7 @@ module.exports.run = async (client, message, args) => {
     let time = ms(timeout - (Date.now() - author));
 
     message.channel.send(
-      `**<@${message.author.id}>**, you already hunted recently, try again in \`${time.minutes} minutes, ${time.seconds} seconds\`.`
+      `**${message.author.username}**, you already hunted recently, try again in \`${time.minutes} minutes, ${time.seconds} seconds\`.`
     );
   } else {
     let rarehunt = [

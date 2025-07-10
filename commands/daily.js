@@ -29,7 +29,7 @@ module.exports.run = async (client, message, args) => {
 
     if (daily !== null && timeout - (Date.now() - daily) > 0) {
         let time = ms(timeout - (Date.now() - daily));
-        message.channel.send(`**${user.username}**, daily kopeks reset in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`);
+        message.channel.send(`**${user.username}**, you already received daily kopeks recently, try again in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`);
     } else {
         message.channel.send(`**<@${message.author.id}>**, you received your \`${amount}\` daily kopeks!`);
         await db.add(`money_${user.id}`, amount); // Ensure this operation completes before proceeding
