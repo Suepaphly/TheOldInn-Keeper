@@ -11,16 +11,17 @@ const suits = ['♠', '♥', '♦', '♣'];
 const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const rankValues = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
 
-// Poker hand rankings and payouts
+// Poker hand rankings and payouts (Aces Wild)
 const handRankings = {
-    'Royal Flush': { rank: 9, payout: 250 },
-    'Straight Flush': { rank: 8, payout: 50 },
-    'Four of a Kind': { rank: 7, payout: 25 },
-    'Full House': { rank: 6, payout: 9 },
-    'Flush': { rank: 5, payout: 6 },
-    'Straight': { rank: 4, payout: 4 },
-    'Three of a Kind': { rank: 3, payout: 3 },
-    'Two Pair': { rank: 2, payout: 2 },
+    'Royal Flush': { rank: 10, payout: 25 },
+    'Five of a Kind': { rank: 9, payout: 15 },
+    'Straight Flush': { rank: 8, payout: 9 },
+    'Four of a Kind': { rank: 7, payout: 5 },
+    'Full House': { rank: 6, payout: 3 },
+    'Flush': { rank: 5, payout: 2 },
+    'Straight': { rank: 4, payout: 2 },
+    'Three of a Kind': { rank: 3, payout: 1 },
+    'Two Pair': { rank: 2, payout: 1 },
     'Jacks or Better': { rank: 1, payout: 1 },
     'High Card': { rank: 0, payout: 0 }
 };
@@ -44,6 +45,75 @@ function shuffleDeck(deck) {
 }
 
 function evaluateHand(cards) {
+    const aceCount = cards.filter(card => card.rank === 'A').length;
+    const nonAces = cards.filter(card => card.rank !== 'A');
+    
+    // Generate all possible hands by replacing aces with other cards
+    const allPossibleHands = generateAceWildCombinations(cards, aceCount);
+    
+    let bestHand = 'High Card';
+    let bestRank = 0;
+    
+    for (const hand of allPossibleHands) {
+        const result = evaluateNaturalHand(hand);
+        if (handRankings[result].rank > bestRank) {
+            bestRank = handRankings[result].rank;
+            bestHand = result;
+        }
+    }
+    
+    return bestHand;
+}
+
+function generateAceWildCombinations(cards, aceCount) {
+    if (aceCount === 0) {
+        return [cards];
+    }
+    
+    const nonAces = cards.filter(card => card.rank !== 'A');
+    const combinations = [];
+    
+    // For simplicity, try common substitutions
+    const possibleRanks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    const possibleSuits = ['♠', '♥', '♦', '♣'];
+    
+    function tryBestCombination() {
+        // Create a hand with aces substituted optimally
+        const testHand = [...nonAces];
+        
+        // Add substituted aces
+        for (let i = 0; i < aceCount; i++) {
+            // Try to make the best possible hand
+            let bestCard = { rank: '2', suit: '♠', value: 2 };
+            
+            // Simple heuristic: if we need cards for straight/flush
+            if (testHand.length > 0) {
+                const suits = testHand.map(c => c.suit);
+                const mostCommonSuit = suits.sort((a,b) =>
+                    suits.filter(v => v===a).length - suits.filter(v => v===b).length
+                ).pop();
+                
+                bestCard.suit = mostCommonSuit;
+                
+                // Try to complete straights or pairs
+                const values = testHand.map(c => c.value).sort((a,b) => a-b);
+                if (values.length > 0) {
+                    bestCard.value = values[values.length - 1];
+                    bestCard.rank = Object.keys(rankValues).find(k => rankValues[k] === bestCard.value) || 'K';
+                }
+            }
+            
+            testHand.push(bestCard);
+        }
+        
+        return testHand;
+    }
+    
+    // For wild cards, we'll evaluate the best possible hand
+    return [tryBestCombination()];
+}
+
+function evaluateNaturalHand(cards) {
     const sortedCards = [...cards].sort((a, b) => a.value - b.value);
     const suits = cards.map(card => card.suit);
     const ranks = cards.map(card => card.rank);
@@ -57,11 +127,15 @@ function evaluateHand(cards) {
     
     const counts = Object.values(rankCounts).sort((a, b) => b - a);
     const isFlush = suits.every(suit => suit === suits[0]);
-    const isStraight = values.every((val, i) => i === 0 || val === values[i-1] + 1) ||
-                      (values.join('') === '2,3,4,5,14'); // A-2-3-4-5 straight
+    const isStraight = isSequential(values);
     
-    // Check for royal flush
-    if (isFlush && isStraight && values[0] === 10) {
+    // Check for five of a kind (only possible with wild cards)
+    if (counts[0] === 5) {
+        return 'Five of a Kind';
+    }
+    
+    // Check for royal flush (10, J, Q, K, A of same suit)
+    if (isFlush && isStraight && values[0] === 10 && values[4] === 14) {
         return 'Royal Flush';
     }
     
@@ -100,7 +174,7 @@ function evaluateHand(cards) {
         return 'Two Pair';
     }
     
-    // Check for jacks or better
+    // Check for jacks or better (pair of J, Q, K, or A)
     if (counts[0] === 2) {
         const pairRank = Object.keys(rankCounts).find(rank => rankCounts[rank] === 2);
         if (['J', 'Q', 'K', 'A'].includes(pairRank)) {
@@ -109,6 +183,22 @@ function evaluateHand(cards) {
     }
     
     return 'High Card';
+}
+
+function isSequential(values) {
+    const sorted = [...values].sort((a, b) => a - b);
+    
+    // Check normal sequence
+    for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i] !== sorted[i-1] + 1) {
+            // Check for A-2-3-4-5 straight (wheel)
+            if (sorted.join(',') === '2,3,4,5,14') {
+                return true;
+            }
+            return false;
+        }
+    }
+    return true;
 }
 
 function formatCard(card) {
@@ -212,19 +302,20 @@ exports.run = async (client, message, args) => {
     // Show poker info if no arguments provided
     if (!args[0]) {
         const rewardsEmbed = new EmbedBuilder()
-            .setTitle('🃏 Poker - Hand Rankings & Payouts')
+            .setTitle('🃏 Aces Wild Poker - Hand Rankings & Payouts')
             .setColor('#4CAF50')
-            .setDescription('**Usage:** `=poker <bet amount>`\n\nSelect cards to hold, then draw new ones to make the best possible hand!')
+            .setDescription('**Usage:** `=poker <bet amount>`\n\n🃑 **ACES ARE WILD!** Aces can substitute for any card to make the best possible hand.\n\nSelect cards to hold, then draw new ones!')
             .addFields(
-                { name: 'Royal Flush', value: '250x your bet', inline: true },
-                { name: 'Straight Flush', value: '50x your bet', inline: true },
-                { name: 'Four of a Kind', value: '25x your bet', inline: true },
-                { name: 'Full House', value: '9x your bet', inline: true },
-                { name: 'Flush', value: '6x your bet', inline: true },
-                { name: 'Straight', value: '4x your bet', inline: true },
-                { name: 'Three of a Kind', value: '3x your bet', inline: true },
-                { name: 'Two Pair', value: '2x your bet', inline: true },
-                { name: 'Jacks or Better', value: '1x your bet', inline: true }
+                { name: 'Royal Flush', value: '25x your bet', inline: true },
+                { name: 'Five of a Kind', value: '15x your bet', inline: true },
+                { name: 'Straight Flush', value: '9x your bet', inline: true },
+                { name: 'Four of a Kind', value: '5x your bet', inline: true },
+                { name: 'Full House', value: '3x your bet', inline: true },
+                { name: 'Flush', value: '2x your bet', inline: true },
+                { name: 'Straight', value: '2x your bet', inline: true },
+                { name: 'Three of a Kind', value: '1x your bet', inline: true },
+                { name: 'Two Pair', value: '1x your bet', inline: true },
+                { name: 'Jacks or Better', value: '1x your bet (J,Q,K,A pairs only)', inline: false }
             )
             .setFooter({ text: 'Hold cards by clicking the buttons, bold cards are held!' });
         
