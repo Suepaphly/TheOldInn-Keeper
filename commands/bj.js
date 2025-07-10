@@ -109,18 +109,19 @@ exports.run = async (client, message, args) => {
     deck.initialize();
     deck.shuffle();
 
-    async function bet(outcome) {        
+    async function processBet(outcome) {        
+        let betAmount = bet;
         if (gameInstance.player.double === true) {
-            bet = bet * 2;
+            betAmount = betAmount * 2;
         }
         if (outcome === "win") {
-            await db.add(`money_${message.author.id}`, bet);
+            await db.add(`money_${message.author.id}`, betAmount);
         }
         if (outcome === "lose") {
-            await db.sub(`money_${message.author.id}`, bet);
+            await db.sub(`money_${message.author.id}`, betAmount);
         }
         if (outcome === "bj") {
-            await db.add(`money_${message.author.id}`, bet * 2);
+            await db.add(`money_${message.author.id}`, betAmount * 2);
         }
     }
 
@@ -201,37 +202,37 @@ exports.run = async (client, message, args) => {
 
     async function endGame() {
         if (gameInstance.player.score === 21) {
-            bet('bj');
+            processBet('bj');
             gameInstance.gameOver = true;
             activeGames.delete(userId);
             return await endMsg("YOU WIN!", "You Got 21! That's a x3 bonus!", true)
         }
         if (gameInstance.player.score > 21) {
-            bet('lose');
+            processBet('lose');
             gameInstance.gameOver = true;
             activeGames.delete(userId);
             return await endMsg("You Lose", "Over 21, you Bust.", true)
         }
         if (gameInstance.dealer.score === 21) {
-            bet('lose');
+            processBet('lose');
             gameInstance.gameOver = true;
             activeGames.delete(userId);
             return await endMsg("You Lose.", "Dealer has 21.", true)
         }
         if (gameInstance.dealer.score > 21) {
-            bet('win');
+            processBet('win');
             gameInstance.gameOver = true;
             activeGames.delete(userId);
             return await endMsg("YOU WIN!", "Dealer Busts.", true)
         }
         if (gameInstance.dealer.score >= 17 && gameInstance.player.score > gameInstance.dealer.score && gameInstance.player.score < 21) {
-            bet('win');
+            processBet('win');
             gameInstance.gameOver = true;
             activeGames.delete(userId);
             return await endMsg("YOU WIN!", "You beat the Dealer!", true)
         }
         if (gameInstance.dealer.score >= 17 && gameInstance.player.score < gameInstance.dealer.score && gameInstance.dealer.score < 21) {
-            bet('lose');
+            processBet('lose');
             gameInstance.gameOver = true;
             activeGames.delete(userId);
             return await endMsg("You Lose", "The Dealer beat you.", true)
@@ -326,7 +327,7 @@ exports.run = async (client, message, args) => {
 
     collector.on('end', async (collected, reason) => {
         if (reason === 'time' && !gameInstance.gameOver) {
-            await bet("lose");
+            await processBet("lose");
             activeGames.delete(userId);
             const timeoutEmbed = new EmbedBuilder()
                 .setColor('#FF0000')
