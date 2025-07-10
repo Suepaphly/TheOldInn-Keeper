@@ -180,6 +180,98 @@ const RANDOM_EVENTS = {
   CRITICAL_HIT_CHANCE: 0.1, // 10% critical hit chance
 };
 
+// ROB SYSTEM
+const ROB = {
+  SUCCESS_RATE: 0.4, // 40% success rate for robbing players
+  MINIMUM_TARGET_MONEY: 100, // Target must have at least this much to rob
+  STEAL_PERCENTAGE: 0.2, // Steal 20% of target's money
+  MAXIMUM_STEAL: 5000, // Maximum amount that can be stolen
+  FAILURE_PENALTY: 50, // Amount lost when rob attempt fails
+  PROTECTION_DURATION: 3600000, // 1 hour protection after being robbed
+};
+
+// DISCORD CHANNELS
+const CHANNELS = {
+  CASTLE: "the_castle", // Main battle channel
+  GENERAL: "general", // General chat
+  LOGS: "bot-logs", // Bot activity logs
+  ANNOUNCEMENTS: "announcements", // Server announcements
+};
+
+// ITEM SYSTEM
+const ITEMS = {
+  WEAPONS: {
+    RUSTY_SWORD: { cost: 100, damage: 5, name: "Rusty Sword" },
+    IRON_SWORD: { cost: 500, damage: 15, name: "Iron Sword" },
+    STEEL_SWORD: { cost: 1500, damage: 25, name: "Steel Sword" },
+    LEGENDARY_BLADE: { cost: 10000, damage: 50, name: "Legendary Blade" }
+  },
+  ARMOR: {
+    LEATHER_ARMOR: { cost: 200, health: 20, name: "Leather Armor" },
+    CHAIN_MAIL: { cost: 800, health: 40, name: "Chain Mail" },
+    PLATE_ARMOR: { cost: 2000, health: 80, name: "Plate Armor" },
+    DRAGON_SCALE: { cost: 15000, health: 150, name: "Dragon Scale Armor" }
+  },
+  CONSUMABLES: {
+    HEALTH_POTION: { cost: 50, healing: 50, name: "Health Potion" },
+    MANA_POTION: { cost: 75, mana: 25, name: "Mana Potion" },
+    STRENGTH_BOOST: { cost: 100, damage_boost: 10, duration: 3600000, name: "Strength Potion" }
+  }
+};
+
+// BANK SYSTEM
+const BANK = {
+  DAILY_INTEREST_RATE: 0.01, // 1% daily interest
+  MINIMUM_DEPOSIT: 10, // Minimum amount to deposit
+  MAXIMUM_LOAN: 10000, // Maximum loan amount
+  LOAN_INTEREST_RATE: 0.15, // 15% loan interest
+  WITHDRAWAL_LIMIT: 100000, // Daily withdrawal limit
+};
+
+// VALIDATION RULES
+const VALIDATION = {
+  MIN_USERNAME_LENGTH: 2,
+  MAX_USERNAME_LENGTH: 32,
+  MIN_BET_AMOUNT: 1,
+  MAX_BET_AMOUNT: 100000,
+  MIN_MONEY_TRANSFER: 1,
+  MAX_MONEY_TRANSFER: 1000000,
+  COMMAND_RATE_LIMIT: 5000, // 5 seconds between commands
+};
+
+// ERROR MESSAGES
+const MESSAGES = {
+  ERRORS: {
+    INSUFFICIENT_FUNDS: "❌ You don't have enough kopeks for this action!",
+    ON_COOLDOWN: "⏰ This command is on cooldown. Try again later!",
+    INVALID_AMOUNT: "❌ Please enter a valid amount!",
+    USER_NOT_FOUND: "❌ User not found or not registered!",
+    COMMAND_FAILED: "❌ Command failed to execute. Please try again!",
+    PERMISSION_DENIED: "❌ You don't have permission to use this command!",
+    PLAYER_DEAD: "💀 You are dead! Use `=revive` to come back to life!",
+    ALREADY_IN_BATTLE: "⚔️ You are already in battle!",
+    ARENA_LOCKED: "🔒 The arena is currently locked for battle!"
+  },
+  SUCCESS: {
+    MONEY_ADDED: "💰 Kopeks successfully added!",
+    MONEY_REMOVED: "💸 Kopeks successfully removed!",
+    ITEM_PURCHASED: "🛒 Item successfully purchased!",
+    LEVEL_UP: "🆙 Congratulations! You leveled up!",
+    BATTLE_WON: "🏆 Victory! You won the battle!",
+    COOLDOWN_RESET: "⏰ Cooldown successfully reset!"
+  }
+};
+
+// ARENA SYSTEM
+const ARENA = {
+  MAX_PARTICIPANTS: 10, // Maximum players in arena battle
+  ENTRY_FEE: 100, // Cost to enter arena
+  WINNER_MULTIPLIER: 0.8, // Winner gets 80% of total entry fees
+  RESPAWN_TIME: 30000, // 30 seconds to respawn in arena
+  BATTLE_PHASES: ["preparation", "combat", "victory", "cleanup"],
+  PHASE_DURATIONS: [30000, 300000, 15000, 10000] // Duration for each phase
+};
+
 // MINIGAME SKILL REWARDS
 const SKILL_REWARDS = {
   BASE_AMOUNTS: [25, 50, 100, 200], // Base reward tiers
@@ -245,4 +337,11 @@ module.exports = {
   SKILL_REWARDS,
   PATHS,
   COLORS,
+  ROB,
+  CHANNELS,
+  ITEMS,
+  BANK,
+  VALIDATION,
+  MESSAGES,
+  ARENA,
 };
