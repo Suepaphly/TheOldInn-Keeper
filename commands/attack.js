@@ -1,10 +1,26 @@
-
+const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
+const constants = require("../config/constants.js");
+const logger = require("../utility/logger.js");
+const Validator = require("../utility/validation.js");
+const ErrorHandler = require("../utility/errorHandler.js");
 const db = new QuickDB();
-const Discord = require('discord.js');
-const ptt = require("../utility/protectTheTavern.js");
 
 module.exports.run = async (client, message, args) => {
+    // Input validation
+    const validation = Validator.validateCommand(message, args, 0);
+    if (!validation.isValid) {
+        await ErrorHandler.handleValidationError(validation.errors, message, 'attack');
+        return;
+    }
+
+    // Check if town is under attack
+    const ptt = require("../utility/protectTheTavern.js");
+    if (ptt.lockArena) {
+        await message.channel.send(constants.ERRORS.TOWN_UNDER_ATTACK);
+        return;
+    }
+
     const user = message.author;
     const member = message.guild.members.cache.get(user.id);
 
@@ -16,7 +32,7 @@ module.exports.run = async (client, message, args) => {
     // Check if player has already attacked this turn
     const currentTurn = ptt.currentBattleTurn;
     const hasAttackedThisTurn = await db.get(`turn_attack_${user.id}_${currentTurn}`);
-    
+
     if (hasAttackedThisTurn) {
         return message.channel.send("⏰ You have already attacked this turn! Wait for the next turn.");
     }
@@ -24,7 +40,7 @@ module.exports.run = async (client, message, args) => {
     // Check if there are any monsters left
     const monsters = await db.get("Monsters") || {};
     const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
-    
+
     if (totalMonsters <= 0) {
         return message.channel.send("🎉 All monsters have been defeated! The battle will end soon.");
     }
@@ -34,22 +50,22 @@ module.exports.run = async (client, message, args) => {
     let damageDealt = combatLevel + 1; // +1 damage for each combat level
     let killedMonster = "";
     let hitMonster = "";
-    
+
     const monsterArray = ["goblin", "mephit", "broodling", "ogre", "automaton"];
     const monsterHealthArray = [1, 5, 10, 25, 50];
-    
+
     // Find the first available monster to attack
     for (let i = 0; i < monsterArray.length; i++) {
         const monsterType = monsterArray[i];
         const monsterCount = monsters[monsterType] || 0;
-        
+
         if (monsterCount > 0) {
             hitMonster = monsterType;
-            
+
             // Get current damage for this monster type
             const currentDamage = await db.get(`monster_damage_${monsterType}`) || 0;
             const newDamage = currentDamage + damageDealt;
-            
+
             // Check if monster dies
             if (newDamage >= monsterHealthArray[i]) {
                 // Monster dies - remove it and reset damage
@@ -74,18 +90,18 @@ module.exports.run = async (client, message, args) => {
         const currentTurnAttackers = allEntries.filter(entry => 
             entry.id.startsWith(`turn_attack_`) && entry.id.endsWith(`_${currentTurn}`)
         );
-        
+
         let rewardWinner = user.id;
         let highestCombatLevel = combatLevel;
-        
+
         // If multiple attackers this turn, determine winner by combat level (with random tiebreaker)
         if (currentTurnAttackers.length > 1) {
             const candidates = [];
-            
+
             for (const attacker of currentTurnAttackers) {
                 const attackerId = attacker.id.split('_')[2];
                 const attackerCombatLevel = await db.get(`combatlevel_${attackerId}`) || 0;
-                
+
                 if (attackerCombatLevel > highestCombatLevel) {
                     highestCombatLevel = attackerCombatLevel;
                     rewardWinner = attackerId;
@@ -95,24 +111,24 @@ module.exports.run = async (client, message, args) => {
                     candidates.push(attackerId);
                 }
             }
-            
+
             // Random selection among tied highest combat level players
             if (candidates.length > 1) {
                 rewardWinner = candidates[Math.floor(Math.random() * candidates.length)];
             }
         }
-        
+
         // Calculate and award the reward (one-tenth of summoning cost)
         const monsterCostArray = [50, 200, 500, 2000, 10000]; // From protectTheTavern.js
         const monsterIndex = monsterArray.indexOf(killedMonster);
         const reward = Math.floor(monsterCostArray[monsterIndex] / 10);
-        
+
         await db.add(`money_${rewardWinner}`, reward);
-        
+
         // Check remaining monsters first
         const updatedMonsters = await db.get("Monsters") || {};
         const remainingMonsters = Object.values(updatedMonsters).reduce((sum, count) => sum + count, 0);
-        
+
         // Send appropriate message
         if (rewardWinner === user.id) {
             message.channel.send(`⚔️ ${member} slays a ${killedMonster} with ${damageDealt} damage and claims ${reward} kopeks! ${remainingMonsters} monsters remaining.`);

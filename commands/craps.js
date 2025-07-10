@@ -1,12 +1,24 @@
-const { QuickDB } = require("quick.db");
-const db = new QuickDB();
 const Discord = require("discord.js");
+const { QuickDB } = require("quick.db");
+const constants = require("../config/constants.js");
+const logger = require("../utility/logger.js");
+const Validator = require("../utility/validation.js");
+const ErrorHandler = require("../utility/errorHandler.js");
+const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
+    // Input validation
+    const validation = Validator.validateCommand(message, args, 1);
+    if (!validation.isValid) {
+        await ErrorHandler.handleValidationError(validation.errors, message, 'craps');
+        return;
+    }
+
     // Check if town is under attack
     const ptt = require("../utility/protectTheTavern.js");
     if (ptt.lockArena) {
-        return message.channel.send("⚔️ The town is under attack! All civilian activities are suspended until the battle ends.");
+        await message.channel.send(constants.ERRORS.TOWN_UNDER_ATTACK);
+        return;
     }
 
     const Discord = require("discord.js");
