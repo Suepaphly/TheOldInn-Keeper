@@ -135,41 +135,56 @@ function generateOptimalWildCombinations(cards) {
         }
     }
     
-    // Strategy 2: Try to make straights
-    if (nonAceValues.length > 0) {
-        // Try ace-low straights (A-2-3-4-5)
-        const aceLowStraight = [
-            { rank: 'A', suit: '♠', value: 1 },
-            { rank: '2', suit: '♥', value: 2 },
-            { rank: '3', suit: '♦', value: 3 },
-            { rank: '4', suit: '♣', value: 4 },
-            { rank: '5', suit: '♠', value: 5 }
-        ];
+    // Strategy 2: Try to make straights (only if we have enough cards to potentially form one)
+    if (nonAceValues.length > 0 && (5 - nonAceValues.length) <= aceCount) {
+        // Sort existing non-ace values
+        const sortedNonAces = [...nonAceValues].sort((a, b) => a - b);
         
-        // Try ace-high straights (10-J-Q-K-A)
-        const aceHighStraight = [
-            { rank: '10', suit: '♠', value: 10 },
-            { rank: 'J', suit: '♥', value: 11 },
-            { rank: 'Q', suit: '♦', value: 12 },
-            { rank: 'K', suit: '♣', value: 13 },
-            { rank: 'A', suit: '♠', value: 14 }
-        ];
+        // Only try straights if we have potential for a real sequence
+        const possibleStraights = [];
         
-        combinations.add(JSON.stringify(aceLowStraight));
-        combinations.add(JSON.stringify(aceHighStraight));
+        // Try ace-low straight (A-2-3-4-5) only if it makes sense with existing cards
+        if (sortedNonAces.some(v => v >= 2 && v <= 5)) {
+            possibleStraights.push([1, 2, 3, 4, 5]); // A as 1
+        }
         
-        // Try to fill gaps in existing sequences
-        for (let startVal = Math.max(2, nonAceValues[0] - aceCount); startVal <= Math.min(10, nonAceValues[nonAceValues.length - 1]); startVal++) {
+        // Try ace-high straight (10-J-Q-K-A) only if it makes sense with existing cards  
+        if (sortedNonAces.some(v => v >= 10 && v <= 14)) {
+            possibleStraights.push([10, 11, 12, 13, 14]); // A as 14
+        }
+        
+        // Try regular straights that could include existing cards
+        for (let start = 2; start <= 10; start++) {
+            const straightValues = [start, start + 1, start + 2, start + 3, start + 4];
+            // Only consider this straight if some existing cards fit into it
+            if (sortedNonAces.some(v => straightValues.includes(v))) {
+                possibleStraights.push(straightValues);
+            }
+        }
+        
+        // For each possible straight, see if we can make it with available aces
+        for (const straightValues of possibleStraights) {
             const straightAttempt = [];
-            for (let i = 0; i < 5; i++) {
-                const val = startVal + i;
-                const rank = Object.keys(rankValues).find(k => rankValues[k] === val);
-                if (rank) {
-                    straightAttempt.push({ rank, suit: suits[i % 4], value: val });
+            let acesNeeded = 0;
+            
+            for (const value of straightValues) {
+                // Check if we already have this value in non-aces
+                const existingCard = nonAces.find(c => c.value === value || (value === 1 && c.value === 14));
+                if (existingCard) {
+                    straightAttempt.push(existingCard);
+                } else {
+                    // We'd need an ace for this position
+                    acesNeeded++;
+                    const rank = Object.keys(rankValues).find(k => rankValues[k] === value) || (value === 1 ? 'A' : null);
+                    if (rank) {
+                        straightAttempt.push({ rank, suit: suits[acesNeeded % 4], value });
+                    }
                 }
             }
-            if (straightAttempt.length === 5) {
-                combinations.add(JSON.stringify(straightAttempt));
+            
+            // Only add if we have enough aces and the straight is complete
+            if (acesNeeded <= aceCount && straightAttempt.length === 5) {
+                combinations.add(JSON.stringify(straightAttempt.sort((a, b) => a.value - b.value)));
             }
         }
     }
