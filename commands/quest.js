@@ -604,8 +604,9 @@ async function handleRiddleAnswer(interaction, userId, collector) {
         
         await interaction.update({ embeds: [embed], components: [row] });
     } else {
-        // Wrong answer
-        await endQuest(interaction, userId, false, `Wrong answer! The sphinx looks disappointed and you flee empty-handed.`);
+        // Wrong answer - sphinx devours the player
+        await db.set(`death_cooldown_${userId}`, Date.now());
+        await endQuest(interaction, userId, false, `Wrong answer! The ancient sphinx's eyes glow with fury. "Your ignorance has sealed your fate!" it roars before devouring you whole. You are now dead for 24 hours.`);
         collector.stop();
     }
 }
