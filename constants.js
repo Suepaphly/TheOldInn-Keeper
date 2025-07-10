@@ -272,6 +272,98 @@ const ARENA = {
   PHASE_DURATIONS: [30000, 300000, 15000, 10000] // Duration for each phase
 };
 
+// XP SYSTEM
+const XP_SYSTEM = {
+  BASE_XP_REWARD: 10, // Base XP gained per skill action
+  LEVEL_UP_XP_MULTIPLIER: 100, // XP required = level * this multiplier
+  MAX_SKILL_LEVEL: 100, // Maximum level for skills
+  XP_BONUS_MULTIPLIER: 1.5, // Bonus XP multiplier for higher tier rewards
+};
+
+// MINIGAME ITEM ARRAYS
+const MINIGAME_ITEMS = {
+  FISH: [
+    ["minnow", "carp", "bass", "salmon"],
+    ["trout", "pike", "catfish", "tuna"],
+    ["marlin", "swordfish", "shark", "whale"],
+    ["kraken tentacle", "sea dragon scale", "leviathan fin", "poseidon's trident"]
+  ],
+  HUNT: [
+    ["rabbit", "squirrel", "bird", "deer"],
+    ["wolf", "bear", "boar", "elk"],
+    ["tiger", "lion", "rhino", "elephant"],
+    ["dragon", "phoenix", "unicorn", "chimera"]
+  ],
+  GATHER: [
+    ["berries", "mushrooms", "herbs", "flowers"],
+    ["crystals", "gems", "rare stones", "minerals"],
+    ["ancient coins", "artifacts", "relics", "scrolls"],
+    ["philosopher's stone", "eternal flame", "void essence", "star fragment"]
+  ],
+  CRAFT: [
+    ["wooden tool", "simple weapon", "basic armor", "utility item"],
+    ["iron equipment", "steel blade", "leather gear", "enchanted item"],
+    ["masterwork weapon", "runic armor", "magical trinket", "legendary tool"],
+    ["artifact weapon", "divine armor", "godly relic", "cosmic creation"]
+  ],
+  WORK: [
+    ["copper coins", "small wage", "honest pay", "daily earnings"],
+    ["silver bonus", "good salary", "promotion pay", "skilled wages"],
+    ["gold reward", "expert fee", "master's wage", "prestigious pay"],
+    ["royal commission", "noble's reward", "emperor's gift", "divine blessing"]
+  ]
+};
+
+// MONSTER ATTACK MESSAGES
+const MONSTER_MESSAGES = {
+  SPAWN_MESSAGES: {
+    GOBLIN: "🧌 A goblin has been spotted near the town!",
+    MEPHIT: "👹 A mephit emerges from the shadows!",
+    BROODLING: "🕷️ A broodling scuttles out of the darkness!",
+    OGRE: "👹 An ogre storms toward the town!",
+    AUTOMATON: "🤖 An ancient automaton activates!"
+  },
+  VICTORY_MESSAGES: {
+    PLAYER: "🏆 The defenders have successfully repelled the attack!",
+    MONSTER: "💀 The monsters have breached the defenses and are raiding the banks!"
+  },
+  BATTLE_UPDATES: {
+    DAMAGE_DEALT: "⚔️ The town's defenses strike for {damage} damage!",
+    DAMAGE_TAKEN: "💥 The monster attacks for {damage} damage!",
+    MONSTER_DEFEATED: "☠️ The {monster} has been defeated!"
+  }
+};
+
+// DATABASE QUERIES (commonly used patterns)
+const DB_QUERIES = {
+  MONEY: "money_{userId}",
+  SKILLS: {
+    FISH_LEVEL: "fish_level_{userId}",
+    HUNT_LEVEL: "hunt_level_{userId}",
+    GATHER_LEVEL: "gather_level_{userId}",
+    CRAFT_LEVEL: "craft_level_{userId}",
+    WORK_LEVEL: "work_level_{userId}",
+    FISH_XP: "fish_xp_{userId}",
+    HUNT_XP: "hunt_xp_{userId}",
+    GATHER_XP: "gather_xp_{userId}",
+    CRAFT_XP: "craft_xp_{userId}",
+    WORK_XP: "work_xp_{userId}"
+  },
+  COOLDOWNS: {
+    FISH: "fish_{userId}",
+    HUNT: "hunt_{userId}",
+    GATHER: "gather_{userId}",
+    CRAFT: "craft_{userId}",
+    WORK: "work_{userId}",
+    DAILY: "daily_{userId}",
+    ROB: "rob_{userId}"
+  },
+  HEALTH: "health_{userId}",
+  DAMAGE: "damage_{userId}",
+  DEAD: "dead_{userId}",
+  BANK: "bank_{userId}"
+};
+
 // MINIGAME SKILL REWARDS
 const SKILL_REWARDS = {
   BASE_AMOUNTS: [25, 50, 100, 200], // Base reward tiers
@@ -344,4 +436,8 @@ module.exports = {
   VALIDATION,
   MESSAGES,
   ARENA,
+  XP_SYSTEM,
+  MINIGAME_ITEMS,
+  MONSTER_MESSAGES,
+  DB_QUERIES,
 };
