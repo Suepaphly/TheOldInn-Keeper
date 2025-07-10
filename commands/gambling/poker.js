@@ -194,9 +194,18 @@ function isSequential(values) {
             if (sorted.join(',') === '2,3,4,5,14') {
                 return true;
             }
+
+             // Handle 10-J-Q-K-A straight
+            if (sorted.join(',') === '10,11,12,13,14') {
+                return true;
+            }
             return false;
         }
     }
+      // Handle A-10-J-Q-K straight
+      if (sorted.join(',') === '10,11,12,13,14') {
+            return true;
+      }
     return true;
 }
 
