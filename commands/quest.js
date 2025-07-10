@@ -782,8 +782,7 @@ async function startMazeQuest(interaction, userId) {
                 .setCustomId('maze_1')
                 .setLabel('🚪 Path 1')
                 .setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder()
-                .setCustomId('maze_2')
+            new ButtonBuilder                .setCustomId('maze_2')
                 .setLabel('🚪 Path 2')
                 .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()
