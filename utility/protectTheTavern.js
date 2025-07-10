@@ -300,16 +300,16 @@ async function buyArmy(type, number, location, player, message) {
         var maxTroopsForPlayer = Math.floor(locWall / 5);
         var troopsAfterPurchase = playerTroops + number;
         
-        if (wBal >= troopCostArray[typeIndex] * number && troopsAfterPurchase <= maxTroopsForPlayer) {
+        if (troopsAfterPurchase > maxTroopsForPlayer) {
+            message.channel.send(`${player.username} you can only have ${maxTroopsForPlayer} troops at ${wallArray[locIndex]} (1 per 5 walls). You currently have ${playerTroops}.`);
+        } else if (wBal < troopCostArray[typeIndex] * number) {
+            message.channel.send(`${player.username} doesn't have enough kopeks to buy ${number} of ${troopArray[typeIndex]}.`);
+        } else {
             await db.add(`Troops_${wallArray[locIndex]}.total`, number);
             await db.add(`Troops_${wallArray[locIndex]}.${troopArray[typeIndex]}`, number);
             await db.add(`player_troops_${player.id}_${wallArray[locIndex]}`, number);
             await db.sub(`money_${player.id}`, troopCostArray[typeIndex] * number);
             message.channel.send(`${player.username} just bought ${number} units of ${troopArray[typeIndex]}. (${troopsAfterPurchase}/${maxTroopsForPlayer} troops at ${wallArray[locIndex]})`);
-        } else if (wBal < troopCostArray[typeIndex] * number) {
-            message.channel.send(`${player.username} doesn't have enough kopeks to buy ${number} of ${troopArray[typeIndex]}.`);
-        } else {
-            message.channel.send(`${player.username} you can only have ${maxTroopsForPlayer} troops at ${wallArray[locIndex]} (1 per 5 walls). You currently have ${playerTroops}.`);
         }
     } catch (error) {
         console.error('Error buying army:', error);
@@ -331,16 +331,16 @@ async function buyTrap(type, number, location, player, message) {
         var maxTrapsForPlayer = Math.floor(locWall / 5);
         var trapsAfterPurchase = playerTraps + number;
 
-        if (wBal >= trapCostArray[typeIndex] * number && trapsAfterPurchase <= maxTrapsForPlayer) {
+        if (trapsAfterPurchase > maxTrapsForPlayer) {
+            message.channel.send(`${player.username} you can only have ${maxTrapsForPlayer} traps at ${wallArray[locIndex]} (1 per 5 walls). You currently have ${playerTraps}.`);
+        } else if (wBal < trapCostArray[typeIndex] * number) {
+            message.channel.send(`${player.username} doesn't have enough kopeks to buy ${number} units of ${trapArray[typeIndex]}.`);
+        } else {
             await db.add(`Traps_${wallArray[locIndex]}.total`, number);
             await db.add(`Traps_${wallArray[locIndex]}.${trapArray[typeIndex]}`, number);
             await db.add(`player_traps_${player.id}_${wallArray[locIndex]}`, number);
             await db.sub(`money_${player.id}`, trapCostArray[typeIndex] * number);
             message.channel.send(`${player.username} just bought ${number} units of ${trapArray[typeIndex]}. (${trapsAfterPurchase}/${maxTrapsForPlayer} traps at ${wallArray[locIndex]})`);
-        } else if (wBal < trapCostArray[typeIndex] * number) {
-            message.channel.send(`${player.username} doesn't have enough kopeks to buy ${number} units of ${trapArray[typeIndex]}.`);
-        } else {
-            message.channel.send(`${player.username} you can only have ${maxTrapsForPlayer} traps at ${wallArray[locIndex]} (1 per 5 walls). You currently have ${playerTraps}.`);
         }
     } catch (error) {
         console.error('Error buying trap:', error);
