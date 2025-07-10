@@ -66,6 +66,42 @@ class Logger {
     const message = `Combat action: ${action} | Details: ${JSON.stringify(details)}`;
     this.info(message, userId, 'combat');
   }
+
+  performance(action, duration, userId = null) {
+    const message = `Performance: ${action} took ${duration}ms`;
+    this.info(message, userId, 'performance');
+  }
+
+  security(action, userId, details = {}) {
+    const message = `Security event: ${action} | Details: ${JSON.stringify(details)}`;
+    this.warn(message, userId, 'security');
+    this.writeToFile('security.log', this.formatMessage('SECURITY', message, userId, 'security'));
+  }
+
+  validation(field, value, userId, command) {
+    const message = `Validation failed: ${field} = ${value}`;
+    this.warn(message, userId, command);
+  }
+
+  async cleanOldLogs(daysToKeep = 30) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+    
+    try {
+      const files = fs.readdirSync(this.logDir);
+      for (const file of files) {
+        const filePath = path.join(this.logDir, file);
+        const stats = fs.statSync(filePath);
+        
+        if (stats.mtime < cutoffDate) {
+          fs.unlinkSync(filePath);
+          console.log(`Cleaned old log file: ${file}`);
+        }
+      }
+    } catch (error) {
+      this.error('Failed to clean old logs', error);
+    }
+  }
 }
 
 module.exports = new Logger();

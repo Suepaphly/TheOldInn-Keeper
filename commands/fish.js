@@ -2,6 +2,7 @@ const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
 const mg = require("../utility/utility.js");
+const constants = require("../constants/constants.js");
 
 module.exports.run = async (client, message, args) => {
   // Check if town is under attack
@@ -15,7 +16,7 @@ module.exports.run = async (client, message, args) => {
     ms = (await import("parse-ms")).default;
   } catch (error) {
     console.error("Failed to import parse-ms", error);
-    return;
+    return message.channel.send("❌ Failed to import `parse-ms` library. Please report this to the developers.");
   }
 
   const member =
@@ -26,9 +27,9 @@ module.exports.run = async (client, message, args) => {
   let author = await db.get(`fish_${user.id}`);
   let userlevel = await db.get(`fishinglevel_${user.id}`);
 
-  let timeout = 1800000;
+  const timeout = constants.COOLDOWNS.FISH;
 
-  if (author !== null && timeout - (Date.now() - author) > 9000) {
+  if (author !== null && Date.now() - author < timeout) {
     let time = ms(timeout - (Date.now() - author));
 
     message.channel.send(

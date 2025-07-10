@@ -1,9 +1,20 @@
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
+const constants = require("../config/constants.js");
+const logger = require("../utility/logger.js");
+const Validator = require("../utility/validation.js");
+const ErrorHandler = require("../utility/errorHandler.js");
 const mg = require("../utility/utility.js");
 
 module.exports.run = async (client, message, args) => {
+    // Input validation
+    const validation = Validator.validateCommand(message, args, 0);
+    if (!validation.isValid) {
+        await ErrorHandler.handleValidationError(validation.errors, message, 'work');
+        return;
+    }
+
     // Check if town is under attack
     const ptt = require("../utility/protectTheTavern.js");
     if (ptt.lockArena) {
@@ -23,9 +34,9 @@ module.exports.run = async (client, message, args) => {
     let author = await db.get(`work_${user.id}`)
  let userlevel = await db.get(`workinglevel_${user.id}`)
 
-    let timeout = 18000000;
+    const timeout = constants.COOLDOWNS.WORK;
 
-    if (author !== null && timeout - (Date.now() - author) > 0) {
+    if (author !== null && Date.now() - author < timeout) {
         let time = ms(timeout - (Date.now() - author));
 
 

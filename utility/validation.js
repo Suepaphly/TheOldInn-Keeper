@@ -88,6 +88,66 @@ class Validator {
       logger.warn(`Validation error: ${error}`, userId, command);
     });
   }
+
+  static sanitizeString(input, maxLength = constants.VALIDATION.REASON_MAX_LENGTH) {
+    if (typeof input !== 'string') return '';
+    
+    // Remove potential code injection attempts
+    const sanitized = input
+      .replace(/[<>]/g, '') // Remove angle brackets
+      .replace(/javascript:/gi, '') // Remove javascript protocols
+      .replace(/on\w+=/gi, '') // Remove event handlers
+      .trim()
+      .slice(0, maxLength);
+    
+    return sanitized;
+  }
+
+  static isValidDiscordId(id) {
+    return typeof id === 'string' && /^\d{17,19}$/.test(id);
+  }
+
+  static isValidChannelName(name) {
+    return typeof name === 'string' && /^[a-z0-9_-]+$/.test(name) && name.length <= 100;
+  }
+
+  static validateRateLimit(userId, command, maxAttempts = 5, windowMs = 60000) {
+    // This would typically use Redis or similar for production
+    // For now, we'll use a simple in-memory store
+    if (!this.rateLimitStore) {
+      this.rateLimitStore = new Map();
+    }
+
+    const key = `${userId}:${command}`;
+    const now = Date.now();
+    const userAttempts = this.rateLimitStore.get(key) || [];
+    
+    // Clean old attempts outside the window
+    const recentAttempts = userAttempts.filter(time => now - time < windowMs);
+    
+    if (recentAttempts.length >= maxAttempts) {
+      logger.security('Rate limit exceeded', userId, { command, attempts: recentAttempts.length });
+      return false;
+    }
+    
+    recentAttempts.push(now);
+    this.rateLimitStore.set(key, recentAttempts);
+    
+    return true;
+  }
+
+  static validateCommandPermissions(user, command) {
+    // Define admin-only commands
+    const adminCommands = ['addmoney', 'removemoney', 'removestuff', 'resetcooldown', 'startNewGame'];
+    
+    if (adminCommands.includes(command)) {
+      // In a real implementation, you'd check actual permissions
+      // For now, we'll assume the command handles its own permission checking
+      return true;
+    }
+    
+    return true;
+  }
 }
 
 module.exports = Validator;

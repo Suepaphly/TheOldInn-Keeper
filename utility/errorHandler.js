@@ -48,6 +48,51 @@ class ErrorHandler {
       await this.handleCommand(commandFunction, client, message, args, commandName);
     };
   }
+
+  static categorizeError(error) {
+    if (error.message.includes('QuickDB') || error.message.includes('database')) {
+      return 'DATABASE';
+    }
+    if (error.message.includes('fetch') || error.message.includes('network')) {
+      return 'NETWORK';
+    }
+    if (error.message.includes('permission') || error.message.includes('forbidden')) {
+      return 'PERMISSION';
+    }
+    if (error.message.includes('timeout') || error.message.includes('time')) {
+      return 'TIMEOUT';
+    }
+    if (error.message.includes('parse') || error.message.includes('invalid')) {
+      return 'VALIDATION';
+    }
+    return 'UNKNOWN';
+  }
+
+  static async handleCriticalError(error, context) {
+    const category = this.categorizeError(error);
+    logger.error(`Critical error [${category}]: ${error.message}`, error, null, context);
+    
+    // In a production environment, you might want to:
+    // - Send alerts to administrators
+    // - Restart certain services
+    // - Implement circuit breakers
+    
+    console.error(`CRITICAL ERROR in ${context}:`, error);
+  }
+
+  static async tryRecovery(error, operation, maxRetries = 3) {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
+        return await operation();
+      } catch (retryError) {
+        logger.warn(`Recovery attempt ${i + 1} failed`, null, 'error-recovery');
+        if (i === maxRetries - 1) {
+          throw retryError;
+        }
+      }
+    }
+  }
 }
 
 module.exports = ErrorHandler;

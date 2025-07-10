@@ -73,5 +73,32 @@ module.exports = {
     INVALID_USER: "Invalid user specified.",
     AMOUNT_TOO_HIGH: "Amount is too high.",
     AMOUNT_TOO_LOW: "Amount is too low.",
+    DATABASE_ERROR: "Database connection failed. Please try again.",
+    PARSE_ERROR: "Failed to parse input data.",
+    PERMISSION_DENIED: "You don't have permission to use this command.",
+    INVALID_CHANNEL: "This command can only be used in specific channels.",
+    RATE_LIMITED: "You're doing that too fast. Please slow down.",
+  },
+
+  // Success messages
+  SUCCESS: {
+    MONEY_ADDED: "Successfully added kopeks to your wallet.",
+    MONEY_REMOVED: "Successfully removed kopeks from your wallet.",
+    ITEM_PURCHASED: "Item purchased successfully.",
+    LEVEL_UP: "Congratulations! You leveled up!",
+    BATTLE_WON: "Victory! You defeated the monsters!",
+    COOLDOWN_RESET: "Cooldown has been reset.",
+  },
+
+  // Emoji mappings
+  EMOJIS: {
+    SUCCESS: "✅",
+    ERROR: "❌", 
+    WARNING: "⚠️",
+    LOADING: "⏳",
+    MONEY: "💰",
+    BATTLE: "⚔️",
+    SHIELD: "🛡️",
+    TOOLS: "🔨",
   }
 };
