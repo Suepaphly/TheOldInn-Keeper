@@ -26,9 +26,7 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send("⚔️ The town is under attack! All civilian activities are suspended until the battle ends.");
     }
 
-    // Access the global roulette game state
-    const rouletteGame = require('./roulette.js').rouletteGame || global.rouletteGame;
-    
+    // Initialize global state if it doesn't exist
     if (!global.rouletteGame) {
         global.rouletteGame = {
             active: false,
@@ -44,8 +42,9 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send("🎰 No roulette game is currently active! Use `=startroulette` to start a new game.");
     }
 
-    if (global.rouletteGame.channel.id !== message.channel.id) {
-        return message.channel.send("🎰 The roulette game is running in a different channel!");
+    if (!global.rouletteGame.channel || global.rouletteGame.channel.id !== message.channel.id) {
+        const activeChannel = global.rouletteGame.channel ? `<#${global.rouletteGame.channel.id}>` : "another channel";
+        return message.channel.send(`🎰 The roulette game is running in ${activeChannel}! You can only bet in that channel.`);
     }
 
     const betType = args[0];

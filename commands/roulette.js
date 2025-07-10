@@ -217,9 +217,22 @@ module.exports.run = async (client, message, args) => {
     const command = args[0]?.toLowerCase();
 
     if (!command || command === 'start') {
-        // Start roulette game
+        // Initialize global state if it doesn't exist
+        if (!global.rouletteGame) {
+            global.rouletteGame = {
+                active: false,
+                bets: [],
+                channel: null,
+                timer: null,
+                turnCount: 0,
+                lastNumbers: []
+            };
+        }
+
+        // Start roulette game - check if already active
         if (global.rouletteGame.active) {
-            return message.channel.send("🎰 A roulette game is already in progress! Wait for it to finish or place your bets with `=rbet`.");
+            const activeChannel = global.rouletteGame.channel ? `<#${global.rouletteGame.channel.id}>` : "another channel";
+            return message.channel.send(`🎰 A roulette game is already in progress in ${activeChannel}! Wait for it to finish or place your bets with \`=rbet\`.`);
         }
 
         global.rouletteGame.active = true;
