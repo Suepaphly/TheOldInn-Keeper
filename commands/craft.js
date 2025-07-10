@@ -2,8 +2,6 @@ const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
 const mg = require("../utility/utility.js");
-const { QuickDB } = require("quick.db");
-const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
     let ms;
@@ -28,7 +26,7 @@ module.exports.run = async (client, message, args) => {
         const time = ms(timeout - (Date.now() - author));
 
         message.channel.send(
-            `**${member.user.tag}**, you already crafted recently. Try again in ${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds.`
+            `**${member.user.tag}**, you already crafted recently. Try again in ${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds.`,
         );
     } else {
         const rarefish = [
@@ -76,7 +74,7 @@ module.exports.run = async (client, message, args) => {
             message.channel.send(
                 `**CRAFTING MINIGAME:** - :tools:\n${member}, you crafted a ${
                     fisharray[fishresult[0]][fishresult[1]]
-                } and earned \`${fishresult[2]}\` kopeks.`
+                } and earned \`${fishresult[2]}\` kopeks.`,
             );
             await db.add(`money_${user.id}`, fishresult[2]);
             db.set(`craft_${user.id}`, Date.now());

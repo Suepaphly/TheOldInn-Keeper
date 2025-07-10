@@ -22,7 +22,7 @@ module.exports.run = async (client, message, args) => {
     let timer = await db.get(`deposit_${user.id}`)
 
     if(!withdraw || withdraw === null || withdraw === 0 || args[0] === "all"){ 
-            let total = await db.fetch(`bank_${user.id}`);
+            let total = await db.get(`bank_${user.id}`);
             await db.sub(`bank_${user.id}`, total);
             await db.add(`money_${user.id}`, total);
             let newbal = await db.get(`money_${user.id}`);
