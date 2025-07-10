@@ -760,14 +760,24 @@ async function addMonster(type, number) {
 }
 
 // Function to schedule random monster attacks
-function scheduleRandomAttack() {
-    // Generate random time between 1-24 hours (in milliseconds)
-    const minHours = 1;
-    const maxHours = 24;
-    const randomHours = Math.random() * (maxHours - minHours) + minHours;
-    const randomMs = randomHours * 60 * 60 * 1000;
+function scheduleRandomAttack(customDelayMs = null) {
+    // Use custom delay if provided, otherwise generate random time between 1-24 hours
+    let randomMs;
+    if (customDelayMs !== null) {
+        randomMs = customDelayMs;
+    } else {
+        const minHours = 1;
+        const maxHours = 24;
+        const randomHours = Math.random() * (maxHours - minHours) + minHours;
+        randomMs = randomHours * 60 * 60 * 1000;
+    }
     
-    console.log(`Next automatic monster attack scheduled in ${randomHours.toFixed(1)} hours`);
+    if (customDelayMs !== null) {
+        console.log(`Next automatic monster attack scheduled immediately (custom delay: ${customDelayMs}ms)`);
+    } else {
+        const randomHours = randomMs / (60 * 60 * 1000);
+        console.log(`Next automatic monster attack scheduled in ${randomHours.toFixed(1)} hours`);
+    }
     
     setTimeout(async () => {
         try {
