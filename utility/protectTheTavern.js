@@ -785,14 +785,14 @@ function scheduleRandomAttack(customDelayMs = null) {
             const monsters = await db.get("Monsters") || {};
             const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
             
-            if (totalMonsters >= 10 && !lockArena && scheduledAttackChannel) {
+            if (totalMonsters > 0 && !lockArena && scheduledAttackChannel) {
                 console.log("Automatic monster attack triggered!");
                 scheduledAttackChannel.send("🌙 **AUTOMATIC MONSTER ATTACK!** The creatures of the night have grown restless and attack the town!");
                 
                 // Start the battle
                 await startBattle(scheduledAttackChannel);
             } else {
-                console.log("Automatic attack skipped - not enough monsters or battle in progress");
+                console.log(`Automatic attack skipped - ${totalMonsters === 0 ? 'no monsters available' : 'battle in progress'}`);
             }
         } catch (error) {
             console.error("Error during scheduled attack:", error);
