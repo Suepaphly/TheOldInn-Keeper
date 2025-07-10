@@ -5,26 +5,26 @@ function skillMinigame (type, userlevel) {
       switch(type) { 
     //-----------------------------------        
         case "fish":
-           reward = reward.map(element => element*2);
+           reward = reward.map(element => element*40); // 1000 base (25*40)
           break;
     //-----------------------------------      
         case "hunt":
-           reward = reward.map(element => element*3);      
+           reward = reward.map(element => element*60); // 1500 base (25*60)     
           break;
 
     //-----------------------------------   
         case "gather":
-           reward = reward.map(element => element*1);      
+           reward = reward.map(element => element*20); // 500 base (25*20)     
           break;
 
     //-----------------------------------         
         case "craft":
-           reward = reward.map(element => element*4);      
+           reward = reward.map(element => element*80); // 2000 base (25*80)     
           break;
 
     //-----------------------------------       
         case "work":
-           reward = reward.map(element => element*5);      
+           reward = reward.map(element => element*100); // 2500 base (25*100)     
           break;
 
     //-----------------------------------       
