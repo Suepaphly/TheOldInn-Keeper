@@ -62,13 +62,7 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send("💀 You cannot go on quests while dead! Use `=revive` first.");
     }
     
-    // Check cooldown (optional - 10 minute cooldown between quests)
-    const lastQuest = await db.get(`quest_cooldown_${userId}`) || 0;
-    const now = Date.now();
-    if (now - lastQuest < 600000) { // 10 minutes
-        const timeLeft = Math.ceil((600000 - (now - lastQuest)) / 60000);
-        return message.channel.send(`⏰ You must wait ${timeLeft} more minutes before starting another quest.`);
-    }
+    
     
     // Create quest selection embed
     const embed = new EmbedBuilder()
