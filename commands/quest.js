@@ -666,13 +666,17 @@ async function startRiddleQuest(interaction, userId) {
         );
 
     try {
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ embeds: [embed], components: [row] });
+        } else {
+            await interaction.editReply({ embeds: [embed], components: [row] });
+        }
     } catch (error) {
-        if (error.code === 10062) {
-            // Interaction expired, send a new message instead
+        if (error.code === 10062 || error.code === 'InteractionNotReplied') {
+            // Interaction expired or not replied, send a new message instead
             await interaction.followUp({ embeds: [embed], components: [row] });
         } else {
-            console.error('Error editing reply:', error);
+            console.error('Error with interaction:', error);
             throw error;
         }
     }
@@ -777,7 +781,7 @@ async function startMazeQuest(interaction, userId) {
             new ButtonBuilder()
                 .setCustomId('maze_1')
                 .setLabel('🚪 Path 1')
-                .setStyle(ButtonStyle.Secondary),
+                .setStyle(ButtonStyle.Secondary),```javascript
             new ButtonBuilder()
                 .setCustomId('maze_2')
                 .setLabel('🚪 Path 2')
