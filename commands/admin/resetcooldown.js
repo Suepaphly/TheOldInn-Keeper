@@ -3,12 +3,12 @@ const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
-    const ownerID = [
-        "367445249376649217"
-    ];
+    const ownerID = ["367445249376649217"];
 
     if (!ownerID.includes(message.author.id)) {
-        return message.channel.send("You do not have permission to use this command.");
+        return message.channel.send(
+            "You do not have permission to use this command.",
+        );
     }
 
     try {
@@ -16,15 +16,17 @@ module.exports.run = async (client, message, args) => {
         const allData = await db.all();
 
         // Filter for cooldown-related keys
-        const cooldownKeys = allData.filter(item => {
-            return item.id.includes('daily_') || 
-                   item.id.includes('fish_') || 
-                   item.id.includes('craft_') || 
-                   item.id.includes('gather_') || 
-                   item.id.includes('hunt_') || 
-                   item.id.includes('work_') || 
-                   item.id.includes('rob_') || 
-                   item.id.includes('deposit_');
+        const cooldownKeys = allData.filter((item) => {
+            return (
+                item.id.includes("daily_") ||
+                item.id.includes("fish_") ||
+                item.id.includes("craft_") ||
+                item.id.includes("gather_") ||
+                item.id.includes("hunt_") ||
+                item.id.includes("work_") ||
+                item.id.includes("rob_") ||
+                item.id.includes("deposit_")
+            );
         });
 
         // Delete all cooldown entries
@@ -32,8 +34,9 @@ module.exports.run = async (client, message, args) => {
             await db.delete(entry.id);
         }
 
-        message.channel.send(`🔄 **Cooldowns Reset!** Successfully reset ${cooldownKeys.length} cooldown entries for all players.`);
-
+        message.channel.send(
+            `🔄 **Cooldowns Reset!** Successfully reset ${cooldownKeys.length} cooldown entries for all players.`,
+        );
     } catch (error) {
         console.error("Error resetting cooldowns:", error);
         message.channel.send("❌ An error occurred while resetting cooldowns.");
@@ -42,5 +45,5 @@ module.exports.run = async (client, message, args) => {
 
 module.exports.help = {
     name: "resetcooldown",
-    aliases: ["resetcooldowns", "resetcd"]
+    aliases: ["resetcooldowns", "resetcd"],
 };
