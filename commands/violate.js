@@ -230,14 +230,14 @@ async function handlePrankSuccess(message, prankData, client) {
     activePranks.delete(prankData.target.id);
 
     const humiliationMessages = [
-        "is covered head to toe in sticky honey and feathers!",
-        "has been painted bright pink while they slept!",
-        "is wearing a tutu and tiara, looking fabulous!",
-        "has 'PRANKED' written on their forehead in permanent marker!",
-        "is stuck in a giant soap bubble!",
-        "has been turned into a human burrito with blankets!",
-        "is wearing clown shoes that won't come off!",
-        "has been decorated with rainbow glitter from head to toe!",
+        "is bent over the bunk, earning their commissary the hard way.",
+        "just moaned 'yes, Daddy' loud enough to wake the whole cellblock.",
+        "is wearing nothing but cuffs and a grin in solitary.",
+        "learned the true meaning of 'protective custody' last night.",
+        "has been officially claimed — collar and all.",
+        "is on all fours, scrubbing the floor... and getting watched.",
+        "just finished roleplaying 'warden and inmate' — and forgot the safe word.",
+        "is now known as 'Princess Peaches' on D-block",
     ];
 
     const randomHumiliation =
