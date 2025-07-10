@@ -1,6 +1,7 @@
+
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
 exports.run = async (bot, message, args) => {
 
@@ -123,7 +124,7 @@ exports.run = async (bot, message, args) => {
           deck.initialize();
       }
 
-      function endMsg(title, msg, dealerC) {
+      function endMsg(title, msg, dealerC, showButtons = false) {
           let cardsMsg = "";
           player.cards.forEach(function(card) {
               cardsMsg += "[`" + card.rank.toString();
@@ -159,53 +160,75 @@ exports.run = async (bot, message, args) => {
           const gambleEmbed = new EmbedBuilder()
               .setColor('#000001')
               .setTitle(message.author.username + `'s Blackjack Table` + '\n___')
-              .addField('Your Cards:', cardsMsg)
-              .addField('Dealer\'s Cards', dealerMsg)
-              .addField(title, msg)
-              .setFooter('The Tavernkeeper thanks you for playing. \n');
+              .addFields(
+                  { name: 'Your Cards:', value: cardsMsg, inline: false },
+                  { name: 'Dealer\'s Cards', value: dealerMsg, inline: false },
+                  { name: title, value: msg, inline: false }
+              )
+              .setFooter({ text: 'The Tavernkeeper thanks you for playing.' });
 
-          message.channel.send(gambleEmbed);
+          if (showButtons && !gameOver) {
+              const row = new ActionRowBuilder()
+                  .addComponents(
+                      new ButtonBuilder()
+                          .setCustomId('hit')
+                          .setLabel('Hit')
+                          .setStyle(ButtonStyle.Primary),
+                      new ButtonBuilder()
+                          .setCustomId('stand')
+                          .setLabel('Stand')
+                          .setStyle(ButtonStyle.Secondary),
+                      new ButtonBuilder()
+                          .setCustomId('double')
+                          .setLabel('Double Down')
+                          .setStyle(ButtonStyle.Success)
+                  );
+              
+              return { embeds: [gambleEmbed], components: [row] };
+          } else {
+              return { embeds: [gambleEmbed] };
+          }
       }
 
       async function endGame() {
           if (player.score === 21) {
               bet('bj');
               gameOver = true;
-              await endMsg("YOU WIN!", "You Got 21! That's a x3 bonus!", true)
+              return await endMsg("YOU WIN!", "You Got 21! That's a x3 bonus!", true)
           }
           if (player.score > 21) {
               bet('lose');
               gameOver = true;
-              await endMsg("You Lose", "Over 21, you Bust.", true)
+              return await endMsg("You Lose", "Over 21, you Bust.", true)
           }
           if (dealer.score === 21) {
               bet('lose');
               gameOver = true;
-              await endMsg("You Lose.", "Dealer has 21.", true)
+              return await endMsg("You Lose.", "Dealer has 21.", true)
           }
           if (dealer.score > 21) {
               bet('win');
               gameOver = true;
-              await endMsg("YOU WIN!", "Dealer Busts.", true)
+              return await endMsg("YOU WIN!", "Dealer Busts.", true)
           }
           if (dealer.score >= 17 && player.score > dealer.score && player.score < 21) {
               bet('win');
               gameOver = true;
-              await endMsg("YOU WIN!", "You beat the Dealer!", true)
+              return await endMsg("YOU WIN!", "You beat the Dealer!", true)
           }
           if (dealer.score >= 17 && player.score < dealer.score && dealer.score < 21) {
               bet('lose');
               gameOver = true;
-              await endMsg("You Lose", "The Dealer beat you.", true)
+              return await endMsg("You Lose", "The Dealer beat you.", true)
           }
           if (dealer.score >= 17 && player.score === dealer.score && dealer.score < 21) {
               gameOver = true;
-              await endMsg("Draw", "You and the dealer matched score.", true)
+              return await endMsg("Draw", "You and the dealer matched score.", true)
           }
+          return null;
       }
 
       function dealerDraw() {
-
           dealer.cards.push(deck.deckArray[numCardsPulled]);
           dealer.score = getCardsValue(dealer.cards);
           numCardsPulled += 1;
@@ -215,7 +238,7 @@ exports.run = async (bot, message, args) => {
           hit();
           hit();
           dealerDraw();
-          endGame();
+          return endGame();
       }
 
       function hit(double = false) {
@@ -224,57 +247,79 @@ exports.run = async (bot, message, args) => {
 
           numCardsPulled += 1;
           if (numCardsPulled > 2 && !double) {
-              endGame();
+              return endGame();
           }
+          return null;
       }
 
       function stand() {
           while (dealer.score < 17 && player.score < 22) {
               dealerDraw();
           }
-          endGame();
+          return endGame();
       }
       // END Javascript blackjack game from echohatch1. Modified for Grape. **
 
-      newGame();
-      async function loop() {
-          if (gameOver) return;
-
-          endMsg("BJ", '**Type \'h\' to HIT and \'s\' to STAY and stop the game, \n or \'d\' to DOUBLE DOWN and hit once with double your bet.** ', false)
-
-          let filter = m => m.author.id === message.author.id;
-          message.channel.awaitMessages(filter, {
-              max: 1,
-              time: 1200000,
-              errors: ['time']
-          }).then(message => {
-              message = message.first()
-              if (message.content === "h") {
-                  hit();
-                  loop();
-                  return
-              } else if (message.content === "s") {
-                  stand();
-                  loop();
-                  return
-              } else if (message.content === "d") {
-                  player.double = true;
-                  hit(true);
-                  stand();
-                  loop();
-                  return
-              } else {                  
-                  loop();
-                  return
-              }
-          }).catch(_ => {
-              message.channel.send("**You've lost all your kopeks.**");
-              bet("lose");
-              return
-          })
+      let gameResult = await newGame();
+      if (gameResult) {
+          message.channel.send(gameResult);
+          return;
       }
 
-      await loop()
+      // Game continues - show buttons for player actions
+      const gameMessage = await message.channel.send(
+          endMsg("BJ", '**Choose your action:**', false, true)
+      );
+
+      const filter = (interaction) => {
+          return interaction.user.id === message.author.id;
+      };
+
+      const collector = gameMessage.createMessageComponentCollector({
+          filter,
+          time: 120000 // 2 minutes
+      });
+
+      collector.on('collect', async (interaction) => {
+          if (gameOver) {
+              await interaction.reply({ content: "Game is already over!", ephemeral: true });
+              return;
+          }
+
+          let result = null;
+
+          if (interaction.customId === 'hit') {
+              result = await hit();
+          } else if (interaction.customId === 'stand') {
+              result = await stand();
+          } else if (interaction.customId === 'double') {
+              player.double = true;
+              await hit(true);
+              result = await stand();
+          }
+
+          if (result) {
+              // Game ended
+              await interaction.update(result);
+              collector.stop();
+          } else if (!gameOver) {
+              // Continue game
+              await interaction.update(endMsg("BJ", '**Choose your action:**', false, true));
+          }
+      });
+
+      collector.on('end', async (collected, reason) => {
+          if (reason === 'time' && !gameOver) {
+              await bet("lose");
+              const timeoutEmbed = new EmbedBuilder()
+                  .setColor('#FF0000')
+                  .setTitle('Game Timeout')
+                  .setDescription(`**${message.author.username}**, you took too long to respond. You've lost your bet of ${money} kopeks.`)
+                  .setFooter({ text: 'The Tavernkeeper thanks you for playing.' });
+              
+              await gameMessage.edit({ embeds: [timeoutEmbed], components: [] });
+          }
+      });
   };
 
 module.exports.help = {
