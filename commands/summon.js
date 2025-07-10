@@ -23,29 +23,20 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send("❌ Amount must be a number between 1 and 20!");
     }
     
-    const monsterIndex = ptt.monsterArray.indexOf(monsterType);
-    const cost = ptt.monsterCostArray[monsterIndex] * amount;
-    const userMoney = await db.get(`money_${user.id}`) || 0;
+    // Use the protectTheTavern summonMonster function
+    const success = await ptt.summonMonster(monsterType, amount, user.id);
     
-    if (userMoney < cost) {
-        return message.channel.send(`❌ You need ${cost} kopeks to summon ${amount} ${monsterType}(s)! You have ${userMoney} kopeks.`);
+    if (!success) {
+        const monsterIndex = ptt.monsterArray.indexOf(monsterType);
+        const cost = ptt.monsterCostArray[monsterIndex] * amount;
+        return message.channel.send(`❌ You need ${cost} kopeks to summon ${amount} ${monsterType}(s)!`);
     }
     
-    // Deduct cost and add monsters
-    await db.sub(`money_${user.id}`, cost);
+    // Get total monster count for display
+    const monsters = await db.get("Monsters") || {};
+    const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
     
-    const monsterHealth = ptt.monsterHealthArray[monsterIndex] * amount;
-    const currentMonsters = await db.get("currentMonsters") || 0;
-    await db.set("currentMonsters", currentMonsters + monsterHealth);
-    
-    // Check if battle should start (50+ total monster health)
-    const totalMonsters = await db.get("currentMonsters");
-    if (totalMonsters >= 50 && !await db.get("battleActive")) {
-        await db.set("battleActive", true);
-        message.channel.send(`👹 ${member} summons ${amount} ${monsterType}(s) for ${cost} kopeks!\n🚨 **BATTLE BEGINS!** The town is under attack with ${totalMonsters} total monster health! Use \`=attack\` to defend!`);
-    } else {
-        message.channel.send(`👹 ${member} summons ${amount} ${monsterType}(s) for ${cost} kopeks! Current threat level: ${totalMonsters} monster health.`);
-    }
+    message.channel.send(`👹 ${member} summons ${amount} ${monsterType}(s)! Current monster army: ${totalMonsters} creatures.`);
 };
 
 module.exports.help = {
