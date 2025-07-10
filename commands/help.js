@@ -4,67 +4,118 @@ const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
-  // Main overview embed
+  // Main overview embed - Quick Start Guide
   const mainEmbed = new EmbedBuilder()
-    .setTitle("🏰 PROTECT THE TAVERN - COMMAND GUIDE 🏰")
-    .setDescription("Click the buttons below to view different command categories!")
+    .setTitle("🏰 PROTECT THE TAVERN - QUICK START GUIDE 🏰")
+    .setDescription("**Welcome, Defender!** Get started protecting the tavern with these essential commands:")
     .setColor("#FFD700")
     .addFields(
-      { name: "💰 Economy", value: "Wallet, bank, pay, daily", inline: true },
-      { name: "⚔️ Earning", value: "Gather, hunt, fish, craft, work", inline: true },
-      { name: "🎲 Gambling", value: "Blackjack, craps, slots, poker", inline: true },
-      { name: "🏰 Defense", value: "Buy walls, troops, traps", inline: true },
-      { name: "⚡ Combat", value: "Attack monsters in battle", inline: true },
-      { name: "📊 Status", value: "Cooldowns, levels, skills", inline: true },
-      { name: "💀 Dirty Deeds", value: "Rob players, summon monsters", inline: true }
+      { 
+        name: "💰 Start Earning", 
+        value: "`=daily` - Get 100 kopeks\n`=gather` - Earn money gathering\n`=wallet` - Check your balance", 
+        inline: true 
+      },
+      { 
+        name: "🏰 Build Defenses", 
+        value: "`=buy 10 rampart` - Buy walls\n`=buy 5 rampart town_guard` - Buy troops\n`=map` - Check town status", 
+        inline: true 
+      },
+      { 
+        name: "⚔️ Join Battle", 
+        value: "`=attack` - Fight monsters\n`=shop` - Buy weapons/armor\n`=backpack` - Check inventory", 
+        inline: true 
+      },
+      { 
+        name: "💰 Economy", 
+        value: "Wallet, bank, pay, daily", 
+        inline: true 
+      },
+      { 
+        name: "⚔️ Earning", 
+        value: "Gather, hunt, fish, craft, work", 
+        inline: true 
+      },
+      { 
+        name: "🎲 Gambling", 
+        value: "Blackjack, craps, slots, poker", 
+        inline: true 
+      },
+      { 
+        name: "🏰 Defense", 
+        value: "Buy walls, troops, traps", 
+        inline: true 
+      },
+      { 
+        name: "⚡ Combat", 
+        value: "Attack monsters in battle", 
+        inline: true 
+      },
+      { 
+        name: "📊 Status", 
+        value: "Cooldowns, levels, skills", 
+        inline: true 
+      },
+      { 
+        name: "💀 Dirty Deeds", 
+        value: "Rob players, summon monsters", 
+        inline: true 
+      }
     )
-    .setFooter({ text: "The Tavernkeeper thanks you for playing! 🍺" });
+    .setFooter({ text: "Click buttons below for detailed commands | The Tavernkeeper thanks you! 🍺" });
 
-  // How to Play embed
+  // How to Play embed - Game Mechanics
   const howToPlayEmbed = new EmbedBuilder()
     .setTitle("🎮 HOW TO PLAY - PROTECT THE TAVERN")
     .setColor("#FFD700")
-    .setDescription("**Welcome to Protect the Tavern!** A cooperative defense game where players work together to defend their town from monster attacks.")
+    .setDescription("**A cooperative defense game** where players work together to defend their town from monster invasions.")
     .addFields(
       { 
         name: "🎯 Game Objective", 
-        value: "Work with other players to build defenses and survive monster invasions. Monsters attack automatically and players must cooperate to defend the town!", 
+        value: "Monsters attack automatically every few hours. Players must cooperate to build defenses and survive the invasions. If defenses fail, monsters rob the town's banks!", 
         inline: false 
       },
       { 
-        name: "🏰 Town Defenses", 
-        value: "• **Walls**: rampart (100k), wall (500k), castle (5000k)\n• **Troops**: Hired defenders (dismissed after each battle)\n• **Traps**: Permanent defenses that fire when walls breach\n• Use `=buy` command to purchase defenses", 
+        name: "🏰 The Castle & Defenses", 
+        value: "• **Walls**: rampart (100k), wall (500k), castle (5000k) - Your first line of defense\n• **Troops**: town_guard, mercenary, soldier, knight, royal_guard - Fight monsters\n• **Traps**: spikes, boiling_oil, repeater, ballista, cannon - Permanent defenses\n• **Rule**: Every 5 walls = 1 troop slot + 1 trap slot per player\n• Use `=buy [amount] [type]` for walls, `=buy [amount] [location] [item]` for troops/traps", 
         inline: false 
       },
       { 
-        name: "⚔️ Battles & Combat", 
-        value: "• Monsters spawn automatically and attack every few hours\n• Battles start when 50+ monsters gather\n• Players can `=attack` once per turn during battles\n• Defeating monsters grants kopek rewards based on combat skill\n• If defenses fail, monsters rob the town!", 
+        name: "🏦 Banking System", 
+        value: "• **Banks are SAFE** - Monsters cannot steal banked kopeks during raids\n• Use `=bank [amount]` to deposit kopeks for safety\n• Use `=withdraw [amount]` to take kopeks out\n• Only wallet kopeks are at risk during monster victories!", 
         inline: false 
       },
       { 
-        name: "💰 Earning Kopeks", 
-        value: "• **Activities**: gather, hunt, fish, craft, work (all have cooldowns)\n• **Gambling**: blackjack, craps, slots\n• **Combat**: Slay monsters for bounties\n• **Banking**: Keep kopeks safe from monster raids\n• Level up skills for better rewards!", 
+        name: "⚔️ Battle System", 
+        value: "• Monsters spawn automatically (goblins every 6h, mephits every 12h, etc.)\n• Battle starts when 50+ monsters gather\n• Players can `=attack` once per turn (5 second intervals)\n• Combat skill affects damage dealt to monsters\n• Defeating monsters grants kopek bounties", 
         inline: false 
       },
       { 
-        name: "📚 Need More Details?", 
-        value: "Use the other help buttons to see specific commands for each category. Check `=map` for current threats and `=townstatus` for defense status!", 
+        name: "💰 Economy & Skills", 
+        value: "• **Earning**: gather, hunt, fish, craft, work (all have cooldowns)\n• **Gambling**: blackjack, craps, slots, poker, roulette\n• **Skills**: Level up with `=lvl [skill]` to improve rewards\n• **PvP**: Rob other players or fight them directly", 
+        inline: false 
+      },
+      { 
+        name: "🛡️ Survival Tips", 
+        value: "• Bank your kopeks regularly for safety\n• Buy defenses early and often\n• Level up skills for better earning potential\n• Participate in battles to earn bounties\n• Check `=map` and `=townstatus` regularly", 
         inline: false 
       }
     )
-    .setFooter({ text: "Good luck, defender! The town is counting on you! 🛡️" });
+    .setFooter({ text: "The town's survival depends on cooperation! Work together! 🛡️" });
 
   // Economy embed
   const economyEmbed = new EmbedBuilder()
     .setTitle("💰 ECONOMY COMMANDS")
     .setColor("#00FF00")
     .addFields(
-      { name: "=wallet", value: "Check your balance", inline: false },
-      { name: "=bank [amount]", value: "Check balance & deposit kopeks (safe from monsters!)", inline: false },
-      { name: "=withdraw [amount]", value: "Withdraw kopeks from bank", inline: false },
-      { name: "=pay [user] [amount]", value: "Pay another user kopeks", inline: false },
-      { name: "=top", value: "See top wallets leaderboard", inline: false },
-      { name: "=daily", value: "Receive daily 100 kopeks", inline: false }
+      { name: "=wallet", value: "Check your kopek balance", inline: true },
+      { name: "=balance", value: "Check your kopek balance (alias)", inline: true },
+      { name: "=bank [amount]", value: "Check balance & deposit kopeks (SAFE from monsters!)", inline: false },
+      { name: "=withdraw [amount]", value: "Withdraw kopeks from bank to wallet", inline: true },
+      { name: "=pay [user] [amount]", value: "Pay another user kopeks from wallet", inline: true },
+      { name: "=top", value: "See top wallets leaderboard", inline: true },
+      { name: "=daily", value: "Receive daily 100 kopeks", inline: true },
+      { name: "=beg", value: "Beg for kopeks (small chance)", inline: true },
+      { name: "=stimmy", value: "Government stimulus (admin only)", inline: true }
     );
 
   // Earning embed
@@ -72,39 +123,46 @@ module.exports.run = async (client, message, args) => {
     .setTitle("⚔️ EARNING COMMANDS")
     .setColor("#32CD32")
     .addFields(
-      { name: "=gather", value: "Gather plants for kopeks", inline: true },
-      { name: "=hunt", value: "Hunt animals for kopeks", inline: true },
-      { name: "=fish", value: "Fish for kopeks", inline: true },
-      { name: "=craft", value: "Craft items for kopeks", inline: true },
-      { name: "=work", value: "Work jobs for kopeks", inline: true }
-    );
+      { name: "=gather", value: "Gather plants for kopeks (skill-based)", inline: true },
+      { name: "=hunt", value: "Hunt animals for kopeks (skill-based)", inline: true },
+      { name: "=fish", value: "Fish for kopeks (skill-based)", inline: true },
+      { name: "=craft", value: "Craft items for kopeks (skill-based)", inline: true },
+      { name: "=work", value: "Work jobs for kopeks (skill-based)", inline: true },
+      { name: "=cooldown", value: "Check all activity cooldown timers", inline: true },
+      { name: "=checklvl", value: "Check your skill levels", inline: true },
+      { name: "=lvl [skill]", value: "Level up skills for better rewards", inline: true }
+    )
+    .setFooter({ text: "Higher skill levels = better rewards and shorter cooldowns!" });
 
   // Gambling embed
   const gamblingEmbed = new EmbedBuilder()
     .setTitle("🎲 GAMBLING COMMANDS")
     .setColor("#FF6347")
     .addFields(
-      { name: "=bj [bet]", value: "Play blackjack", inline: true },
-      { name: "=craps [bet]", value: "Play craps", inline: true },
-      { name: "=slots [bet]", value: "Play slots", inline: true },
+      { name: "=bj [bet]", value: "Play blackjack (21)", inline: true },
+      { name: "=craps [bet]", value: "Play craps dice game", inline: true },
+      { name: "=slots [bet]", value: "Play slot machine", inline: true },
       { name: "=poker [bet]", value: "Play 5-card draw poker (Aces Wild)", inline: true },
       { name: "=startroulette", value: "Start roulette game", inline: true },
       { name: "=rbet [type] [amount]", value: "Place roulette bet", inline: true },
-      { name: "=rhelp", value: "Roulette rules & bets", inline: true }
-    );
+      { name: "=rhelp", value: "Roulette rules & betting options", inline: true },
+      { name: "=rlast", value: "Check last roulette result", inline: true }
+    )
+    .setFooter({ text: "Gamble responsibly! The house usually wins..." });
 
   // Defense embed
   const defenseEmbed = new EmbedBuilder()
     .setTitle("🏰 TOWN DEFENSE COMMANDS")
     .setColor("#4169E1")
     .addFields(
-      { name: "Wall Types", value: "• rampart (100 kopeks)\n• wall (500 kopeks)\n• castle (5000 kopeks)", inline: true },
-      { name: "Troops", value: "town_guard, mercenary, soldier, knight, royal_guard", inline: true },
-      { name: "Traps", value: "spikes, boiling_oil, repeater, ballista, cannon", inline: true },
+      { name: "Wall Types & Costs", value: "• **rampart** - 100 kopeks\n• **wall** - 500 kopeks\n• **castle** - 5000 kopeks", inline: true },
+      { name: "Troop Types", value: "• **town_guard** - Basic defender\n• **mercenary** - Hired fighter\n• **soldier** - Trained warrior\n• **knight** - Elite defender\n• **royal_guard** - Ultimate protection", inline: true },
+      { name: "Trap Types", value: "• **spikes** - Basic damage\n• **boiling_oil** - Area damage\n• **repeater** - Multiple shots\n• **ballista** - Heavy damage\n• **cannon** - Massive damage", inline: true },
       { name: "=buy [amount] [type]", value: "Buy walls: `=buy 10 rampart`", inline: false },
       { name: "=buy [amount] [location] [item]", value: "Buy troops/traps: `=buy 5 rampart town_guard`", inline: false },
-      { name: "Important", value: "Every 5 walls = 1 troop + 1 trap slot per player", inline: false },
-      { name: "=map", value: "View town status & threats", inline: true }
+      { name: "Defense Rules", value: "• Every 5 walls = 1 troop slot + 1 trap slot per player\n• Troops are dismissed after each battle\n• Traps are permanent until destroyed", inline: false },
+      { name: "=map", value: "View town status, defenses & monster threats", inline: true },
+      { name: "=townstatus", value: "Detailed town defense information", inline: true }
     );
 
   // Combat embed
@@ -112,62 +170,69 @@ module.exports.run = async (client, message, args) => {
     .setTitle("⚡ COMBAT COMMANDS")
     .setColor("#DC143C")
     .addFields(
-      { name: "=attack", value: "Deal damage to monsters during battle\n(Once per turn, 5 second intervals)", inline: false },
-      { name: "=shop", value: "Browse and buy weapons, armor, and items", inline: true },
-      { name: "=backpack", value: "View your inventory and equipped items", inline: true }
+      { name: "=attack", value: "Deal damage to monsters during battle (once per turn, 5 sec intervals)", inline: false },
+      { name: "=shop", value: "Browse and buy weapons, armor, and combat items", inline: true },
+      { name: "=backpack", value: "View your inventory and equipped items", inline: true },
+      { name: "=attackplayer [user]", value: "Challenge another player to PvP combat", inline: true },
+      { name: "=violate [user]", value: "Humiliate another player (4 rounds, attacker takes no damage)", inline: true },
+      { name: "=revive [user]", value: "Revive a dead player for 1000 kopeks", inline: true },
+      { name: "Combat Info", value: "• Health: 5 base + 2 per combat level\n• Weapons: knife (1-3), sword (2-4), pistol (3-5) + combat level bonus\n• Dead players cannot act for 24 hours", inline: false }
     );
 
   // Status embed
   const statusEmbed = new EmbedBuilder()
-    .setTitle("📊 STATUS COMMANDS")
+    .setTitle("📊 STATUS & INFO COMMANDS")
     .setColor("#9370DB")
     .addFields(
-      { name: "=cooldowns", value: "Check all cooldown timers", inline: true },
+      { name: "=cooldown", value: "Check all activity cooldown timers", inline: true },
       { name: "=checklvl", value: "Check your skill levels", inline: true },
-      { name: "=lvl [skill]", value: "Level up skills", inline: true },
-      { name: "=townstatus", value: "Check town defenses & threats", inline: true }
+      { name: "=lvl [skill]", value: "Level up skills with kopeks", inline: true },
+      { name: "=townstatus", value: "Check town defenses & current threats", inline: true },
+      { name: "=map", value: "View town map with monster locations", inline: true },
+      { name: "=leaderboard", value: "View top players by wealth", inline: true },
+      { name: "Admin Commands", value: "=addmoney, =removemoney, =removestuff, =resetcooldown, =startNewGame", inline: false }
     );
 
   // Dirty Deeds embed
   const dirtyDeedsEmbed = new EmbedBuilder()
     .setTitle("💀 DIRTY DEEDS - NEFARIOUS ACTIVITIES")
     .setColor("#8B0000")
-    .setDescription("⚠️ **WARNING**: These commands allow you to attack your fellow townspeople and the town itself! Use at your own risk...")
+    .setDescription("⚠️ **WARNING**: These commands allow you to attack your fellow townspeople and the town itself!")
     .addFields(
       { 
-        name: "🏴‍☠️ Attacking Other Players", 
-        value: "• **=rob [user]**: Rob up to 20% of another player's wallet (20% fail chance)\n• Higher thief levels increase success rate and steal amount\n• 10 hour cooldown between robberies", 
+        name: "🏴‍☠️ Robbing Other Players", 
+        value: "• **=rob [user]**: Rob up to 20% of another player's wallet (20% fail chance)\n• Higher thief levels increase success rate and steal amount\n• 10 hour cooldown between robberies\n• Failed robberies result in paying restitution to victim", 
         inline: false 
       },
       { 
         name: "⚔️ Player vs Player Combat", 
-        value: "• **=attackplayer [user]**: Challenge another player to combat\n• **=violate [user]**: Humiliate another player (4 rounds, no damage to attacker)\n• **=revive [user]**: Revive a dead player for 1000 kopeks\n• Combat uses health: 5 base + 2 per combat level\n• Weapons: knife (1-3), sword (2-4), pistol (3-5) + combat level bonus", 
+        value: "• **=attackplayer [user]**: Challenge another player to combat\n• **=violate [user]**: Humiliate another player (4 rounds, no damage to attacker)\n• **=revive [user]**: Revive a dead player for 1000 kopeks\n• Combat uses health: 5 base + 2 per combat level\n• Losers are dead for 24 hours unless revived", 
         inline: false 
       },
       { 
         name: "👹 Attacking the Town", 
-        value: "• **=summon [type] [amount]**: Summon monsters to attack (costs kopeks)\n• **=startBattle**: Force immediate battle start (costs 1000 kopeks)\n• Monster types: goblin, mephit, broodling, ogre, automaton", 
+        value: "• **=summon [type] [amount]**: Summon monsters to attack (costs kopeks)\n• **=startBattle**: Force immediate battle start (costs 1000 kopeks)\n• Monster types: goblin, mephit, broodling, ogre, automaton\n• Each type has different costs, health, and damage", 
         inline: false 
       },
       { 
-        name: "💰 Town Raid Rewards", 
+        name: "💰 Monster Victory Rewards", 
         value: "If monsters WIN the battle, participating attackers split 20-80% of ALL players' bank balances! Only the top 5 contributors are shown during battle messages.", 
         inline: false 
       },
       { 
-        name: "⚖️ Consequences", 
-        value: "• Failed robberies result in paying restitution to your victim\n• Failed town attacks waste your kopeks\n• PvP combat losers are dead for 24 hours (unless revived)\n• The town guard doesn't look kindly on troublemakers...", 
+        name: "⚖️ Consequences & Risks", 
+        value: "• Failed robberies cost you money in restitution\n• Failed town attacks waste your kopeks\n• PvP combat losers are dead for 24 hours\n• The town guard doesn't look kindly on troublemakers...", 
         inline: false 
       }
     )
-    .setFooter({ text: "Choose your side wisely, the tavern's fate hangs in the balance! ⚔️" });
+    .setFooter({ text: "Choose your side wisely - defender or destroyer? ⚔️" });
 
   // Create buttons
   const row1 = new ActionRowBuilder()
     .addComponents(
       new ButtonBuilder()
         .setCustomId('home')
-        .setLabel('🏠 Home')
+        .setLabel('🏠 Quick Start')
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
         .setCustomId('howtoplay')
@@ -211,11 +276,10 @@ module.exports.run = async (client, message, args) => {
         .setStyle(ButtonStyle.Danger)
     );
 
-  // Send message with buttons (ephemeral - only visible to command user)
+  // Send message with buttons
   const helpMessage = await message.reply({ 
     embeds: [mainEmbed], 
-    components: [row1, row2, row3],
-    ephemeral: false // Note: reply() to message makes it contextual to the user
+    components: [row1, row2, row3]
   });
 
   // Create button collector
