@@ -204,6 +204,22 @@ const trolleyScenarios = [
 module.exports.run = async (client, message, args) => {
     const userId = message.author.id;
     
+    // Check for debug mode (owner only)
+    if (args[0] === 'debug' && userId === '217069557263286273') { // Replace with actual owner ID
+        if (!args[1]) {
+            return message.channel.send("❌ Usage: `=quest debug <questtype>`\nAvailable types: monster, riddle, maze, trolley");
+        }
+        
+        const questType = args[1].toLowerCase();
+        if (!questTypes[questType]) {
+            return message.channel.send("❌ Invalid quest type! Available: monster, riddle, maze, trolley");
+        }
+        
+        // Start debug quest immediately
+        await startDebugQuest(message, userId, questType);
+        return;
+    }
+    
     // Check if user is already on a quest
     if (activeQuests.has(userId)) {
         return message.channel.send("❌ You are already on a quest! Complete it first before starting another.");
@@ -1105,6 +1121,16 @@ async function completeQuest(interaction, userId, trolleyMessage = null) {
     const quest = activeQuests.get(userId);
     if (!quest) return;
     
+    // Handle debug mode - complete immediately
+    if (quest.isDebug) {
+        let rewardText = "🔧 **DEBUG QUEST COMPLETED!**\n\nThis was a test quest - no rewards given.";
+        if (trolleyMessage) {
+            rewardText = `${trolleyMessage}\n\n${rewardText}`;
+        }
+        await endQuest(interaction, userId, true, rewardText);
+        return;
+    }
+    
     quest.questsCompleted++;
     
     if (quest.questsCompleted >= 2) {
@@ -1183,6 +1209,76 @@ async function endQuest(interaction, userId, success, message) {
 // Function to check if user is on quest (for use in other commands)
 async function isOnQuest(userId) {
     return activeQuests.has(userId) || await db.get(`on_quest_${userId}`);
+}
+
+async function startDebugQuest(message, userId, questType) {
+    // Mark user as on debug quest
+    const questData = {
+        location: 'debug',
+        startTime: Date.now(),
+        questsCompleted: 0,
+        totalMonsterValue: 0,
+        currentQuest: questType,
+        isDebug: true
+    };
+    
+    activeQuests.set(userId, questData);
+    await db.set(`on_quest_${userId}`, true);
+    
+    // Set 30 minute timeout
+    setTimeout(async () => {
+        if (activeQuests.has(userId)) {
+            activeQuests.delete(userId);
+            await db.delete(`on_quest_${userId}`);
+            
+            const timeoutEmbed = new EmbedBuilder()
+                .setTitle("⏰ Debug Quest Timeout")
+                .setColor("#FF0000")
+                .setDescription("Your debug quest has timed out after 30 minutes.");
+            
+            try {
+                await message.channel.send({ embeds: [timeoutEmbed] });
+            } catch (err) {
+                console.log("Failed to send timeout message:", err);
+            }
+        }
+    }, 1800000); // 30 minutes
+    
+    const embed = new EmbedBuilder()
+        .setTitle(`🔧 DEBUG QUEST - ${questTypes[questType].name}`)
+        .setColor("#FFA500")
+        .setDescription(`**Debug Mode Activated**\n\nTesting: ${questTypes[questType].description}\n\nStarting in 2 seconds...`)
+        .addFields(
+            { name: "Quest Type", value: questType, inline: false }
+        );
+    
+    const debugMessage = await message.channel.send({ embeds: [embed] });
+    
+    // Start the specific quest after delay
+    setTimeout(() => {
+        // Create a fake interaction object for compatibility
+        const fakeInteraction = {
+            update: async (options) => await debugMessage.edit(options),
+            editReply: async (options) => await debugMessage.edit(options),
+            message: debugMessage,
+            user: message.author
+        };
+        
+        switch (questType) {
+            case 'monster':
+                startMonsterQuest(fakeInteraction, userId);
+                break;
+            case 'riddle':
+                startRiddleQuest(fakeInteraction, userId);
+                break;
+            case 'maze':
+                startMazeQuest(fakeInteraction, userId);
+                break;
+            case 'trolley':
+                startTrolleyQuest(fakeInteraction, userId);
+                break;
+        }
+    }, 2000);
 }
 
 module.exports.help = {
