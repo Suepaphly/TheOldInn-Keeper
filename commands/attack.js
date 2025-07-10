@@ -68,18 +68,69 @@ module.exports.run = async (client, message, args) => {
     // Mark that this player has attacked this turn
     await db.set(`turn_attack_${user.id}_${currentTurn}`, true);
 
+    // Handle monster slaying rewards
+    if (killedMonster) {
+        // Check if multiple players attacked this turn and deal with priority
+        const allEntries = await db.all();
+        const currentTurnAttackers = allEntries.filter(entry => 
+            entry.id.startsWith(`turn_attack_`) && entry.id.endsWith(`_${currentTurn}`)
+        );
+        
+        let rewardWinner = user.id;
+        let highestCombatLevel = combatLevel;
+        
+        // If multiple attackers this turn, determine winner by combat level (with random tiebreaker)
+        if (currentTurnAttackers.length > 1) {
+            const candidates = [];
+            
+            for (const attacker of currentTurnAttackers) {
+                const attackerId = attacker.id.split('_')[2];
+                const attackerCombatLevel = await db.get(`combatlevel_${attackerId}`) || 0;
+                
+                if (attackerCombatLevel > highestCombatLevel) {
+                    highestCombatLevel = attackerCombatLevel;
+                    rewardWinner = attackerId;
+                    candidates.length = 0; // Clear previous candidates
+                    candidates.push(attackerId);
+                } else if (attackerCombatLevel === highestCombatLevel) {
+                    candidates.push(attackerId);
+                }
+            }
+            
+            // Random selection among tied highest combat level players
+            if (candidates.length > 1) {
+                rewardWinner = candidates[Math.floor(Math.random() * candidates.length)];
+            }
+        }
+        
+        // Calculate and award the reward (one-tenth of summoning cost)
+        const monsterCostArray = [50, 200, 500, 2000, 10000]; // From protectTheTavern.js
+        const monsterIndex = monsterArray.indexOf(killedMonster);
+        const reward = Math.floor(monsterCostArray[monsterIndex] / 10);
+        
+        await db.add(`money_${rewardWinner}`, reward);
+        
+        // Send appropriate message
+        if (rewardWinner === user.id) {
+            message.channel.send(`⚔️ ${member} slays a ${killedMonster} with ${damageDealt} damage and claims ${reward} kopeks! ${remainingMonsters} monsters remaining.`);
+        } else {
+            const winnerMember = message.guild.members.cache.get(rewardWinner);
+            message.channel.send(`⚔️ ${member} slays a ${killedMonster} with ${damageDealt} damage! ${winnerMember} claims the ${reward} kopek bounty due to superior combat skill! ${remainingMonsters} monsters remaining.`);
+        }
+    }
+
     // Check remaining monsters
     const updatedMonsters = await db.get("Monsters") || {};
     const remainingMonsters = Object.values(updatedMonsters).reduce((sum, count) => sum + count, 0);
 
-    if (killedMonster) {
-        message.channel.send(`⚔️ ${member} slays a ${killedMonster} with ${damageDealt} damage! ${remainingMonsters} monsters remaining.`);
-    } else if (hitMonster) {
-        const currentDamage = await db.get(`monster_damage_${hitMonster}`) || 0;
-        const maxHealth = monsterHealthArray[monsterArray.indexOf(hitMonster)];
-        message.channel.send(`⚔️ ${member} hits a ${hitMonster} for ${damageDealt} damage! (${currentDamage}/${maxHealth} damage) ${remainingMonsters} monsters remaining.`);
-    } else {
-        message.channel.send(`⚔️ ${member} attacks but misses! ${remainingMonsters} monsters remaining.`);
+    if (!killedMonster) {
+        if (hitMonster) {
+            const currentDamage = await db.get(`monster_damage_${hitMonster}`) || 0;
+            const maxHealth = monsterHealthArray[monsterArray.indexOf(hitMonster)];
+            message.channel.send(`⚔️ ${member} hits a ${hitMonster} for ${damageDealt} damage! (${currentDamage}/${maxHealth} damage) ${remainingMonsters} monsters remaining.`);
+        } else {
+            message.channel.send(`⚔️ ${member} attacks but misses! ${remainingMonsters} monsters remaining.`);
+        }
     }
 };
 
