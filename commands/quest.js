@@ -6,27 +6,45 @@ const db = new QuickDB();
 // Active quests storage
 const activeQuests = new Map();
 
-// Quest data
+// Location data
+const locations = {
+    plains: {
+        name: "🌾 Wide Open Plains",
+        description: "Rolling grasslands stretch to the horizon",
+        second: "🏰 Ruined Castle",
+        secondDescription: "Ancient stones crumble in forgotten halls"
+    },
+    forest: {
+        name: "🌲 Dark Forest",
+        description: "Twisted trees whisper ancient secrets",
+        second: "🕳️ Underground Caves",
+        secondDescription: "Deep tunnels echo with mysterious sounds"
+    }
+};
+
+// Quest types and their monster values
 const questTypes = {
     monster: {
         name: "🐲 Monster Hunt",
-        description: "Battle through 4 rounds of monsters",
-        reward: "1000-3000 kopeks + possible item"
+        description: "Battle through monsters",
+        monsters: {
+            "Goblin Warrior": 50,
+            "Orc Brute": 75,
+            "Skeleton Mage": 100,
+            "Shadow Beast": 125
+        }
     },
     riddle: {
         name: "🧩 Ancient Riddle",
-        description: "Solve mysterious riddles to claim treasure",
-        reward: "800-2000 kopeks"
+        description: "Solve mysterious riddles"
     },
     maze: {
         name: "🌿 Hedge Maze",
-        description: "Navigate through a dangerous maze",
-        reward: "1200-2500 kopeks"
+        description: "Navigate through a dangerous maze"
     },
     trolley: {
         name: "🚃 Moral Dilemma",
-        description: "Face an impossible choice",
-        reward: "500 kopeks (for your time)"
+        description: "Face an impossible choice"
     }
 };
 
@@ -48,6 +66,17 @@ const riddles = [
     }
 ];
 
+const trolleyScenarios = [
+    { many: "5 grandmothers", one: "1 judge" },
+    { many: "5 old men", one: "1 baby" },
+    { many: "3 doctors", one: "1 criminal" },
+    { many: "4 teachers", one: "1 student" },
+    { many: "5 strangers", one: "1 friend" },
+    { many: "3 children", one: "1 elderly person" },
+    { many: "4 workers", one: "1 CEO" },
+    { many: "5 tourists", one: "1 local" }
+];
+
 module.exports.run = async (client, message, args) => {
     const userId = message.author.id;
     
@@ -62,44 +91,28 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send("💀 You cannot go on quests while dead! Use `=revive` first.");
     }
     
-    
-    
-    // Create quest selection embed
+    // Create location selection embed
     const embed = new EmbedBuilder()
-        .setTitle("🗡️ CHOOSE YOUR QUEST")
+        .setTitle("🗺️ CHOOSE YOUR DESTINATION")
         .setColor("#FFD700")
-        .setDescription("Select a quest to embark upon. Once started, you cannot engage in combat, gambling, or economic activities until completed!")
+        .setDescription("Select a location to explore. You must complete **TWO quests** to earn the 250 kopek reward!\n\n⚠️ Once started, you cannot engage in combat, gambling, or economic activities until completed!")
         .addFields(
-            { name: questTypes.monster.name, value: `${questTypes.monster.description}\n**Reward:** ${questTypes.monster.reward}`, inline: false },
-            { name: questTypes.riddle.name, value: `${questTypes.riddle.description}\n**Reward:** ${questTypes.riddle.reward}`, inline: false },
-            { name: questTypes.maze.name, value: `${questTypes.maze.description}\n**Reward:** ${questTypes.maze.reward}`, inline: false },
-            { name: questTypes.trolley.name, value: `${questTypes.trolley.description}\n**Reward:** ${questTypes.trolley.reward}`, inline: false }
+            { name: locations.plains.name, value: `${locations.plains.description}\n*Leads to: ${locations.plains.second}*`, inline: false },
+            { name: locations.forest.name, value: `${locations.forest.description}\n*Leads to: ${locations.forest.second}*`, inline: false }
         )
-        .setFooter({ text: "⚠️ You have 30 minutes to complete once started!" });
+        .setFooter({ text: "⏰ You have 30 minutes to complete once started!" });
     
     // Create buttons
-    const row1 = new ActionRowBuilder()
+    const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId('quest_monster')
-                .setLabel('🐲 Monster Hunt')
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId('quest_riddle')
-                .setLabel('🧩 Ancient Riddle')
+                .setCustomId('location_plains')
+                .setLabel('🌾 Wide Open Plains')
                 .setStyle(ButtonStyle.Primary),
             new ButtonBuilder()
-                .setCustomId('quest_maze')
-                .setLabel('🌿 Hedge Maze')
-                .setStyle(ButtonStyle.Success)
-        );
-    
-    const row2 = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('quest_trolley')
-                .setLabel('🚃 Moral Dilemma')
-                .setStyle(ButtonStyle.Secondary),
+                .setCustomId('location_forest')
+                .setLabel('🌲 Dark Forest')
+                .setStyle(ButtonStyle.Success),
             new ButtonBuilder()
                 .setCustomId('quest_cancel')
                 .setLabel('❌ Cancel')
@@ -108,7 +121,7 @@ module.exports.run = async (client, message, args) => {
     
     const questMessage = await message.channel.send({ 
         embeds: [embed], 
-        components: [row1, row2] 
+        components: [row] 
     });
     
     // Set up collector
@@ -134,9 +147,9 @@ module.exports.run = async (client, message, args) => {
             return;
         }
         
-        // Start the selected quest
-        const questType = interaction.customId.replace('quest_', '');
-        await startQuest(interaction, questType, userId);
+        // Start the selected location
+        const location = interaction.customId.replace('location_', '');
+        await startLocationQuest(interaction, location, userId);
         collector.stop();
     });
     
@@ -146,20 +159,21 @@ module.exports.run = async (client, message, args) => {
                 embeds: [new EmbedBuilder()
                     .setTitle("⏰ Quest Selection Timeout")
                     .setColor("#FF0000")
-                    .setDescription("You took too long to choose a quest.")],
+                    .setDescription("You took too long to choose a location.")],
                 components: []
             });
         }
     });
 };
 
-async function startQuest(interaction, questType, userId) {
+async function startLocationQuest(interaction, location, userId) {
     // Mark user as on quest
     const questData = {
-        type: questType,
+        location: location,
         startTime: Date.now(),
-        stage: 0,
-        data: {}
+        questsCompleted: 0,
+        totalMonsterValue: 0,
+        currentQuest: null
     };
     
     activeQuests.set(userId, questData);
@@ -184,36 +198,59 @@ async function startQuest(interaction, questType, userId) {
         }
     }, 1800000); // 30 minutes
     
+    // Randomly select first quest type
+    const questTypeNames = Object.keys(questTypes);
+    const randomQuest = questTypeNames[Math.floor(Math.random() * questTypeNames.length)];
+    
+    const locationData = locations[location];
+    const embed = new EmbedBuilder()
+        .setTitle(`${locationData.name} - Quest 1/2`)
+        .setColor("#4169E1")
+        .setDescription(`You arrive at the ${locationData.name.toLowerCase()}. ${locationData.description}.\n\nA ${questTypes[randomQuest].name} awaits you!`)
+        .addFields(
+            { name: "Progress", value: "0/2 quests completed", inline: false }
+        );
+    
+    await interaction.update({ embeds: [embed], components: [] });
+    
     // Start the specific quest
-    switch (questType) {
-        case 'monster':
-            await startMonsterQuest(interaction, userId);
-            break;
-        case 'riddle':
-            await startRiddleQuest(interaction, userId);
-            break;
-        case 'maze':
-            await startMazeQuest(interaction, userId);
-            break;
-        case 'trolley':
-            await startTrolleyQuest(interaction, userId);
-            break;
-    }
+    questData.currentQuest = randomQuest;
+    setTimeout(() => {
+        switch (randomQuest) {
+            case 'monster':
+                startMonsterQuest(interaction, userId);
+                break;
+            case 'riddle':
+                startRiddleQuest(interaction, userId);
+                break;
+            case 'maze':
+                startMazeQuest(interaction, userId);
+                break;
+            case 'trolley':
+                startTrolleyQuest(interaction, userId);
+                break;
+        }
+    }, 2000);
 }
 
 async function startMonsterQuest(interaction, userId) {
     const quest = activeQuests.get(userId);
-    quest.data.round = 1;
-    quest.data.health = 100;
-    quest.data.maxHealth = 100;
+    quest.data = {
+        round: 1,
+        health: 100,
+        maxHealth: 100,
+        monsters: Object.keys(questTypes.monster.monsters)
+    };
+    
+    const currentMonster = quest.data.monsters[quest.data.round - 1];
     
     const embed = new EmbedBuilder()
         .setTitle("🐲 MONSTER HUNT - Round 1/4")
         .setColor("#FF0000")
-        .setDescription("You enter a dark cave and encounter a **Goblin Warrior**!")
+        .setDescription(`You encounter a **${currentMonster}**!`)
         .addFields(
             { name: "Your Health", value: `${quest.data.health}/${quest.data.maxHealth} HP`, inline: true },
-            { name: "Enemy", value: "Goblin Warrior", inline: true }
+            { name: "Enemy", value: currentMonster, inline: true }
         );
     
     const row = new ActionRowBuilder()
@@ -228,7 +265,7 @@ async function startMonsterQuest(interaction, userId) {
                 .setStyle(ButtonStyle.Primary)
         );
     
-    await interaction.update({ embeds: [embed], components: [row] });
+    await interaction.editReply({ embeds: [embed], components: [row] });
     
     // Set up monster combat collector
     const filter = (i) => i.user.id === userId;
@@ -244,8 +281,7 @@ async function handleMonsterCombat(interaction, userId, collector) {
     if (!quest) return;
     
     const action = interaction.customId.replace('monster_', '');
-    const enemies = ['Goblin Warrior', 'Orc Brute', 'Skeleton Mage', 'Shadow Beast'];
-    const currentEnemy = enemies[quest.data.round - 1];
+    const currentMonster = quest.data.monsters[quest.data.round - 1];
     
     let playerDamage = 0;
     let enemyDamage = 0;
@@ -254,11 +290,11 @@ async function handleMonsterCombat(interaction, userId, collector) {
     if (action === 'attack') {
         playerDamage = Math.floor(Math.random() * 30) + 20; // 20-49 damage
         enemyDamage = Math.floor(Math.random() * 20) + 10; // 10-29 damage
-        actionText = `You strike the ${currentEnemy} for ${playerDamage} damage!\nThe ${currentEnemy} retaliates for ${enemyDamage} damage!`;
+        actionText = `You strike the ${currentMonster} for ${playerDamage} damage!\nThe ${currentMonster} retaliates for ${enemyDamage} damage!`;
     } else if (action === 'defend') {
         playerDamage = Math.floor(Math.random() * 15) + 10; // 10-24 damage
         enemyDamage = Math.floor(Math.random() * 10) + 5; // 5-14 damage
-        actionText = `You defend and counter-attack for ${playerDamage} damage!\nThe ${currentEnemy} attacks for reduced ${enemyDamage} damage!`;
+        actionText = `You defend and counter-attack for ${playerDamage} damage!\nThe ${currentMonster} attacks for reduced ${enemyDamage} damage!`;
     }
     
     quest.data.health -= enemyDamage;
@@ -272,32 +308,27 @@ async function handleMonsterCombat(interaction, userId, collector) {
     
     // Check if enemy defeated
     if (playerDamage >= 50 || Math.random() < 0.4) { // Enemy defeated
+        const monsterValue = questTypes.monster.monsters[currentMonster];
+        quest.totalMonsterValue += monsterValue;
+        
         quest.data.round++;
         quest.data.health = Math.min(quest.data.health + 20, quest.data.maxHealth); // Heal a bit
         
         if (quest.data.round > 4) {
-            // Quest complete!
-            const reward = Math.floor(Math.random() * 2001) + 1000; // 1000-3000
-            await db.add(`money_${userId}`, reward);
-            
-            // Chance for item
-            if (Math.random() < 0.3) {
-                await db.add(`weapon_sword_${userId}`, 1);
-                await endQuest(interaction, userId, true, `Congratulations! You defeated all monsters and earned ${reward} kopeks + a sword!`);
-            } else {
-                await endQuest(interaction, userId, true, `Congratulations! You defeated all monsters and earned ${reward} kopeks!`);
-            }
+            // Monster quest complete!
+            await completeQuest(interaction, userId);
             collector.stop();
             return;
         }
         
+        const nextMonster = quest.data.monsters[quest.data.round - 1];
         const embed = new EmbedBuilder()
             .setTitle(`🐲 MONSTER HUNT - Round ${quest.data.round}/4`)
             .setColor("#FF0000")
-            .setDescription(`${actionText}\n\n**${currentEnemy} defeated!** You advance to the next round.\n\nA **${enemies[quest.data.round - 1]}** appears!`)
+            .setDescription(`${actionText}\n\n**${currentMonster} defeated!** You advance to the next round.\n\nA **${nextMonster}** appears!`)
             .addFields(
                 { name: "Your Health", value: `${quest.data.health}/${quest.data.maxHealth} HP`, inline: true },
-                { name: "Enemy", value: enemies[quest.data.round - 1], inline: true }
+                { name: "Enemy", value: nextMonster, inline: true }
             );
         
         const row = new ActionRowBuilder()
@@ -321,7 +352,7 @@ async function handleMonsterCombat(interaction, userId, collector) {
             .setDescription(`${actionText}\n\nThe battle continues!`)
             .addFields(
                 { name: "Your Health", value: `${quest.data.health}/${quest.data.maxHealth} HP`, inline: true },
-                { name: "Enemy", value: currentEnemy, inline: true }
+                { name: "Enemy", value: currentMonster, inline: true }
             );
         
         const row = new ActionRowBuilder()
@@ -342,9 +373,11 @@ async function handleMonsterCombat(interaction, userId, collector) {
 
 async function startRiddleQuest(interaction, userId) {
     const quest = activeQuests.get(userId);
-    quest.data.riddleIndex = Math.floor(Math.random() * riddles.length);
-    quest.data.solved = 0;
-    quest.data.required = 2;
+    quest.data = {
+        riddleIndex: Math.floor(Math.random() * riddles.length),
+        solved: 0,
+        required: 2
+    };
     
     const riddle = riddles[quest.data.riddleIndex];
     
@@ -372,7 +405,7 @@ async function startRiddleQuest(interaction, userId) {
                 .setStyle(ButtonStyle.Secondary)
         );
     
-    await interaction.update({ embeds: [embed], components: [row] });
+    await interaction.editReply({ embeds: [embed], components: [row] });
     
     const filter = (i) => i.user.id === userId;
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
@@ -393,10 +426,8 @@ async function handleRiddleAnswer(interaction, userId, collector) {
         quest.data.solved++;
         
         if (quest.data.solved >= quest.data.required) {
-            // Quest complete!
-            const reward = Math.floor(Math.random() * 1201) + 800; // 800-2000
-            await db.add(`money_${userId}`, reward);
-            await endQuest(interaction, userId, true, `Correct! You have solved both riddles and earned ${reward} kopeks!`);
+            // Riddle quest complete!
+            await completeQuest(interaction, userId);
             collector.stop();
             return;
         }
@@ -444,8 +475,10 @@ async function handleRiddleAnswer(interaction, userId, collector) {
 
 async function startMazeQuest(interaction, userId) {
     const quest = activeQuests.get(userId);
-    quest.data.stage = 1;
-    quest.data.maxStage = 2;
+    quest.data = {
+        stage: 1,
+        maxStage: 2
+    };
     
     const embed = new EmbedBuilder()
         .setTitle("🌿 HEDGE MAZE - Stage 1/2")
@@ -474,7 +507,7 @@ async function startMazeQuest(interaction, userId) {
                 .setStyle(ButtonStyle.Secondary)
         );
     
-    await interaction.update({ embeds: [embed], components: [row] });
+    await interaction.editReply({ embeds: [embed], components: [row] });
     
     const filter = (i) => i.user.id === userId;
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
@@ -573,9 +606,7 @@ async function handleMazeChoice(interaction, userId, collector) {
         // Final stage
         if (result === 1) {
             // Success!
-            const reward = Math.floor(Math.random() * 1301) + 1200; // 1200-2500
-            await db.add(`money_${userId}`, reward);
-            await endQuest(interaction, userId, true, `You found the exit! The maze rewards your perseverance with ${reward} kopeks!`);
+            await completeQuest(interaction, userId);
             collector.stop();
         } else {
             // Death
@@ -587,10 +618,12 @@ async function handleMazeChoice(interaction, userId, collector) {
 }
 
 async function startTrolleyQuest(interaction, userId) {
+    const scenario = trolleyScenarios[Math.floor(Math.random() * trolleyScenarios.length)];
+    
     const embed = new EmbedBuilder()
         .setTitle("🚃 THE TROLLEY PROBLEM")
         .setColor("#696969")
-        .setDescription("You come upon a runaway trolley heading toward five people tied to the tracks.\n\nYou can pull a lever to divert it to another track... but there's one person tied to that track.\n\n**Do you pull the lever to save five lives by sacrificing one?**")
+        .setDescription(`You come upon a runaway trolley heading toward **${scenario.many}** tied to the tracks.\n\nYou can pull a lever to divert it to another track... but there's **${scenario.one}** tied to that track.\n\n**Do you pull the lever to save ${scenario.many} by sacrificing ${scenario.one}?**`)
         .addFields(
             { name: "The Choice", value: "There is no right answer. You must live with whatever you choose.", inline: false }
         );
@@ -607,7 +640,7 @@ async function startTrolleyQuest(interaction, userId) {
                 .setStyle(ButtonStyle.Secondary)
         );
     
-    await interaction.update({ embeds: [embed], components: [row] });
+    await interaction.editReply({ embeds: [embed], components: [row] });
     
     const filter = (i) => i.user.id === userId;
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
@@ -615,21 +648,86 @@ async function startTrolleyQuest(interaction, userId) {
     collector.on('collect', async (i) => {
         let choice;
         if (i.customId === 'trolley_pull') {
-            choice = "You pulled the lever. One person died to save five. The weight of this choice will stay with you forever.";
+            choice = `You pulled the lever. ${scenario.one} died to save ${scenario.many}. The weight of this choice will stay with you forever.`;
         } else {
-            choice = "You walked away. Five people died while you did nothing. Sometimes inaction is also a choice.";
+            choice = `You walked away. ${scenario.many} died while you did nothing. Sometimes inaction is also a choice.`;
         }
         
-        await db.add(`money_${userId}`, 500); // Small reward for participating
-        await endQuest(i, userId, true, `${choice}\n\nThe universe grants you 500 kopeks for facing this impossible choice.`);
+        await completeQuest(i, userId, choice);
         collector.stop();
     });
+}
+
+async function completeQuest(interaction, userId, trolleyMessage = null) {
+    const quest = activeQuests.get(userId);
+    if (!quest) return;
+    
+    quest.questsCompleted++;
+    
+    if (quest.questsCompleted >= 2) {
+        // Both quests completed - give final reward
+        let totalReward = 250; // Base reward
+        let rewardText = "You have completed both quests and earned 250 kopeks!";
+        
+        if (quest.totalMonsterValue > 0) {
+            const monsterBonus = Math.floor(quest.totalMonsterValue / 2);
+            totalReward += monsterBonus;
+            rewardText = `You have completed both quests and earned 250 kopeks + ${monsterBonus} kopeks bonus from slaying monsters (total: ${totalReward} kopeks)!`;
+        }
+        
+        if (trolleyMessage) {
+            rewardText = `${trolleyMessage}\n\n${rewardText}`;
+        }
+        
+        await db.add(`money_${userId}`, totalReward);
+        await endQuest(interaction, userId, true, rewardText);
+    } else {
+        // First quest completed, move to second location
+        const location = locations[quest.location];
+        
+        let completionMessage = "Quest completed!";
+        if (trolleyMessage) {
+            completionMessage = trolleyMessage;
+        }
+        
+        // Randomly select second quest type
+        const questTypeNames = Object.keys(questTypes);
+        const randomQuest = questTypeNames[Math.floor(Math.random() * questTypeNames.length)];
+        
+        const embed = new EmbedBuilder()
+            .setTitle(`${location.second} - Quest 2/2`)
+            .setColor("#4169E1")
+            .setDescription(`${completionMessage}\n\nYou advance to ${location.second}. ${location.secondDescription}.\n\nA ${questTypes[randomQuest].name} awaits you!`)
+            .addFields(
+                { name: "Progress", value: "1/2 quests completed", inline: false }
+            );
+        
+        await interaction.update({ embeds: [embed], components: [] });
+        
+        // Start the second quest
+        quest.currentQuest = randomQuest;
+        setTimeout(() => {
+            switch (randomQuest) {
+                case 'monster':
+                    startMonsterQuest(interaction, userId);
+                    break;
+                case 'riddle':
+                    startRiddleQuest(interaction, userId);
+                    break;
+                case 'maze':
+                    startMazeQuest(interaction, userId);
+                    break;
+                case 'trolley':
+                    startTrolleyQuest(interaction, userId);
+                    break;
+            }
+        }, 2000);
+    }
 }
 
 async function endQuest(interaction, userId, success, message) {
     activeQuests.delete(userId);
     await db.delete(`on_quest_${userId}`);
-    await db.set(`quest_cooldown_${userId}`, Date.now());
     
     const embed = new EmbedBuilder()
         .setTitle(success ? "✅ Quest Complete!" : "❌ Quest Failed")
