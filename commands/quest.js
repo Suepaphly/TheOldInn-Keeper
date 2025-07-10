@@ -362,23 +362,54 @@ async function startLocationQuest(interaction, location, userId) {
         }
     }
 
-    // Start the specific quest
-    questData.currentQuest = randomQuest;
+    // Add a continue button for better pacing
     setTimeout(() => {
-        switch (randomQuest) {
-            case 'monster':
-                startMonsterQuest(interaction, userId);
-                break;
-            case 'riddle':
-                startRiddleQuest(interaction, userId);
-                break;
-            case 'maze':
-                startMazeQuest(interaction, userId);
-                break;
-            case 'trolley':
-                startTrolleyQuest(interaction, userId);
-                break;
-        }
+        const continueEmbed = new EmbedBuilder()
+            .setTitle(`${locationData.name} - Ready to Begin`)
+            .setColor("#4169E1")
+            .setDescription(`You steel yourself for what lies ahead. A ${questTypes[randomQuest].name} awaits!`)
+            .addFields(
+                { name: "Progress", value: "0/2 quests completed", inline: false },
+                { name: "Quest Type", value: questTypes[randomQuest].description, inline: false }
+            );
+
+        const continueRow = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('quest_start_first')
+                    .setLabel('⚔️ Begin Quest')
+                    .setStyle(ButtonStyle.Primary)
+            );
+
+        interaction.editReply({ embeds: [continueEmbed], components: [continueRow] }).catch(() => {
+            interaction.followUp({ embeds: [continueEmbed], components: [continueRow] });
+        });
+
+        // Set up collector for start button
+        const filter = (i) => i.user.id === userId;
+        const startCollector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+
+        startCollector.on('collect', async (i) => {
+            if (i.customId === 'quest_start_first') {
+                questData.currentQuest = randomQuest;
+                
+                switch (randomQuest) {
+                    case 'monster':
+                        await startMonsterQuest(i, userId);
+                        break;
+                    case 'riddle':
+                        await startRiddleQuest(i, userId);
+                        break;
+                    case 'maze':
+                        await startMazeQuest(i, userId);
+                        break;
+                    case 'trolley':
+                        await startTrolleyQuest(i, userId);
+                        break;
+                }
+                startCollector.stop();
+            }
+        });
     }, 2000);
 }
 
@@ -421,7 +452,11 @@ async function startMonsterQuest(interaction, userId) {
             new ButtonBuilder()
                 .setCustomId('monster_attack')
                 .setLabel('⚔️ Attack')
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('monster_run')
+                .setLabel('🏃 Run Away')
+                .setStyle(ButtonStyle.Secondary)
         );
 
     try {
@@ -449,6 +484,12 @@ async function handleMonsterCombat(interaction, userId, collector) {
     const quest = activeQuests.get(userId);
     if (!quest) return;
 
+    if (interaction.customId === 'monster_run') {
+        await endQuest(interaction, userId, false, "You fled from the monsters! Your quest ends in cowardly retreat.");
+        collector.stop();
+        return;
+    }
+
     const currentMonster = quest.data.monsters[quest.data.round - 1];
     const monsterStats = getMonsterStats(currentMonster, quest.data.combatLevel);
 
@@ -475,43 +516,66 @@ async function handleMonsterCombat(interaction, userId, collector) {
             return;
         }
 
-        // Next monster
-        const nextMonster = quest.data.monsters[quest.data.round - 1];
-        const nextMonsterStats = getMonsterStats(nextMonster, quest.data.combatLevel);
-        quest.data.currentMonsterHealth = nextMonsterStats.health;
-        quest.data.currentMonsterMaxHealth = nextMonsterStats.health;
-
+        // Show victory message first with continue button
         const embed = new EmbedBuilder()
-            .setTitle(`⚔️ AMBUSH - ${nextMonster} (${quest.data.round}/2)`)
-            .setColor("#FF0000")
-            .setDescription(`${battleText}\n\n**${currentMonster} defeated!** You advance to the next monster.\n\nA **${nextMonster}** appears!`)
+            .setTitle(`⚔️ AMBUSH - ${currentMonster} DEFEATED!`)
+            .setColor("#00FF00")
+            .setDescription(`${battleText}\n\n**${currentMonster} defeated!** You stand victorious over your fallen foe.`)
             .addFields(
-                { name: "Your Health", value: `${quest.data.playerHealth}/${quest.data.playerMaxHealth} HP`, inline: true },
-                { name: "Your Weapon", value: quest.data.playerWeapon.name, inline: true },
-                { name: "Your Armor", value: quest.data.playerArmor.name, inline: true },
-                { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
-                { name: "Enemy", value: nextMonster, inline: true }
+                { name: "Victory", value: "The creature falls to your superior combat skills!", inline: false }
             );
 
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId('monster_attack')
-                    .setLabel('⚔️ Attack')
-                    .setStyle(ButtonStyle.Danger)
+                    .setCustomId('monster_victory_continue')
+                    .setLabel('➡️ Continue')
+                    .setStyle(ButtonStyle.Primary)
             );
 
-        try {
-            await interaction.update({ embeds: [embed], components: [row] });
-        } catch (error) {
-            if (error.code === 10062) {
-                // Interaction expired, send a new message instead
-                await interaction.followUp({ embeds: [embed], components: [row] });
-            } else {
-                console.error('Error updating interaction:', error);
-                throw error;
+        await interaction.update({ embeds: [embed], components: [row] });
+        
+        // Set up collector for continue button
+        const filter = (i) => i.user.id === userId;
+        const continueCollector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+
+        continueCollector.on('collect', async (i) => {
+            if (i.customId === 'monster_victory_continue') {
+                // Next monster
+                const nextMonster = quest.data.monsters[quest.data.round - 1];
+                const nextMonsterStats = getMonsterStats(nextMonster, quest.data.combatLevel);
+                quest.data.currentMonsterHealth = nextMonsterStats.health;
+                quest.data.currentMonsterMaxHealth = nextMonsterStats.health;
+
+                const nextEmbed = new EmbedBuilder()
+                    .setTitle(`⚔️ AMBUSH - ${nextMonster} (${quest.data.round}/2)`)
+                    .setColor("#FF0000")
+                    .setDescription(`You advance to the next monster.\n\nA **${nextMonster}** appears!`)
+                    .addFields(
+                        { name: "Your Health", value: `${quest.data.playerHealth}/${quest.data.playerMaxHealth} HP`, inline: true },
+                        { name: "Your Weapon", value: quest.data.playerWeapon.name, inline: true },
+                        { name: "Your Armor", value: quest.data.playerArmor.name, inline: true },
+                        { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
+                        { name: "Enemy", value: nextMonster, inline: true }
+                    );
+
+                const nextRow = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('monster_attack')
+                            .setLabel('⚔️ Attack')
+                            .setStyle(ButtonStyle.Danger),
+                        new ButtonBuilder()
+                            .setCustomId('monster_run')
+                            .setLabel('🏃 Run Away')
+                            .setStyle(ButtonStyle.Secondary)
+                    );
+
+                await i.update({ embeds: [nextEmbed], components: [nextRow] });
+                continueCollector.stop();
             }
-        }
+        });
+
         return;
     }
 
@@ -547,20 +611,14 @@ async function handleMonsterCombat(interaction, userId, collector) {
             new ButtonBuilder()
                 .setCustomId('monster_attack')
                 .setLabel('⚔️ Attack')
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('monster_run')
+                .setLabel('🏃 Run Away')
+                .setStyle(ButtonStyle.Secondary)
         );
 
-    try {
-        await interaction.update({ embeds: [embed], components: [row] });
-    } catch (error) {
-        if (error.code === 10062) {
-            // Interaction expired, send a new message instead
-            await interaction.followUp({ embeds: [embed], components: [row] });
-        } else {
-            console.error('Error updating interaction:', error);
-            throw error;
-        }
-    }
+    await interaction.update({ embeds: [embed], components: [row] });
 }
 
 async function startRiddleQuest(interaction, userId) {
@@ -854,7 +912,11 @@ async function startMazeCombat(interaction, userId, parentCollector) {
             new ButtonBuilder()
                 .setCustomId('maze_combat_attack')
                 .setLabel('⚔️ Attack')
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('maze_combat_run')
+                .setLabel('🏃 Run Away')
+                .setStyle(ButtonStyle.Secondary)
         );
 
     try {
@@ -882,6 +944,13 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
     const quest = activeQuests.get(userId);
     if (!quest || !quest.data.mazeCombatData) return;
 
+    if (interaction.customId === 'maze_combat_run') {
+        await endQuest(interaction, userId, false, "You fled from the vine beast! Your quest ends in cowardly retreat.");
+        collector.stop();
+        parentCollector.stop();
+        return;
+    }
+
     quest.data.mazeCombatData.round++;
 
     // Player attacks first
@@ -897,47 +966,65 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
 
     // Check if vine beast is defeated
     if (quest.data.mazeCombatData.monsterHealth <= 0) {
-        // Player wins - continue to stage 2
-        quest.data.stage = 2;
-
+        // Player wins - show victory message first with continue button
         const embed = new EmbedBuilder()
-            .setTitle("🌿 HEDGE MAZE - Stage 2/2")
-            .setColor("#228B22")
-            .setDescription(`${battleText}\n\n**Vine beast defeated!** You advance deeper into the maze.\n\n⚠️ **FINAL STAGE** - Choose very carefully:`)
+            .setTitle("🌿 HEDGE MAZE - VICTORY!")
+            .setColor("#00FF00")
+            .setDescription(`${battleText}\n\n**Vine beast defeated!** The massive creature falls with a thunderous crash, clearing your path forward.`)
             .addFields(
-                { name: "🚪 Path 1", value: "A golden archway beckoning", inline: true },
-                { name: "🚪 Path 2", value: "A dark tunnel with echoes", inline: true },
-                { name: "🚪 Path 3", value: "A bright exit with sunlight", inline: true },
-                { name: "💀 DANGER", value: "Wrong choice here means death!", inline: false }
+                { name: "Victory", value: "You stand victorious over the defeated beast!", inline: false }
             );
 
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId('maze_1')
-                    .setLabel('🚪 Path 1')
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
-                    .setCustomId('maze_2')
-                    .setLabel('🚪 Path 2')
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
-                    .setCustomId('maze_3')
-                    .setLabel('🚪 Path 3')
-                    .setStyle(ButtonStyle.Secondary)
+                    .setCustomId('maze_victory_continue')
+                    .setLabel('➡️ Continue Deeper')
+                    .setStyle(ButtonStyle.Primary)
             );
 
-        try {
-            await interaction.update({ embeds: [embed], components: [row] });
-        } catch (error) {
-            if (error.code === 10062) {
-                // Interaction expired, send a new message instead
-                await interaction.followUp({ embeds: [embed], components: [row] });
-            } else {
-                console.error('Error updating interaction:', error);
-                throw error;
+        await interaction.update({ embeds: [embed], components: [row] });
+        
+        // Set up collector for continue button
+        const filter = (i) => i.user.id === userId;
+        const continueCollector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+
+        continueCollector.on('collect', async (i) => {
+            if (i.customId === 'maze_victory_continue') {
+                quest.data.stage = 2;
+
+                const nextEmbed = new EmbedBuilder()
+                    .setTitle("🌿 HEDGE MAZE - Stage 2/2")
+                    .setColor("#228B22")
+                    .setDescription("You advance deeper into the maze. The air grows thick with ancient magic.\n\n⚠️ **FINAL STAGE** - Choose very carefully:")
+                    .addFields(
+                        { name: "🚪 Path 1", value: "A golden archway beckoning", inline: true },
+                        { name: "🚪 Path 2", value: "A dark tunnel with echoes", inline: true },
+                        { name: "🚪 Path 3", value: "A bright exit with sunlight", inline: true },
+                        { name: "💀 DANGER", value: "Wrong choice here means death!", inline: false }
+                    );
+
+                const nextRow = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('maze_1')
+                            .setLabel('🚪 Path 1')
+                            .setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder()
+                            .setCustomId('maze_2')
+                            .setLabel('🚪 Path 2')
+                            .setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder()
+                            .setCustomId('maze_3')
+                            .setLabel('🚪 Path 3')
+                            .setStyle(ButtonStyle.Secondary)
+                    );
+
+                await i.update({ embeds: [nextEmbed], components: [nextRow] });
+                continueCollector.stop();
             }
-        }
+        });
+
         collector.stop();
         return;
     }
@@ -976,20 +1063,14 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
             new ButtonBuilder()
                 .setCustomId('maze_combat_attack')
                 .setLabel('⚔️ Attack')
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('maze_combat_run')
+                .setLabel('🏃 Run Away')
+                .setStyle(ButtonStyle.Secondary)
         );
 
-    try {
-            await interaction.update({ embeds: [embed], components: [row] });
-        } catch (error) {
-            if (error.code === 10062) {
-                // Interaction expired, send a new message instead
-                await interaction.followUp({ embeds: [embed], components: [row] });
-            } else {
-                console.error('Error updating interaction:', error);
-                throw error;
-            }
-        }
+    await interaction.update({ embeds: [embed], components: [row] });
 }
 
 async function startTrolleyQuest(interaction, userId) {
@@ -1156,7 +1237,11 @@ async function startVengeanceCombat(interaction, userId, parentCollector) {
             new ButtonBuilder()
                 .setCustomId('vengeance_attack')
                 .setLabel('⚔️ Attack')
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('vengeance_run')
+                .setLabel('🏃 Run Away')
+                .setStyle(ButtonStyle.Secondary)
         );
 
     try {
@@ -1183,6 +1268,13 @@ async function startVengeanceCombat(interaction, userId, parentCollector) {
 async function handleVengeanceCombat(interaction, userId, collector, parentCollector) {
     const quest = activeQuests.get(userId);
     if (!quest || !quest.data.combat) return;
+
+    if (interaction.customId === 'vengeance_run') {
+        await endQuest(interaction, userId, false, "You fled from the vengeful attacker! Your quest ends in cowardly retreat.");
+        collector.stop();
+        parentCollector.stop();
+        return;
+    }
 
     quest.data.combat.round++;
 
@@ -1219,17 +1311,7 @@ async function handleVengeanceCombat(interaction, userId, collector, parentColle
                     .setStyle(ButtonStyle.Primary)
             );
 
-        try {
-             await interaction.update({ embeds: [embed], components: [continueRow] });
-        } catch (error) {
-            if (error.code === 10062) {
-                // Interaction expired, send a new message instead
-                await interaction.followUp({ embeds: [embed], components: [continueRow] });
-            } else {
-                console.error('Error updating interaction:', error);
-                throw error;
-            }
-        }
+        await interaction.update({ embeds: [embed], components: [continueRow] });
         collector.stop();
         return;
     }
@@ -1269,20 +1351,14 @@ async function handleVengeanceCombat(interaction, userId, collector, parentColle
             new ButtonBuilder()
                 .setCustomId('vengeance_attack')
                 .setLabel('⚔️ Attack')
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('vengeance_run')
+                .setLabel('🏃 Run Away')
+                .setStyle(ButtonStyle.Secondary)
         );
 
-    try {
-         await interaction.update({ embeds: [embed], components: [row] });
-    } catch (error) {
-        if (error.code === 10062) {
-            // Interaction expired, send a new message instead
-            await interaction.followUp({ embeds: [embed], components: [row] });
-        } else {
-            console.error('Error updating interaction:', error);
-            throw error;
-        }
-    }
+    await interaction.update({ embeds: [embed], components: [row] });
 }
 
 async function completeQuest(interaction, userId, trolleyMessage = null) {
@@ -1351,23 +1427,54 @@ async function completeQuest(interaction, userId, trolleyMessage = null) {
             }
         }
 
-        // Start the second quest
-        quest.currentQuest = randomQuest;
+        // Add a continue button for better pacing
         setTimeout(() => {
-            switch (randomQuest) {
-                case 'monster':
-                    startMonsterQuest(interaction, userId);
-                    break;
-                case 'riddle':
-                    startRiddleQuest(interaction, userId);
-                    break;
-                case 'maze':
-                    startMazeQuest(interaction, userId);
-                    break;
-                case 'trolley':
-                    startTrolleyQuest(interaction, userId);
-                    break;
-            }
+            const continueEmbed = new EmbedBuilder()
+                .setTitle(`${location.second} - Ready for Final Challenge`)
+                .setColor("#4169E1")
+                .setDescription(`You prepare for the final challenge. A ${questTypes[randomQuest].name} awaits!`)
+                .addFields(
+                    { name: "Progress", value: "1/2 quests completed", inline: false },
+                    { name: "Final Quest Type", value: questTypes[randomQuest].description, inline: false }
+                );
+
+            const continueRow = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('quest_start_second')
+                        .setLabel('⚔️ Begin Final Quest')
+                        .setStyle(ButtonStyle.Primary)
+                );
+
+            interaction.editReply({ embeds: [continueEmbed], components: [continueRow] }).catch(() => {
+                interaction.followUp({ embeds: [continueEmbed], components: [continueRow] });
+            });
+
+            // Set up collector for start button
+            const filter = (i) => i.user.id === userId;
+            const startCollector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+
+            startCollector.on('collect', async (i) => {
+                if (i.customId === 'quest_start_second') {
+                    quest.currentQuest = randomQuest;
+                    
+                    switch (randomQuest) {
+                        case 'monster':
+                            await startMonsterQuest(i, userId);
+                            break;
+                        case 'riddle':
+                            await startRiddleQuest(i, userId);
+                            break;
+                        case 'maze':
+                            await startMazeQuest(i, userId);
+                            break;
+                        case 'trolley':
+                            await startTrolleyQuest(i, userId);
+                            break;
+                    }
+                    startCollector.stop();
+                }
+            });
         }, 2000);
     }
 }
