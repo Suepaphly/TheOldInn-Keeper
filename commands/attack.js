@@ -31,8 +31,7 @@ module.exports.run = async (client, message, args) => {
 
     // Get combat level and calculate damage
     const combatLevel = await db.get(`combatlevel_${user.id}`) || 0;
-    const combatDamageArray = [1, 1, 2, 3, 5, 10]; // Base damage + level bonuses
-    let damageDealt = combatDamageArray[combatLevel];
+    let damageDealt = combatLevel + 1; // +1 damage for each combat level
     let killedMonster = "";
     let hitMonster = "";
     

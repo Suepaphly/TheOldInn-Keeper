@@ -143,7 +143,7 @@ async function runBattleRounds(message, battleData, players, currentPlayerIndex,
     const otherPlayer = players[1 - currentPlayerIndex];
 
     // Calculate damage
-    const combatDamage = [1, 1, 2, 3, 5, 10][currentPlayer.combatLevel] || 1;
+    const combatDamage = currentPlayer.combatLevel + 1; // +1 damage for each combat level
     const weaponDamage = Math.floor(Math.random() * (currentPlayer.weapon.maxDamage - currentPlayer.weapon.minDamage + 1)) + currentPlayer.weapon.minDamage;
     const totalDamage = combatDamage + weaponDamage;
     const finalDamage = Math.max(1, totalDamage - otherPlayer.armor.defense);

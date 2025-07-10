@@ -167,7 +167,7 @@ async function runPrankRounds(message, prankData, client) {
         prankMessages[Math.floor(Math.random() * prankMessages.length)];
 
     // Target's turn - fight back
-    const combatDamage = [1, 1, 2, 3, 5, 10][prankData.target.combatLevel] || 1;
+    const combatDamage = prankData.target.combatLevel + 1; // +1 damage for each combat level
     const weaponDamage =
         Math.floor(
             Math.random() *
