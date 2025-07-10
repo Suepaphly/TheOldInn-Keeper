@@ -1,3 +1,4 @@
+
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
@@ -45,118 +46,146 @@ function shuffleDeck(deck) {
 
 function evaluateHand(cards) {
     const aceCount = cards.filter(card => card.rank === 'A').length;
-
-    // First check the natural hand (including ace pairs)
+    
+    // If no aces, evaluate normally
+    if (aceCount === 0) {
+        return evaluateNaturalHand(cards);
+    }
+    
+    // Check natural hand first
     const naturalResult = evaluateNaturalHand(cards);
     let bestHand = naturalResult;
     let bestRank = handRankings[naturalResult].rank;
-
-    // If we have aces, check if using them as wild cards gives a better result
-    if (aceCount > 0) {
-        // Special case: if we have a pair of aces, that's already three of a kind with aces wild
-        if (aceCount >= 2) {
-            bestHand = 'Three of a Kind';
-            bestRank = handRankings['Three of a Kind'].rank;
-        }
-
-        // Try other wild card combinations
-        const allPossibleHands = generateAceWildCombinations(cards, aceCount);
-
-        for (const hand of allPossibleHands) {
-            const result = evaluateNaturalHand(hand);
-            if (handRankings[result].rank > bestRank) {
-                bestRank = handRankings[result].rank;
-                bestHand = result;
-            }
+    
+    // Try using aces as wild cards for better combinations
+    const wildCombinations = generateOptimalWildCombinations(cards);
+    
+    for (const combination of wildCombinations) {
+        const result = evaluateNaturalHand(combination);
+        if (handRankings[result].rank > bestRank) {
+            bestRank = handRankings[result].rank;
+            bestHand = result;
         }
     }
-
+    
     return bestHand;
 }
 
-function generateAceWildCombinations(cards, aceCount) {
-    if (aceCount === 0) {
-        return [cards];
-    }
-
+function generateOptimalWildCombinations(cards) {
+    const aces = cards.filter(card => card.rank === 'A');
     const nonAces = cards.filter(card => card.rank !== 'A');
-    const allCombinations = [];
-
-    // Try all possible substitutions for aces
-    const possibleRanks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-    const possibleSuits = ['♠', '♥', '♦', '♣'];
-
-    // Generate combinations by trying different values for aces
-    function generateCombos(currentHand, acesRemaining) {
-        if (acesRemaining === 0) {
-            allCombinations.push([...currentHand]);
-            return;
-        }
-
-        // Try each possible rank for this ace
-        for (const rank of possibleRanks) {
-            for (const suit of possibleSuits) {
-                const aceSubstitute = {
-                    rank: rank,
-                    suit: suit,
-                    value: rankValues[rank]
-                };
-                currentHand.push(aceSubstitute);
-                generateCombos(currentHand, acesRemaining - 1);
-                currentHand.pop();
+    const aceCount = aces.length;
+    
+    if (aceCount === 0) return [cards];
+    
+    const combinations = new Set();
+    
+    // Try strategic substitutions based on existing cards
+    const nonAceRanks = nonAces.map(c => c.rank);
+    const nonAceSuits = nonAces.map(c => c.suit);
+    const nonAceValues = nonAces.map(c => c.value).sort((a, b) => a - b);
+    
+    // Strategy 1: Try to make pairs/trips/quads with existing ranks
+    for (const rank of nonAceRanks) {
+        for (let i = 1; i <= aceCount; i++) {
+            const newHand = [...nonAces];
+            for (let j = 0; j < i; j++) {
+                newHand.push({ rank, suit: suits[j % 4], value: rankValues[rank] });
+            }
+            // Fill remaining aces with different ranks
+            const remaining = aceCount - i;
+            for (let k = 0; k < remaining; k++) {
+                const fillRank = ranks[(ranks.indexOf(rank) + k + 1) % ranks.length];
+                newHand.push({ rank: fillRank, suit: suits[k % 4], value: rankValues[fillRank] });
+            }
+            if (newHand.length === 5) {
+                combinations.add(JSON.stringify(newHand.sort((a, b) => a.value - b.value)));
             }
         }
     }
-
-    // Start with non-ace cards
-    generateCombos([...nonAces], aceCount);
-
-    // If too many combinations, try smart substitutions
-    if (allCombinations.length > 1000) {
-        const smartCombinations = [];
-        const values = nonAces.map(c => c.value).sort((a, b) => a - b);
-        const suits = nonAces.map(c => c.suit);
-
-        // Try to complete straights
-        for (let aceIdx = 0; aceIdx < aceCount; aceIdx++) {
-            const testHand = [...nonAces];
-
-            // Try values that could complete straights
-            const testValues = [1, 14]; // Ace low and high
-            for (let i = 0; i < values.length; i++) {
-                if (values[i + 1]) {
-                    const gap = values[i + 1] - values[i];
-                    if (gap === 2) testValues.push(values[i] + 1);
+    
+    // Strategy 2: Try to make straights
+    if (nonAceValues.length > 0) {
+        // Try ace-low straights (A-2-3-4-5)
+        const aceLowStraight = [
+            { rank: 'A', suit: '♠', value: 1 },
+            { rank: '2', suit: '♥', value: 2 },
+            { rank: '3', suit: '♦', value: 3 },
+            { rank: '4', suit: '♣', value: 4 },
+            { rank: '5', suit: '♠', value: 5 }
+        ];
+        
+        // Try ace-high straights (10-J-Q-K-A)
+        const aceHighStraight = [
+            { rank: '10', suit: '♠', value: 10 },
+            { rank: 'J', suit: '♥', value: 11 },
+            { rank: 'Q', suit: '♦', value: 12 },
+            { rank: 'K', suit: '♣', value: 13 },
+            { rank: 'A', suit: '♠', value: 14 }
+        ];
+        
+        combinations.add(JSON.stringify(aceLowStraight));
+        combinations.add(JSON.stringify(aceHighStraight));
+        
+        // Try to fill gaps in existing sequences
+        for (let startVal = Math.max(2, nonAceValues[0] - aceCount); startVal <= Math.min(10, nonAceValues[nonAceValues.length - 1]); startVal++) {
+            const straightAttempt = [];
+            for (let i = 0; i < 5; i++) {
+                const val = startVal + i;
+                const rank = Object.keys(rankValues).find(k => rankValues[k] === val);
+                if (rank) {
+                    straightAttempt.push({ rank, suit: suits[i % 4], value: val });
                 }
             }
-
-            // Also try values around existing cards
-            values.forEach(v => {
-                testValues.push(v - 1, v + 1);
-            });
-
-            for (const testValue of testValues) {
-                if (testValue >= 1 && testValue <= 14) {
-                    const rank = Object.keys(rankValues).find(k => rankValues[k] === testValue);
-                    if (rank) {
-                        testHand.push({
-                            rank: rank,
-                            suit: suits[0] || '♠',
-                            value: testValue
-                        });
-                    }
-                }
-            }
-
-            if (testHand.length === 5) {
-                smartCombinations.push(testHand);
+            if (straightAttempt.length === 5) {
+                combinations.add(JSON.stringify(straightAttempt));
             }
         }
-
-        return smartCombinations.length > 0 ? smartCombinations : [allCombinations[0]];
     }
-
-    return allCombinations;
+    
+    // Strategy 3: Try to make flushes
+    if (nonAceSuits.length > 0) {
+        const suitCounts = {};
+        nonAceSuits.forEach(suit => suitCounts[suit] = (suitCounts[suit] || 0) + 1);
+        
+        for (const [suit, count] of Object.entries(suitCounts)) {
+            if (count + aceCount >= 5) {
+                const flushAttempt = nonAces.filter(c => c.suit === suit);
+                for (let i = 0; i < Math.min(aceCount, 5 - flushAttempt.length); i++) {
+                    const fillRank = ranks[i + 2]; // Start from '4' to avoid duplicates
+                    flushAttempt.push({ rank: fillRank, suit, value: rankValues[fillRank] });
+                }
+                if (flushAttempt.length === 5) {
+                    combinations.add(JSON.stringify(flushAttempt.sort((a, b) => a.value - b.value)));
+                }
+            }
+        }
+    }
+    
+    // Strategy 4: Five of a kind (only possible with 4+ aces)
+    if (aceCount >= 4) {
+        if (nonAces.length > 0) {
+            const rank = nonAces[0].rank;
+            const fiveOfAKind = [
+                { rank, suit: '♠', value: rankValues[rank] },
+                { rank, suit: '♥', value: rankValues[rank] },
+                { rank, suit: '♦', value: rankValues[rank] },
+                { rank, suit: '♣', value: rankValues[rank] },
+                { rank, suit: '♠', value: rankValues[rank] }
+            ];
+            combinations.add(JSON.stringify(fiveOfAKind));
+        }
+    }
+    
+    // Convert back to arrays and ensure we have valid combinations
+    const result = Array.from(combinations)
+        .map(str => JSON.parse(str))
+        .filter(hand => hand.length === 5);
+    
+    // Always include the original hand
+    result.push(cards);
+    
+    return result;
 }
 
 function evaluateNaturalHand(cards) {
@@ -232,27 +261,23 @@ function evaluateNaturalHand(cards) {
 }
 
 function isSequential(values) {
-    const sorted = [...values].sort((a, b) => a - b);
+    const sorted = [...new Set(values)].sort((a, b) => a - b);
+    
+    // Need exactly 5 unique values for a straight
+    if (sorted.length !== 5) return false;
 
-    // Check normal sequence
+    // Check for ace-low straight (A-2-3-4-5, where A=1)
+    if (sorted.join(',') === '2,3,4,5,14') {
+        return true;
+    }
+
+    // Check normal consecutive sequence
     for (let i = 1; i < sorted.length; i++) {
         if (sorted[i] !== sorted[i-1] + 1) {
-            // Check for A-2-3-4-5 straight (wheel)
-            if (sorted.join(',') === '2,3,4,5,14') {
-                return true;
-            }
-
-             // Handle 10-J-Q-K-A straight
-            if (sorted.join(',') === '10,11,12,13,14') {
-                return true;
-            }
             return false;
         }
     }
-      // Handle A-10-J-Q-K straight
-      if (sorted.join(',') === '10,11,12,13,14') {
-            return true;
-      }
+    
     return true;
 }
 
@@ -471,35 +496,6 @@ exports.run = async (client, message, args) => {
             const resultDescription = cardsReplaced === 0 ? 
                 `🔒 You held all 5 cards! ${payout > 0 ? `🎉 You won ${payout} kopeks with ${handRank}!` : `💸 No winning hand. Better luck next time!`}` :
                 `🔄 Drew ${cardsReplaced} new card${cardsReplaced === 1 ? '' : 's'}! ${payout > 0 ? `🎉 You won ${payout} kopeks with ${handRank}!` : `💸 No winning hand. Better luck next time!`}`;
-
-            await interaction.update(
-                createGameEmbed(game, "Final Result", resultDescription, false)
-            );
-
-            activePokerGames.delete(userId);
-            collector.stop();
-        } else if (interaction.customId === 'draw') {
-            // Replace non-held cards
-            for (let i = 0; i < 5; i++) {
-                if (!game.held[i]) {
-                    game.hand[i] = game.deck.pop();
-                }
-            }
-
-            game.round = 2;
-            game.gameOver = true;
-
-            // Evaluate final hand
-            const handRank = evaluateHand(game.hand);
-            const payout = Math.floor(handRankings[handRank].payout * game.betAmount);
-
-            if (payout > 0) {
-                await db.add(`money_${game.userId}`, payout);
-            }
-
-            const resultDescription = payout > 0 ? 
-                `🎉 You won ${payout} kopeks with ${handRank}!` : 
-                `💸 No winning hand. Better luck next time!`;
 
             await interaction.update(
                 createGameEmbed(game, "Final Result", resultDescription, false)
