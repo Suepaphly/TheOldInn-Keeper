@@ -17,7 +17,7 @@ exports.run = async (client, message, args) => {
     
     // Check if user already has an active game
     if (activeGames.has(userId)) {
-        return message.channel.send("❌ You already have an active blackjack game! Finish it before starting a new one.");
+        return message.channel.send(`❌ <@${message.author.id}>, you already have an active blackjack game! Finish it before starting a new one.`);
     }
 
     let money = Math.abs(parseInt(args[0]));
@@ -30,11 +30,11 @@ exports.run = async (client, message, args) => {
     }
 
     if (!money || money < 1 || money > moneydb) {
-        return message.channel.send("Enter a valid number of kopeks.");
+        return message.channel.send(`<@${message.author.id}>, enter a valid number of kopeks.`);
     }
 
     if (!moneydb) {
-        return message.channel.send("You do not have enough kopeks");
+        return message.channel.send(`<@${message.author.id}>, you do not have enough kopeks.`);
     }
 
     // Create game instance for this user
@@ -286,7 +286,7 @@ exports.run = async (client, message, args) => {
 
     collector.on('collect', async (interaction) => {
         if (gameInstance.gameOver) {
-            await interaction.reply({ content: "Game is already over!", ephemeral: true });
+            await interaction.reply({ content: `<@${interaction.user.id}>, game is already over!`, ephemeral: true });
             return;
         }
 

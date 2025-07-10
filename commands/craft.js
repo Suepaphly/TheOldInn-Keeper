@@ -32,7 +32,7 @@ module.exports.run = async (client, message, args) => {
         const time = ms(timeout - (Date.now() - author));
 
         message.channel.send(
-            `**${member.user.tag}**, you already crafted recently, try again in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`,
+            `<@${user.id}>, you already crafted recently, try again in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`,
         );
     } else {
         const rarefish = [
@@ -83,14 +83,14 @@ module.exports.run = async (client, message, args) => {
                 fishresult[1] >= 0 && fishresult[1] < fisharray[fishresult[0]].length) {
                 
                 message.channel.send(
-                    `**CRAFTING MINIGAME:** - :tools:\n${member}, you crafted a ${
+                    `**CRAFTING MINIGAME:** - :tools:\n<@${user.id}>, you crafted a ${
                         fisharray[fishresult[0]][fishresult[1]]
                     } and earned \`${fishresult[2]}\` kopeks.`,
                 );
                 await db.add(`money_${user.id}`, fishresult[2]);
                 db.set(`craft_${user.id}`, Date.now());
             } else {
-                message.channel.send(`**CRAFTING MINIGAME:** - :tools:\n${member}, something went wrong with your crafting attempt!`);
+                message.channel.send(`**CRAFTING MINIGAME:** - :tools:\n<@${user.id}>, something went wrong with your crafting attempt!`);
             }
         }
     }
