@@ -15,7 +15,7 @@ module.exports.run = async (client, message, args) => {
     hunt: ['huntinglevel', 'Hunting', 15000, 5],
     craft: ['craftinglevel', 'Crafting', 20000, 5],
     work: ['workinglevel', 'Working', 25000, 5],
-    combat: ['combatlevel', 'Combat', 25000, 5]
+    combat: ['combatlevel', 'Combat', 2000, 5]
   };
 
   if (!item) {
