@@ -161,8 +161,7 @@ module.exports.run = async (client, message, args) => {
       { name: "=buy [amount] [type]", value: "Buy walls: `=buy 10 rampart`", inline: false },
       { name: "=buy [amount] [location] [item]", value: "Buy troops/traps: `=buy 5 rampart town_guard`", inline: false },
       { name: "Defense Rules", value: "• Every 5 walls = 1 troop slot + 1 trap slot per player\n• Troops are dismissed after each battle\n• Traps are permanent until destroyed", inline: false },
-      { name: "=map", value: "View town status, defenses & monster threats", inline: true },
-      { name: "=townstatus", value: "Detailed town defense information", inline: true }
+      { name: "=map", value: "View town status, defenses & monster threats", inline: true }
     );
 
   // Combat embed
@@ -187,7 +186,6 @@ module.exports.run = async (client, message, args) => {
       { name: "=cooldown", value: "Check all activity cooldown timers", inline: true },
       { name: "=checklvl", value: "Check your skill levels", inline: true },
       { name: "=lvl [skill]", value: "Level up skills with kopeks", inline: true },
-      { name: "=townstatus", value: "Check town defenses & current threats", inline: true },
       { name: "=map", value: "View town map with monster locations", inline: true },
       { name: "=leaderboard", value: "View top players by wealth", inline: true },
       { name: "Admin Commands", value: "=addmoney, =removemoney, =removestuff, =resetcooldown, =startNewGame", inline: false }
