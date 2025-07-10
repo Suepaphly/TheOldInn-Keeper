@@ -23,9 +23,9 @@ module.exports.run = async (client, message, args) => {
 
     let userarray = [daily, fish, craft, gather, hunt, work, rob, deposit];
 
-    let dailytimeout = 86400000; //In Ms (24 hours)
+    let dailytimeout = 46000000; //In Ms (about 12.77 hours)
     let fishtimeout = 1800000; //In Ms (30 minutes)
-    let crafttimeout = 3600000; //In Ms (1 hour)
+    let crafttimeout = 9000000; //In Ms (2.5 hours)
     let gathertimeout = 900000; //In Ms (15 minutes)
     let hunttimeout = 3600000; //In Ms (1 hour)
     let worktimeout = 18000000; //In Ms (5 hours)
