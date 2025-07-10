@@ -60,22 +60,27 @@ async function startPlayerBattle(message, attacker, target, client) {
     activeBattles.set(attacker.id, target.id);
     activeBattles.set(target.id, attacker.id);
 
+    const attackerCombatLevel = await db.get(`combatlevel_${attacker.id}`) || 0;
+    const targetCombatLevel = await db.get(`combatlevel_${target.id}`) || 0;
+    
     const battleData = {
         attacker: {
             id: attacker.id,
             username: attacker.username,
-            health: 10,
+            health: 5 + (attackerCombatLevel * 2),
+            maxHealth: 5 + (attackerCombatLevel * 2),
             weapon: await getBestWeapon(attacker.id),
             armor: await getBestArmor(attacker.id),
-            combatLevel: await db.get(`combatlevel_${attacker.id}`) || 0
+            combatLevel: attackerCombatLevel
         },
         target: {
             id: target.id,
             username: target.username,
-            health: 10,
+            health: 5 + (targetCombatLevel * 2),
+            maxHealth: 5 + (targetCombatLevel * 2),
             weapon: await getBestWeapon(target.id),
             armor: await getBestArmor(target.id),
-            combatLevel: await db.get(`combatlevel_${target.id}`) || 0
+            combatLevel: targetCombatLevel
         },
         round: 0
     };
@@ -97,12 +102,12 @@ async function startPlayerBattle(message, attacker, target, client) {
         .addFields(
             {
                 name: `${battleData.attacker.username}`,
-                value: `❤️ Health: ${battleData.attacker.health}/10\n🗡️ Weapon: ${battleData.attacker.weapon.name}\n🛡️ Armor: ${battleData.attacker.armor.name}`,
+                value: `❤️ Health: ${battleData.attacker.health}/${battleData.attacker.maxHealth}\n🗡️ Weapon: ${battleData.attacker.weapon.name}\n🛡️ Armor: ${battleData.attacker.armor.name}`,
                 inline: true
             },
             {
                 name: `${battleData.target.username}`,
-                value: `❤️ Health: ${battleData.target.health}/10\n🗡️ Weapon: ${battleData.target.weapon.name}\n🛡️ Armor: ${battleData.target.armor.name}`,
+                value: `❤️ Health: ${battleData.target.health}/${battleData.target.maxHealth}\n🗡️ Weapon: ${battleData.target.weapon.name}\n🛡️ Armor: ${battleData.target.armor.name}`,
                 inline: true
             },
             {
@@ -121,7 +126,7 @@ async function startPlayerBattle(message, attacker, target, client) {
 }
 
 async function runBattleRounds(message, battleData, players, currentPlayerIndex, client) {
-    if (battleData.round >= 5) {
+    if (battleData.round >= 4) {
         // Draw - both players survive
         await handleDraw(message, battleData);
         return;
@@ -147,7 +152,7 @@ async function runBattleRounds(message, battleData, players, currentPlayerIndex,
     otherPlayer.health = Math.max(0, otherPlayer.health);
 
     const embed = new Discord.EmbedBuilder()
-        .setTitle(`⚔️ Round ${battleData.round}/5`)
+        .setTitle(`⚔️ Round ${battleData.round}/4`)
         .setColor("#FFA500")
         .setDescription(`${currentPlayer.username} attacks ${otherPlayer.username}!`)
         .addFields(
@@ -158,12 +163,12 @@ async function runBattleRounds(message, battleData, players, currentPlayerIndex,
             },
             {
                 name: `${battleData.attacker.username}`,
-                value: `❤️ Health: ${battleData.attacker.health}/10`,
+                value: `❤️ Health: ${battleData.attacker.health}/${battleData.attacker.maxHealth}`,
                 inline: true
             },
             {
                 name: `${battleData.target.username}`,
-                value: `❤️ Health: ${battleData.target.health}/10`,
+                value: `❤️ Health: ${battleData.target.health}/${battleData.target.maxHealth}`,
                 inline: true
             }
         );
@@ -188,7 +193,7 @@ async function handleDraw(message, battleData) {
     const embed = new Discord.EmbedBuilder()
         .setTitle("🤝 Battle Draw!")
         .setColor("#808080")
-        .setDescription("Both fighters survive after 5 intense rounds!")
+        .setDescription("Both fighters survive after 4 intense rounds!")
         .addFields(
             {
                 name: "Result",
