@@ -88,7 +88,17 @@ const trolleyScenarios = [
     { many: "4 chefs", one: "1 food critic" },
     { many: "5 workers", one: "1 robot" },
     { many: "2 identical twins", one: "1 triplet" },
-    { many: "3 honest people", one: "1 liar" }
+    { many: "3 honest people", one: "1 liar" },
+    { many: "6 strangers", one: "1 family member" },
+    { many: "4 healthy people", one: "1 sick person" },
+    { many: "3 students", one: "1 professor" },
+    { many: "5 employees", one: "1 boss" },
+    { many: "2 competitors", one: "1 teammate" },
+    { many: "4 villains", one: "1 hero" },
+    { many: "3 pessimists", one: "1 optimist" },
+    { many: "5 humans", one: "1 alien" },
+    { many: "2 enemies", one: "1 ally" },
+    { many: "4 conservatives", one: "1 liberal" }
 ];
 
 module.exports.run = async (client, message, args) => {
