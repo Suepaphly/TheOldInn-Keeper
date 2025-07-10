@@ -25,6 +25,10 @@ exports.run = async (client, message, args) => {
         return message.channel.send("No monsters to battle! Use the summon command to add monsters first.");
     }
     
+    // Clear any old monster system data
+    await db.delete("currentMonsters");
+    await db.delete("battleActive");
+    
     message.channel.send(`⚔️ **IMMEDIATE BATTLE TRIGGERED!** ${totalMonsters} monsters are attacking the town!`);
     
     // Reschedule the next random attack
