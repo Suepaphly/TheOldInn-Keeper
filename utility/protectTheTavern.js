@@ -623,14 +623,6 @@ async function calculateTownDamage() {
     }
 }
 
-function calcTrap(wall) {
-    // Calculate damage or effects caused by traps
-}
-
-function calcArmy(field) {
-    // Calculate the effectiveness or damage caused by the army
-}
-
 async function applyDamageToWalls(damage, channel) {
     try {
         let remainingDamage = damage;

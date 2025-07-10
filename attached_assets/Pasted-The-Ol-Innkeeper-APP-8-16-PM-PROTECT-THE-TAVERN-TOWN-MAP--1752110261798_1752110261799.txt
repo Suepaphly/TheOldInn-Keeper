@@ -1,0 +1,92 @@
+The Ol' Innkeeper
+APP
+ — 8:16 PM
+🏰 PROTECT THE TAVERN - TOWN MAP 🏰
+========================================
+
+DEFENSES:
+🛡️ Ramparts: 100
+🧱 Walls: 10
+🏰 Castle: 1
+Total Defense: 111
+
+🏰🏰🏰 CASTLE STANDS STRONG 🏰🏰🏰
+
+RAMPART (100 units):
+  📊 Slots per player: 20 troops, 20 traps
+  ⚔️ TROOPS (20 total):
+    • 20x town_guard
+  🕳️ TRAPS: None deployed
+
+WALL (10 units):
+  📊 Slots per player: 2 troops, 2 traps
+  ⚔️ TROOPS: None deployed
+  🕳️ TRAPS: None deployed
+
+CASTLE (1 units):
+  📊 Slots per player: 0 troops, 0 traps
+
+⚠️ Threats gathering: 3 monster health
+Suepaphly — 8:16 PM
+=summon 1 goblin
+The Ol' Innkeeper
+APP
+ — 8:16 PM
+❌ Invalid monster type! Available: goblin, mephit, broodling, ogre, automaton
+Suepaphly — 8:17 PM
+=summon goblin 1
+The Ol' Innkeeper
+APP
+ — 8:17 PM
+👹 @Suepaphly summons 1 goblin(s)! Current monster army: 1 creatures.
+Suepaphly — 8:17 PM
+=startbattle
+The Ol' Innkeeper
+APP
+ — 8:17 PM
+⚔️ IMMEDIATE BATTLE TRIGGERED! 1 monsters are attacking the town!
+🏰 Battle started! The arena is locked.
+⚔️ 1 monsters approach the town!
+--- Turn 1/10 --- (1 monsters remaining)
+⚔️ Town defenses strike! Killed: 1 goblin(s) (20 total damage dealt)
+🎉 All monsters have been defeated!
+🎉 Town defenses held strong!
+Battle concluded. Preparing for next conflict...
+Battle ended! The arena is unlocked.
+🏰 Battle has concluded! Next automatic attack has been rescheduled.
+Suepaphly — 8:17 PM
+=attack
+The Ol' Innkeeper
+APP
+ — 8:17 PM
+❌ No battle is currently active! Use =summon to start attacking the town.
+Suepaphly — 8:17 PM
+=map
+The Ol' Innkeeper
+APP
+ — 8:17 PM
+🏰 PROTECT THE TAVERN - TOWN MAP 🏰
+========================================
+
+DEFENSES:
+🛡️ Ramparts: 100
+🧱 Walls: 10
+🏰 Castle: 1
+Total Defense: 111
+
+🏰🏰🏰 CASTLE STANDS STRONG 🏰🏰🏰
+
+RAMPART (100 units):
+  📊 Slots per player: 20 troops, 20 traps
+  ⚔️ TROOPS: None deployed
+  🕳️ TRAPS: None deployed
+
+WALL (10 units):
+  📊 Slots per player: 2 troops, 2 traps
+  ⚔️ TROOPS: None deployed
+  🕳️ TRAPS: None deployed
+
+CASTLE (1 units):
+  📊 Slots per player: 0 troops, 0 traps
+
+⚠️ Threats gathering: 3 monster health
