@@ -1,4 +1,3 @@
-
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require('discord.js');
@@ -11,10 +10,10 @@ module.exports.run = async (client, message, args) => {
         const walls = await db.get("wall") || 0;
         const castle = await db.get("castle") || 0;
         const monsters = await db.get("Monsters") || {};
-        
+
         // Calculate total walls
         const totalWalls = ramparts + walls + castle;
-        
+
         // Calculate total monster health
         let totalMonsterHealth = 0;
         for (let i = 0; i < ptt.monsterArray.length; i++) {
@@ -22,7 +21,13 @@ module.exports.run = async (client, message, args) => {
             const monsterCount = monsters[monsterType] || 0;
             totalMonsterHealth += monsterCount * ptt.monsterHealthArray[i];
         }
-        
+
+        // Also check the simplified currentMonsters key that summon.js is using
+        const currentMonsters = await db.get("currentMonsters") || 0;
+        if (currentMonsters > totalMonsterHealth) {
+            totalMonsterHealth = currentMonsters;
+        }
+
         // Create visual map
         let mapDisplay = "```\n";
         mapDisplay += "🏰 PROTECT THE TAVERN - TOWN MAP 🏰\n";
@@ -47,10 +52,10 @@ module.exports.run = async (client, message, args) => {
         for (const wallType of ptt.wallArray) {
             const troops = await db.get(`Troops_${wallType}`) || {};
             const traps = await db.get(`Traps_${wallType}`) || {};
-            
+
             let hasTroops = false;
             let hasTraps = false;
-            
+
             // Check if there are any troops
             for (const troopType of ptt.troopArray) {
                 if ((troops[troopType] || 0) > 0) {
@@ -58,7 +63,7 @@ module.exports.run = async (client, message, args) => {
                     break;
                 }
             }
-            
+
             // Check if there are any traps
             for (const trapType of ptt.trapArray) {
                 if ((traps[trapType] || 0) > 0) {
@@ -66,7 +71,7 @@ module.exports.run = async (client, message, args) => {
                     break;
                 }
             }
-            
+
             if (hasTroops || hasTraps) {
                 mapDisplay += `${wallType.toUpperCase()}:\n`;
 
@@ -100,7 +105,7 @@ module.exports.run = async (client, message, args) => {
             mapDisplay += `Turn: ${ptt.currentBattleTurn}/10\n`;
         } else if (totalMonsterHealth > 0) {
             mapDisplay += `⚠️ Threats gathering: ${totalMonsterHealth} monster health\n`;
-            
+
             // Show monster breakdown
             mapDisplay += "Monster Army:\n";
             for (let i = 0; i < ptt.monsterArray.length; i++) {
