@@ -52,18 +52,14 @@ module.exports.run = async (client, message, args) => {
     // Mark that this player has attacked this turn
     await db.set(`turn_attack_${user.id}_${currentTurn}`, true);
 
-    // Award experience and money for attacking
-    await db.add(`combat_level_${user.id}`, 1);
-    await db.add(`money_${user.id}`, 5);
-
     // Check remaining monsters
     const updatedMonsters = await db.get("Monsters") || {};
     const remainingMonsters = Object.values(updatedMonsters).reduce((sum, count) => sum + count, 0);
 
     if (killedMonster) {
-        message.channel.send(`⚔️ ${member} slays a ${killedMonster}! ${remainingMonsters} monsters remaining.\n💰 You earned 5 kopeks and 1 combat XP!`);
+        message.channel.send(`⚔️ ${member} slays a ${killedMonster}! ${remainingMonsters} monsters remaining.`);
     } else {
-        message.channel.send(`⚔️ ${member} attacks but misses! ${remainingMonsters} monsters remaining.\n💰 You earned 5 kopeks and 1 combat XP!`);
+        message.channel.send(`⚔️ ${member} attacks but misses! ${remainingMonsters} monsters remaining.`);
     }
 };
 

@@ -146,7 +146,7 @@ async function startBattle(channel) {
             }
             
             // Wait between turns
-            await new Promise(resolve => setTimeout(resolve, 5000)); // 5 seconds between turns
+            await new Promise(resolve => setTimeout(resolve, 15000)); // 15 seconds between turns
         }
 
         // Conclude the battle
