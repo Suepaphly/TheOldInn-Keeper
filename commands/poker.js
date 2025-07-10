@@ -13,15 +13,15 @@ const rankValues = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9'
 
 // Poker hand rankings and payouts (Aces Wild)
 const handRankings = {
-    'Royal Flush': { rank: 10, payout: 25 },
-    'Five of a Kind': { rank: 9, payout: 15 },
-    'Straight Flush': { rank: 8, payout: 9 },
-    'Four of a Kind': { rank: 7, payout: 5 },
-    'Full House': { rank: 6, payout: 3 },
-    'Flush': { rank: 5, payout: 2 },
+    'Royal Flush': { rank: 10, payout: 50 },
+    'Five of a Kind': { rank: 9, payout: 25 },
+    'Straight Flush': { rank: 8, payout: 12 },
+    'Four of a Kind': { rank: 7, payout: 7 },
+    'Full House': { rank: 6, payout: 5 },
+    'Flush': { rank: 5, payout: 3 },
     'Straight': { rank: 4, payout: 2 },
-    'Three of a Kind': { rank: 3, payout: 1 },
-    'Two Pair': { rank: 2, payout: 1 },
+    'Three of a Kind': { rank: 3, payout: 2 },
+    'Two Pair': { rank: 2, payout: 2 },
     'Jacks or Better': { rank: 1, payout: 1 },
     'High Card': { rank: 0, payout: 0 }
 };
@@ -306,15 +306,15 @@ exports.run = async (client, message, args) => {
             .setColor('#4CAF50')
             .setDescription('**Usage:** `=poker <bet amount>`\n\n🃑 **ACES ARE WILD!** Aces can substitute for any card to make the best possible hand.\n\nSelect cards to hold, then draw new ones!')
             .addFields(
-                { name: 'Royal Flush', value: '25x your bet', inline: true },
-                { name: 'Five of a Kind', value: '15x your bet', inline: true },
-                { name: 'Straight Flush', value: '9x your bet', inline: true },
-                { name: 'Four of a Kind', value: '5x your bet', inline: true },
-                { name: 'Full House', value: '3x your bet', inline: true },
-                { name: 'Flush', value: '2x your bet', inline: true },
+                { name: 'Royal Flush', value: '50x your bet', inline: true },
+                { name: 'Five of a Kind', value: '25x your bet', inline: true },
+                { name: 'Straight Flush', value: '12x your bet', inline: true },
+                { name: 'Four of a Kind', value: '7x your bet', inline: true },
+                { name: 'Full House', value: '5x your bet', inline: true },
+                { name: 'Flush', value: '3x your bet', inline: true },
                 { name: 'Straight', value: '2x your bet', inline: true },
-                { name: 'Three of a Kind', value: '1x your bet', inline: true },
-                { name: 'Two Pair', value: '1x your bet', inline: true },
+                { name: 'Three of a Kind', value: '2x your bet', inline: true },
+                { name: 'Two Pair', value: '2x your bet', inline: true },
                 { name: 'Jacks or Better', value: '1x your bet (J,Q,K,A pairs only)', inline: false }
             )
             .setFooter({ text: 'Hold cards by clicking the buttons, bold cards are held!' });
