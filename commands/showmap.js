@@ -48,52 +48,69 @@ module.exports.run = async (client, message, args) => {
 
         mapDisplay += "\n";
 
-        // Show troops and traps by location
+        // Show troops and traps by location with player slot information
         for (const wallType of ptt.wallArray) {
+            const wallCount = await db.get(wallType) || 0;
             const troops = (await db.get(`Troops_${wallType}`)) || {};
             const traps = (await db.get(`Traps_${wallType}`)) || {};
 
+            // Calculate slots per player (1 slot per 5 walls)
+            const slotsPerPlayer = Math.floor(wallCount / 5);
+
             let hasTroops = false;
             let hasTraps = false;
+            let totalTroops = 0;
+            let totalTraps = 0;
 
-            // Check if there are any troops
+            // Check troops and count totals
             for (const troopType of ptt.troopArray) {
-                if ((troops[troopType] || 0) > 0) {
+                const count = troops[troopType] || 0;
+                if (count > 0) {
                     hasTroops = true;
-                    break;
+                    totalTroops += count;
                 }
             }
 
-            // Check if there are any traps
+            // Check traps and count totals
             for (const trapType of ptt.trapArray) {
-                if ((traps[trapType] || 0) > 0) {
+                const count = traps[trapType] || 0;
+                if (count > 0) {
                     hasTraps = true;
-                    break;
+                    totalTraps += count;
                 }
             }
 
-            if (hasTroops || hasTraps) {
-                mapDisplay += `${wallType.toUpperCase()}:\n`;
+            // Always show location info if there are walls
+            if (wallCount > 0) {
+                mapDisplay += `${wallType.toUpperCase()} (${wallCount} units):\n`;
+                mapDisplay += `  📊 Slots per player: ${slotsPerPlayer} troops, ${slotsPerPlayer} traps\n`;
 
                 // Show troops
                 if (hasTroops) {
+                    mapDisplay += `  ⚔️ TROOPS (${totalTroops} total):\n`;
                     for (const troopType of ptt.troopArray) {
                         const count = troops[troopType] || 0;
                         if (count > 0) {
-                            mapDisplay += `  ⚔️ ${count}x ${troopType}\n`;
+                            mapDisplay += `    • ${count}x ${troopType}\n`;
                         }
                     }
+                } else if (slotsPerPlayer > 0) {
+                    mapDisplay += `  ⚔️ TROOPS: None deployed\n`;
                 }
 
                 // Show traps
                 if (hasTraps) {
+                    mapDisplay += `  🕳️ TRAPS (${totalTraps} total):\n`;
                     for (const trapType of ptt.trapArray) {
                         const count = traps[trapType] || 0;
                         if (count > 0) {
-                            mapDisplay += `  🕳️ ${count}x ${trapType}\n`;
+                            mapDisplay += `    • ${count}x ${trapType}\n`;
                         }
                     }
+                } else if (slotsPerPlayer > 0) {
+                    mapDisplay += `  🕳️ TRAPS: None deployed\n`;
                 }
+
                 mapDisplay += "\n";
             }
         }
