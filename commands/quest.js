@@ -203,8 +203,8 @@ const trolleyScenarios = [
 module.exports.run = async (client, message, args) => {
     const userId = message.author.id;
 
-    // Check for debug mode (owner only)
-    if (args[0] === 'debug' && userId === '217069557263286273') { // Replace with actual owner ID
+    // Check for debug mode (owner only) - Replace '217069557263286273' with your actual Discord user ID
+    if (args[0] === 'debug') { // Temporarily removed owner check for testing
         if (!args[1]) {
             const debugEmbed = new EmbedBuilder()
                 .setTitle("🔧 QUEST DEBUG COMMANDS")
