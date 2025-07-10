@@ -1,15 +1,15 @@
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const Discord = require('discord.js');
+const Discord = require("discord.js");
 const ptt = require("../utility/protectTheTavern.js");
 
 module.exports.run = async (client, message, args) => {
     try {
         // Get town data using the correct structure from protectTheTavern.js
-        const ramparts = await db.get("rampart") || 0;
-        const walls = await db.get("wall") || 0;
-        const castle = await db.get("castle") || 0;
-        const monsters = await db.get("Monsters") || {};
+        const ramparts = (await db.get("rampart")) || 0;
+        const walls = (await db.get("wall")) || 0;
+        const castle = (await db.get("castle")) || 0;
+        const monsters = (await db.get("Monsters")) || {};
 
         // Calculate total walls
         const totalWalls = ramparts + walls + castle;
@@ -23,7 +23,7 @@ module.exports.run = async (client, message, args) => {
         }
 
         // Also check the simplified currentMonsters key that summon.js is using
-        const currentMonsters = await db.get("currentMonsters") || 0;
+        const currentMonsters = (await db.get("currentMonsters")) || 0;
         if (currentMonsters > totalMonsterHealth) {
             totalMonsterHealth = currentMonsters;
         }
@@ -50,8 +50,8 @@ module.exports.run = async (client, message, args) => {
 
         // Show troops and traps by location
         for (const wallType of ptt.wallArray) {
-            const troops = await db.get(`Troops_${wallType}`) || {};
-            const traps = await db.get(`Traps_${wallType}`) || {};
+            const troops = (await db.get(`Troops_${wallType}`)) || {};
+            const traps = (await db.get(`Traps_${wallType}`)) || {};
 
             let hasTroops = false;
             let hasTraps = false;
@@ -105,16 +105,6 @@ module.exports.run = async (client, message, args) => {
             mapDisplay += `Turn: ${ptt.currentBattleTurn}/10\n`;
         } else if (totalMonsterHealth > 0) {
             mapDisplay += `⚠️ Threats gathering: ${totalMonsterHealth} monster health\n`;
-
-            // Show monster breakdown
-            mapDisplay += "Monster Army:\n";
-            for (let i = 0; i < ptt.monsterArray.length; i++) {
-                const monsterType = ptt.monsterArray[i];
-                const monsterCount = monsters[monsterType] || 0;
-                if (monsterCount > 0) {
-                    mapDisplay += `  👹 ${monsterCount}x ${monsterType}\n`;
-                }
-            }
         } else {
             mapDisplay += "✅ Town is safe\n";
         }
@@ -122,14 +112,15 @@ module.exports.run = async (client, message, args) => {
         mapDisplay += "```";
 
         message.channel.send(mapDisplay);
-
     } catch (error) {
         console.error(error);
-        message.channel.send("❌ Error generating map. Please try again later.");
+        message.channel.send(
+            "❌ Error generating map. Please try again later.",
+        );
     }
 };
 
 module.exports.help = {
     name: "showmap",
-    aliases: ["map", "layout", "view"]
+    aliases: ["map", "layout", "view"],
 };
