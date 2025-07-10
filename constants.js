@@ -110,6 +110,118 @@ const ADMIN = {
   ADMIN_MONEY_LIMIT: 1000000, // Maximum money admin can add/remove
 };
 
+// DISCORD BOT CONFIGURATION
+const BOT = {
+  PREFIX: "=",
+  ACTIVITY_GAME: "ProtectTheTavern",
+  STATUS: "dnd", // dnd, idle, online, invisible
+  ACTIVITY_TYPE: "WATCHING", // PLAYING, LISTENING, WATCHING
+};
+
+// DATABASE TABLES AND STRUCTURE
+const DATABASE = {
+  TABLES: {
+    MONEY: "money",
+    SKILLS: "skills", 
+    COOLDOWNS: "cooldowns",
+    TROOPS: "troops",
+    TRAPS: "traps",
+    WALLS: "walls",
+    MONSTERS: "monsters",
+    BACKPACK: "backpack",
+    LEADERBOARD: "leaderboard",
+    ARENA: "arena"
+  },
+  PLAYER_DEFAULTS: {
+    STARTING_MONEY: 0,
+    STARTING_HEALTH: 100,
+    STARTING_DAMAGE: 10,
+    STARTING_SKILL_LEVEL: 0,
+    STARTING_XP: 0
+  }
+};
+
+// SHOP ITEMS AND CATEGORIES
+const SHOP = {
+  CATEGORIES: {
+    WEAPONS: "weapons",
+    ARMOR: "armor",
+    CONSUMABLES: "consumables"
+  },
+  ITEM_TYPES: {
+    WEAPON: "weapon",
+    HELMET: "helmet", 
+    CHEST: "chest",
+    LEGS: "legs",
+    BOOTS: "boots",
+    CONSUMABLE: "consumable"
+  }
+};
+
+// LEADERBOARD SETTINGS
+const LEADERBOARD = {
+  MAX_ENTRIES: 10,
+  CATEGORIES: ["money", "fish_level", "hunt_level", "gather_level", "craft_level", "work_level"]
+};
+
+// BATTLE SYSTEM
+const BATTLE = {
+  TURN_DURATION: 5000, // 5 seconds per turn
+  MAX_BATTLE_TIME: 300000, // 5 minutes max battle time
+  ARENA_LOCK_TIMEOUT: 30000, // 30 seconds arena lock
+  PLAYER_ATTACK_COOLDOWN: 5000, // 5 seconds between player attacks
+};
+
+// RANDOM EVENTS AND CHANCES
+const RANDOM_EVENTS = {
+  BEG_SUCCESS_RATE: 0.5, // 50% success rate for begging
+  STIMMY_AMOUNT: 1200, // Stimulus amount
+  BANK_ROBBERY_SUCCESS_RATE: 0.3, // 30% success rate
+  CRITICAL_HIT_CHANCE: 0.1, // 10% critical hit chance
+};
+
+// MINIGAME SKILL REWARDS
+const SKILL_REWARDS = {
+  BASE_AMOUNTS: [25, 50, 100, 200], // Base reward tiers
+  MULTIPLIERS: {
+    FISH: 2,
+    HUNT: 3, 
+    GATHER: 1,
+    CRAFT: 4,
+    WORK: 5
+  },
+  CHANCE_BY_LEVEL: [
+    [42, 26, 21, 10], // Level 0 chances for each tier
+    [32, 30, 24, 14], // Level 1
+    [24, 32, 27, 17], // Level 2
+    [14, 34, 30, 22], // Level 3
+    [12, 30, 34, 24], // Level 4
+    [10, 24, 38, 28]  // Level 5
+  ]
+};
+
+// FILE PATHS AND DIRECTORIES
+const PATHS = {
+  CONFIG: "./config.json",
+  DATABASE: "./json.sqlite",
+  UTILITY: "./utility/",
+  COMMANDS: "./commands/",
+  LOGS: "./logs/"
+};
+
+// EMBED COLORS (Discord)
+const COLORS = {
+  SUCCESS: "#00FF00",
+  ERROR: "#FF0000", 
+  WARNING: "#FFFF00",
+  INFO: "#0099FF",
+  ECONOMY: "#FFD700",
+  COMBAT: "#DC143C",
+  GAMBLING: "#FF6347",
+  DEFENSE: "#4169E1",
+  SKILLS: "#32CD32"
+};
+
 module.exports = {
   COOLDOWNS,
   TROOPS,
@@ -124,4 +236,13 @@ module.exports = {
   REWARDS,
   AUTO_SPAWN,
   ADMIN,
+  BOT,
+  DATABASE,
+  SHOP,
+  LEADERBOARD,
+  BATTLE,
+  RANDOM_EVENTS,
+  SKILL_REWARDS,
+  PATHS,
+  COLORS,
 };
