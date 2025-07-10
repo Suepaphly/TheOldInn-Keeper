@@ -531,9 +531,9 @@ async function handleMonsterCombat(interaction, userId, collector) {
             .setTitle(`⚔️ AMBUSH - ${currentMonster} DEFEATED!`)
             .setColor("#00FF00")
             .setDescription(`${battleText}\n\n**${currentMonster} defeated!** You stand victorious over your fallen foe.`)
-            .addFields([
+            .addFields(
                 { name: "Victory", value: "The creature falls to your superior combat skills!", inline: false }
-            ]);
+            );
 
         const row = new ActionRowBuilder()
             .addComponents(
