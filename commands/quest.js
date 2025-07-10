@@ -86,8 +86,8 @@ module.exports.run = async (client, message, args) => {
     }
     
     // Check if user is dead
-    const isDead = await db.get(`dead_${userId}`);
-    if (isDead) {
+    const deathTimer = await db.get(`death_cooldown_${userId}`);
+    if (deathTimer && Date.now() - deathTimer < 86400000) { // 24 hours
         return message.channel.send("💀 You cannot go on quests while dead! Use `=revive` first.");
     }
     
@@ -610,7 +610,7 @@ async function handleMazeChoice(interaction, userId, collector) {
             collector.stop();
         } else {
             // Death
-            await db.set(`dead_${userId}`, true);
+            await db.set(`death_cooldown_${userId}`, Date.now());
             await endQuest(interaction, userId, false, `You chose poorly. The maze's deadly trap claims your life. You are now dead for 24 hours.`);
             collector.stop();
         }
