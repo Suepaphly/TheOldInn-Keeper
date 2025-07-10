@@ -206,7 +206,21 @@ module.exports.run = async (client, message, args) => {
     // Check for debug mode (owner only)
     if (args[0] === 'debug' && userId === '217069557263286273') { // Replace with actual owner ID
         if (!args[1]) {
-            return message.channel.send("❌ Usage: `=quest debug <questtype>`\nAvailable types: monster, riddle, maze, trolley");
+            const debugEmbed = new EmbedBuilder()
+                .setTitle("🔧 QUEST DEBUG COMMANDS")
+                .setColor("#FFA500")
+                .setDescription("**Owner-only debug commands for testing individual quest types**")
+                .addFields(
+                    { name: "Usage", value: "`=quest debug <questtype>`", inline: false },
+                    { name: "🗡️ monster", value: "Tests the monster ambush quest with combat\n• Fight 2 monsters: Goblin Scout → Orc Raider\n• Uses your actual weapons/armor\n• Combat system with attack/run options", inline: false },
+                    { name: "🧩 riddle", value: "Tests the ancient riddle quest\n• Solve 2 random riddles from the pool\n• Wrong answers result in death (24hr cooldown)\n• Multiple choice format", inline: false },
+                    { name: "🌿 maze", value: "Tests the hedge maze navigation quest\n• Navigate through 2 stages of choices\n• Possible outcomes: progress, traps, or vine beast combat\n• Final stage has death risk", inline: false },
+                    { name: "🚃 trolley", value: "Tests the trolley problem moral dilemma\n• Face impossible moral choices\n• 50% chance of vengeance combat after decisions\n• Psychological/philosophical challenge", inline: false },
+                    { name: "⚙️ Debug Features", value: "• Complete after 1 quest instead of 2\n• 30-minute timeout still applies\n• No real rewards given\n• Still prevents other activities while active", inline: false },
+                    { name: "📝 Examples", value: "`=quest debug monster`\n`=quest debug riddle`\n`=quest debug maze`\n`=quest debug trolley`", inline: false }
+                );
+
+            return message.channel.send({ embeds: [debugEmbed] });
         }
 
         const questType = args[1].toLowerCase();
