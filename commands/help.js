@@ -12,7 +12,7 @@ module.exports.run = async (client, message, args) => {
     .addFields(
       { name: "💰 Economy", value: "Wallet, bank, pay, daily", inline: true },
       { name: "⚔️ Earning", value: "Gather, hunt, fish, craft, work", inline: true },
-      { name: "🎲 Gambling", value: "Blackjack, craps, slots", inline: true },
+      { name: "🎲 Gambling", value: "Blackjack, craps, slots, poker", inline: true },
       { name: "🏰 Defense", value: "Buy walls, troops, traps", inline: true },
       { name: "⚡ Combat", value: "Attack monsters in battle", inline: true },
       { name: "📊 Status", value: "Cooldowns, levels, skills", inline: true },
@@ -87,7 +87,7 @@ module.exports.run = async (client, message, args) => {
       { name: "=bj [bet]", value: "Play blackjack", inline: true },
       { name: "=craps [bet]", value: "Play craps", inline: true },
       { name: "=slots [bet]", value: "Play slots", inline: true },
-      { name: "=poker [bet]", value: "Play 5-card stud poker", inline: true },
+      { name: "=poker [bet]", value: "Play 5-card draw poker (Aces Wild)", inline: true },
       { name: "=startroulette", value: "Start roulette game", inline: true },
       { name: "=rbet [type] [amount]", value: "Place roulette bet", inline: true },
       { name: "=rhelp", value: "Roulette rules & bets", inline: true }
