@@ -26,13 +26,7 @@ const locations = {
 const questTypes = {
     monster: {
         name: "🐲 Monster Hunt",
-        description: "Battle through monsters",
-        monsters: {
-            "Goblin Warrior": 50,
-            "Orc Brute": 75,
-            "Skeleton Mage": 100,
-            "Shadow Beast": 125
-        }
+        description: "Battle through monsters"
     },
     riddle: {
         name: "🧩 Ancient Riddle",
@@ -235,21 +229,35 @@ async function startLocationQuest(interaction, location, userId) {
 
 async function startMonsterQuest(interaction, userId) {
     const quest = activeQuests.get(userId);
+    const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
+    
     quest.data = {
         round: 1,
-        health: 100,
-        maxHealth: 100,
-        monsters: Object.keys(questTypes.monster.monsters)
+        playerHealth: 5 + (combatLevel * 2),
+        playerMaxHealth: 5 + (combatLevel * 2),
+        playerWeapon: await getBestWeapon(userId),
+        playerArmor: await getBestArmor(userId),
+        combatLevel: combatLevel,
+        monsters: ["Goblin Scout", "Orc Raider"],
+        currentMonsterHealth: 0,
+        currentMonsterMaxHealth: 0
     };
     
+    // Initialize first monster
     const currentMonster = quest.data.monsters[quest.data.round - 1];
+    const monsterStats = getMonsterStats(currentMonster, combatLevel);
+    quest.data.currentMonsterHealth = monsterStats.health;
+    quest.data.currentMonsterMaxHealth = monsterStats.health;
     
     const embed = new EmbedBuilder()
-        .setTitle("🐲 MONSTER HUNT - Round 1/4")
+        .setTitle(`🐲 MONSTER HUNT - ${currentMonster} (${quest.data.round}/2)`)
         .setColor("#FF0000")
         .setDescription(`You encounter a **${currentMonster}**!`)
         .addFields(
-            { name: "Your Health", value: `${quest.data.health}/${quest.data.maxHealth} HP`, inline: true },
+            { name: "Your Health", value: `${quest.data.playerHealth}/${quest.data.playerMaxHealth} HP`, inline: true },
+            { name: "Your Weapon", value: quest.data.playerWeapon.name, inline: true },
+            { name: "Your Armor", value: quest.data.playerArmor.name, inline: true },
+            { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
             { name: "Enemy", value: currentMonster, inline: true }
         );
     
@@ -258,11 +266,7 @@ async function startMonsterQuest(interaction, userId) {
             new ButtonBuilder()
                 .setCustomId('monster_attack')
                 .setLabel('⚔️ Attack')
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId('monster_defend')
-                .setLabel('🛡️ Defend')
-                .setStyle(ButtonStyle.Primary)
+                .setStyle(ButtonStyle.Danger)
         );
     
     await interaction.editReply({ embeds: [embed], components: [row] });
@@ -280,54 +284,47 @@ async function handleMonsterCombat(interaction, userId, collector) {
     const quest = activeQuests.get(userId);
     if (!quest) return;
     
-    const action = interaction.customId.replace('monster_', '');
     const currentMonster = quest.data.monsters[quest.data.round - 1];
+    const monsterStats = getMonsterStats(currentMonster, quest.data.combatLevel);
     
-    let playerDamage = 0;
-    let enemyDamage = 0;
-    let actionText = "";
+    // Player attacks monster
+    const playerCombatDamage = quest.data.combatLevel + 1;
+    const playerWeaponDamage = Math.floor(Math.random() * (quest.data.playerWeapon.maxDamage - quest.data.playerWeapon.minDamage + 1)) + quest.data.playerWeapon.minDamage;
+    const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
+    const playerFinalDamage = Math.max(1, playerTotalDamage - monsterStats.defense);
     
-    if (action === 'attack') {
-        playerDamage = Math.floor(Math.random() * 30) + 20; // 20-49 damage
-        enemyDamage = Math.floor(Math.random() * 20) + 10; // 10-29 damage
-        actionText = `You strike the ${currentMonster} for ${playerDamage} damage!\nThe ${currentMonster} retaliates for ${enemyDamage} damage!`;
-    } else if (action === 'defend') {
-        playerDamage = Math.floor(Math.random() * 15) + 10; // 10-24 damage
-        enemyDamage = Math.floor(Math.random() * 10) + 5; // 5-14 damage
-        actionText = `You defend and counter-attack for ${playerDamage} damage!\nThe ${currentMonster} attacks for reduced ${enemyDamage} damage!`;
-    }
+    quest.data.currentMonsterHealth -= playerFinalDamage;
+    quest.data.currentMonsterHealth = Math.max(0, quest.data.currentMonsterHealth);
     
-    quest.data.health -= enemyDamage;
+    let battleText = `You attack the ${currentMonster} for ${playerFinalDamage} damage!`;
     
-    // Check if player died
-    if (quest.data.health <= 0) {
-        await endQuest(interaction, userId, false, "You were defeated in combat!");
-        collector.stop();
-        return;
-    }
-    
-    // Check if enemy defeated
-    if (playerDamage >= 50 || Math.random() < 0.4) { // Enemy defeated
-        const monsterValue = questTypes.monster.monsters[currentMonster];
-        quest.totalMonsterValue += monsterValue;
-        
+    // Check if monster is defeated
+    if (quest.data.currentMonsterHealth <= 0) {
+        quest.totalMonsterValue += monsterStats.value;
         quest.data.round++;
-        quest.data.health = Math.min(quest.data.health + 20, quest.data.maxHealth); // Heal a bit
         
-        if (quest.data.round > 4) {
+        if (quest.data.round > 2) {
             // Monster quest complete!
             await completeQuest(interaction, userId);
             collector.stop();
             return;
         }
         
+        // Next monster
         const nextMonster = quest.data.monsters[quest.data.round - 1];
+        const nextMonsterStats = getMonsterStats(nextMonster, quest.data.combatLevel);
+        quest.data.currentMonsterHealth = nextMonsterStats.health;
+        quest.data.currentMonsterMaxHealth = nextMonsterStats.health;
+        
         const embed = new EmbedBuilder()
-            .setTitle(`🐲 MONSTER HUNT - Round ${quest.data.round}/4`)
+            .setTitle(`🐲 MONSTER HUNT - ${nextMonster} (${quest.data.round}/2)`)
             .setColor("#FF0000")
-            .setDescription(`${actionText}\n\n**${currentMonster} defeated!** You advance to the next round.\n\nA **${nextMonster}** appears!`)
+            .setDescription(`${battleText}\n\n**${currentMonster} defeated!** You advance to the next monster.\n\nA **${nextMonster}** appears!`)
             .addFields(
-                { name: "Your Health", value: `${quest.data.health}/${quest.data.maxHealth} HP`, inline: true },
+                { name: "Your Health", value: `${quest.data.playerHealth}/${quest.data.playerMaxHealth} HP`, inline: true },
+                { name: "Your Weapon", value: quest.data.playerWeapon.name, inline: true },
+                { name: "Your Armor", value: quest.data.playerArmor.name, inline: true },
+                { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
                 { name: "Enemy", value: nextMonster, inline: true }
             );
         
@@ -336,39 +333,49 @@ async function handleMonsterCombat(interaction, userId, collector) {
                 new ButtonBuilder()
                     .setCustomId('monster_attack')
                     .setLabel('⚔️ Attack')
-                    .setStyle(ButtonStyle.Danger),
-                new ButtonBuilder()
-                    .setCustomId('monster_defend')
-                    .setLabel('🛡️ Defend')
-                    .setStyle(ButtonStyle.Primary)
+                    .setStyle(ButtonStyle.Danger)
             );
         
         await interaction.update({ embeds: [embed], components: [row] });
-    } else {
-        // Combat continues
-        const embed = new EmbedBuilder()
-            .setTitle(`🐲 MONSTER HUNT - Round ${quest.data.round}/4`)
-            .setColor("#FF0000")
-            .setDescription(`${actionText}\n\nThe battle continues!`)
-            .addFields(
-                { name: "Your Health", value: `${quest.data.health}/${quest.data.maxHealth} HP`, inline: true },
-                { name: "Enemy", value: currentMonster, inline: true }
-            );
-        
-        const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('monster_attack')
-                    .setLabel('⚔️ Attack')
-                    .setStyle(ButtonStyle.Danger),
-                new ButtonBuilder()
-                    .setCustomId('monster_defend')
-                    .setLabel('🛡️ Defend')
-                    .setStyle(ButtonStyle.Primary)
-            );
-        
-        await interaction.update({ embeds: [embed], components: [row] });
+        return;
     }
+    
+    // Monster attacks back
+    const monsterFinalDamage = Math.max(1, monsterStats.damage - quest.data.playerArmor.defense);
+    quest.data.playerHealth -= monsterFinalDamage;
+    quest.data.playerHealth = Math.max(0, quest.data.playerHealth);
+    
+    battleText += `\nThe ${currentMonster} retaliates for ${monsterFinalDamage} damage!`;
+    
+    // Check if player died
+    if (quest.data.playerHealth <= 0) {
+        await endQuest(interaction, userId, false, "You were defeated in combat!");
+        collector.stop();
+        return;
+    }
+    
+    // Combat continues
+    const embed = new EmbedBuilder()
+        .setTitle(`🐲 MONSTER HUNT - ${currentMonster} (${quest.data.round}/2)`)
+        .setColor("#FF0000")
+        .setDescription(`${battleText}\n\nThe battle continues!`)
+        .addFields(
+            { name: "Your Health", value: `${quest.data.playerHealth}/${quest.data.playerMaxHealth} HP`, inline: true },
+            { name: "Your Weapon", value: quest.data.playerWeapon.name, inline: true },
+            { name: "Your Armor", value: quest.data.playerArmor.name, inline: true },
+            { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
+            { name: "Enemy", value: currentMonster, inline: true }
+        );
+    
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('monster_attack')
+                .setLabel('⚔️ Attack')
+                .setStyle(ButtonStyle.Danger)
+        );
+    
+    await interaction.update({ embeds: [embed], components: [row] });
 }
 
 async function startRiddleQuest(interaction, userId) {
@@ -746,5 +753,73 @@ module.exports.help = {
     name: "quest",
     aliases: ["q", "adventure"]
 };
+
+// Helper function to get monster stats scaled to player combat level
+function getMonsterStats(monsterName, playerCombatLevel) {
+    const basePlayerHealth = 5 + (playerCombatLevel * 2);
+    const basePlayerDamage = 1 + playerCombatLevel;
+    
+    const monsterConfigs = {
+        "Goblin Scout": {
+            healthMultiplier: 0.8,
+            damageMultiplier: 0.7,
+            defense: Math.floor(playerCombatLevel * 0.5),
+            value: 25
+        },
+        "Orc Raider": {
+            healthMultiplier: 1.2,
+            damageMultiplier: 1.0,
+            defense: Math.floor(playerCombatLevel * 0.8),
+            value: 40
+        }
+    };
+    
+    const config = monsterConfigs[monsterName] || monsterConfigs["Goblin Scout"];
+    
+    return {
+        health: Math.floor(basePlayerHealth * config.healthMultiplier) + 5,
+        damage: Math.floor(basePlayerDamage * config.damageMultiplier) + 2,
+        defense: config.defense,
+        value: config.value
+    };
+}
+
+async function getBestWeapon(userId) {
+    const weapons = [
+        { type: "rifle", name: "Rifle", minDamage: 6, maxDamage: 12 },
+        { type: "shotgun", name: "Shotgun", minDamage: 4, maxDamage: 10 },
+        { type: "pistol", name: "Pistol", minDamage: 3, maxDamage: 5 },
+        { type: "sword", name: "Sword", minDamage: 2, maxDamage: 4 },
+        { type: "knife", name: "Knife", minDamage: 1, maxDamage: 3 }
+    ];
+
+    for (const weapon of weapons) {
+        const count = await db.get(`weapon_${weapon.type}_${userId}`) || 0;
+        if (count > 0) {
+            return weapon;
+        }
+    }
+
+    return { type: "none", name: "Fists", minDamage: 0, maxDamage: 0 };
+}
+
+async function getBestArmor(userId) {
+    const armors = [
+        { type: "plate", name: "Plate Armor", defense: 10 },
+        { type: "studded", name: "Studded Armor", defense: 5 },
+        { type: "chainmail", name: "Chainmail Armor", defense: 3 },
+        { type: "leather", name: "Leather Armor", defense: 2 },
+        { type: "cloth", name: "Cloth Armor", defense: 1 }
+    ];
+
+    for (const armor of armors) {
+        const count = await db.get(`armor_${armor.type}_${userId}`) || 0;
+        if (count > 0) {
+            return armor;
+        }
+    }
+
+    return { type: "none", name: "No Armor", defense: 0 };
+}
 
 module.exports.isOnQuest = isOnQuest;
