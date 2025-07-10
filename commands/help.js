@@ -111,7 +111,9 @@ module.exports.run = async (client, message, args) => {
     .setTitle("⚡ COMBAT COMMANDS")
     .setColor("#DC143C")
     .addFields(
-      { name: "=attack", value: "Deal 10 damage to monsters during battle\n(Once per turn, 5 second intervals)", inline: false }
+      { name: "=attack", value: "Deal damage to monsters during battle\n(Once per turn, 5 second intervals)", inline: false },
+      { name: "=shop", value: "Browse and buy weapons, armor, and items", inline: true },
+      { name: "=backpack", value: "View your inventory and equipped items", inline: true }
     );
 
   // Status embed
