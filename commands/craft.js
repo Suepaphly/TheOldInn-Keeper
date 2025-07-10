@@ -2,6 +2,8 @@ const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
 const mg = require("../utility/utility.js");
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
     let ms;
@@ -76,7 +78,7 @@ module.exports.run = async (client, message, args) => {
                     fisharray[fishresult[0]][fishresult[1]]
                 } and earned \`${fishresult[2]}\` kopeks.`
             );
-            db.add(`money_${user.id}`, fishresult[2]);
+            await db.add(`money_${user.id}`, fishresult[2]);
             db.set(`craft_${user.id}`, Date.now());
         }
     }

@@ -1,11 +1,12 @@
-const db = require("quick.db");
-const Discord = require("discord.js")
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();
+const { EmbedBuilder } = require("discord.js");
 
 exports.run = async (bot, message, args) => {
 
     let user = message.author;
     let money = Math.abs(parseInt(args[0]));
-    let moneydb = await db.fetch(`money_${message.author.id}`)    
+    let moneydb = await db.get(`money_${message.author.id}`)    
       let a = message.author;
 
 
@@ -102,14 +103,14 @@ exports.run = async (bot, message, args) => {
           money = money*2;
         }
         if (outcome === "win") {
-          db.add(`money_${message.author.id}`, money);
+          await db.add(`money_${message.author.id}`, money);
         }
         if (outcome === "lose") {
-          db.subtract(`money_${message.author.id}`, money);
+          await db.sub(`money_${message.author.id}`, money);
         }
 
         if (outcome === "bj") {
-          db.add(`money_${message.author.id}`, money*2);
+          await db.add(`money_${message.author.id}`, money*2);
         }
     }
 
@@ -155,7 +156,7 @@ exports.run = async (bot, message, args) => {
               dealerMsg += " --> " + dealer.score.toString()
           }
 
-          const gambleEmbed = new Discord.MessageEmbed()
+          const gambleEmbed = new EmbedBuilder()
               .setColor('#000001')
               .setTitle(message.author.username + `'s Blackjack Table` + '\n___')
               .addField('Your Cards:', cardsMsg)
