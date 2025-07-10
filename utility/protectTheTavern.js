@@ -161,20 +161,6 @@ async function startBattle(channel) {
     if (channel) channel.send("Battle ended! The arena is unlocked.");
 }
 
-async function displayBattleState() {
-    try {
-        const ramparts = await db.get("rampart") || 0;
-        const walls = await db.get("wall") || 0;
-        const castle = await db.get("castle") || 0;
-        const monsters = await db.get("Monsters") || {};
-        
-        console.log(`\n🏰 Town Status: Ramparts: ${ramparts}, Walls: ${walls}, Castle: ${castle}`);
-        console.log(`👹 Monster Army: ${Object.entries(monsters).map(([type, count]) => `${type}: ${count}`).join(", ")}`);
-    } catch (error) {
-        console.error("Error displaying battle state:", error);
-    }
-}
-
 
 async function attackTurn(channel) {
     try {
