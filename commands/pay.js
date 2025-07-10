@@ -1,8 +1,42 @@
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
+const constants = require("../config/constants.js");
+const logger = require("../utility/logger.js");
+const Validator = require("../utility/validation.js");
+const ErrorHandler = require("../utility/errorHandler.js");
 const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
+    // Input validation
+    const validation = Validator.validateCommand(message, args, 2);
+    if (!validation.isValid) {
+        await ErrorHandler.handleValidationError(validation.errors, message, 'pay');
+        return;
+    }
+
+    const [userMention, amountStr] = args;
+    
+    // Validate user mention
+    const targetUser = message.mentions.users.first();
+    if (!targetUser || !Validator.isValidUser(targetUser)) {
+        await message.channel.send(`${constants.EMOJIS.ERROR} Please mention a valid user.`);
+        return;
+    }
+
+    // Validate amount
+    const economyValidation = Validator.validateEconomyAction(amountStr, 0, 'pay');
+    if (!economyValidation.isValid) {
+        await ErrorHandler.handleValidationError(economyValidation.errors, message, 'pay');
+        return;
+    }
+
+    const amount = economyValidation.amount;
+
+    // Check pay amount limits
+    if (!Validator.isValidPayAmount(amount)) {
+        await message.channel.send(`${constants.EMOJIS.ERROR} Pay amount must be between ${constants.ECONOMY.MIN_PAY} and ${constants.ECONOMY.MAX_PAY} kopeks.`);
+        return;
+    }
     // Check if town is under attack
     const ptt = require("../utility/protectTheTavern.js");
     if (ptt.lockArena) {
