@@ -68,7 +68,17 @@ const trolleyScenarios = [
     { many: "5 strangers", one: "1 friend" },
     { many: "3 children", one: "1 elderly person" },
     { many: "4 workers", one: "1 CEO" },
-    { many: "5 tourists", one: "1 local" }
+    { many: "5 tourists", one: "1 local" },
+    { many: "2 philosophers", one: "1 scientist" },
+    { many: "6 prisoners", one: "1 guard" },
+    { many: "3 musicians", one: "1 deaf person" },
+    { many: "4 athletes", one: "1 disabled person" },
+    { many: "5 rich people", one: "1 poor person" },
+    { many: "2 engineers", one: "1 artist" },
+    { many: "4 soldiers", one: "1 pacifist" },
+    { many: "3 lawyers", one: "1 honest person" },
+    { many: "5 adults", one: "1 teenager" },
+    { many: "2 twins", one: "1 only child" }
 ];
 
 module.exports.run = async (client, message, args) => {
@@ -653,6 +663,12 @@ async function startTrolleyQuest(interaction, userId) {
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
     
     collector.on('collect', async (i) => {
+        if (i.customId === 'trolley_continue') {
+            await completeQuest(i, userId);
+            collector.stop();
+            return;
+        }
+        
         let choice;
         if (i.customId === 'trolley_pull') {
             choice = `You pulled the lever. ${scenario.one} died to save ${scenario.many}. The weight of this choice will stay with you forever.`;
@@ -660,8 +676,23 @@ async function startTrolleyQuest(interaction, userId) {
             choice = `You walked away. ${scenario.many} died while you did nothing. Sometimes inaction is also a choice.`;
         }
         
-        await completeQuest(i, userId, choice);
-        collector.stop();
+        const embed = new EmbedBuilder()
+            .setTitle("🚃 THE TROLLEY PROBLEM - CHOICE MADE")
+            .setColor("#696969")
+            .setDescription(choice)
+            .addFields(
+                { name: "Reflection", value: "In life, we must live with the consequences of our choices... or our refusal to choose.", inline: false }
+            );
+        
+        const continueRow = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('trolley_continue')
+                    .setLabel('➡️ Continue Quest')
+                    .setStyle(ButtonStyle.Primary)
+            );
+        
+        await i.update({ embeds: [embed], components: [continueRow] });
     });
 }
 
