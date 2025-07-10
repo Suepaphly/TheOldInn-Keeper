@@ -299,8 +299,9 @@ exports.run = async (bot, message, args) => {
           }
 
           if (result) {
-              // Game ended
-              await interaction.update(result);
+              // Game ended - remove buttons
+              const finalResult = { ...result, components: [] };
+              await interaction.update(finalResult);
               collector.stop();
           } else if (!gameOver) {
               // Continue game
