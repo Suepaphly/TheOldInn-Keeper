@@ -13,7 +13,7 @@ const rankValues = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9'
 
 // Poker hand rankings and payouts (Aces Wild)
 const handRankings = {
-    'Royal Flush': { rank: 10, payout: 50 },
+    'Royal Flush': { rank: 10, payout: 30 },
     'Five of a Kind': { rank: 9, payout: 25 },
     'Straight Flush': { rank: 8, payout: 12 },
     'Four of a Kind': { rank: 7, payout: 7 },
@@ -306,7 +306,7 @@ exports.run = async (client, message, args) => {
             .setColor('#4CAF50')
             .setDescription('**Usage:** `=poker <bet amount>`\n\n🃑 **ACES ARE WILD!** Aces can substitute for any card to make the best possible hand.\n\nSelect cards to hold, then draw new ones!')
             .addFields(
-                { name: 'Royal Flush', value: '50x your bet', inline: true },
+                { name: 'Royal Flush', value: '30x your bet', inline: true },
                 { name: 'Five of a Kind', value: '25x your bet', inline: true },
                 { name: 'Straight Flush', value: '12x your bet', inline: true },
                 { name: 'Four of a Kind', value: '7x your bet', inline: true },
