@@ -16,11 +16,33 @@ module.exports.run = async (client, message, args) => {
     const money = await db.get(`money_${message.author.id}`);
 
     if (!amount || (!locationOrItem && !item)) {
-        message.channel.send(`<@${user.id}>, Buy Castle Walls, Army Troops, and Defensive Traps.
-                             Just type =buy [amount] [location] [item].
-                             You can leave the amount blank to see prices and current amounts.
-                             Ex: =buy 5 rampart town_guard; =buy 2 rampart; =buy 4 castle boiling_oil
-                             The Tavernkeeper thanks you for playing.`);
+        message.channel.send(`🏰 **TOWN DEFENSE SHOP** 🏰
+
+**💰 WALLS:**
+• \`=buy [amount] rampart\` - 100 kopeks each
+• \`=buy [amount] wall\` - 500 kopeks each  
+• \`=buy [amount] castle\` - 5,000 kopeks each
+
+**⚔️ TROOPS:** (Requires walls - 1 troop per 5 walls)
+• \`=buy [amount] [location] town_guard\` - 50 kopeks
+• \`=buy [amount] [location] mercenary\` - 100 kopeks
+• \`=buy [amount] [location] soldier\` - 200 kopeks
+• \`=buy [amount] [location] knight\` - 500 kopeks
+• \`=buy [amount] [location] royal_guard\` - 1,000 kopeks
+
+**🛡️ TRAPS:** (Requires walls - 1 trap per 5 walls)
+• \`=buy [amount] [location] spikes\` - 25 kopeks
+• \`=buy [amount] [location] boiling_oil\` - 75 kopeks
+• \`=buy [amount] [location] repeater\` - 150 kopeks
+• \`=buy [amount] [location] ballista\` - 300 kopeks
+• \`=buy [amount] [location] cannon\` - 750 kopeks
+
+**Examples:**
+\`=buy 10 rampart\` (buy 10 rampart walls)
+\`=buy 5 rampart town_guard\` (buy 5 town guards at rampart)
+\`=buy 3 castle cannon\` (buy 3 cannons at castle)
+
+*Location options: rampart, wall, castle*`);
     } else {
         if (item) {
             // The command includes an item and a location
