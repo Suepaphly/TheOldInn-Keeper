@@ -45,11 +45,11 @@ module.exports.run = async (client, message, args) => {
   // Skill configuration: [dbKey, displayName, baseCost, maxLevel]
   const skills = {
     rob: ['thieflevel', 'Robbery', 2000, 5],
-    gather: ['gatheringlevel', 'Gathering', 5000, 5],
-    fish: ['fishinglevel', 'Fishing', 10000, 5],
-    hunt: ['huntinglevel', 'Hunting', 15000, 5],
-    craft: ['craftinglevel', 'Crafting', 20000, 5],
-    work: ['workinglevel', 'Working', 25000, 5],
+    gather: ['gatheringlevel', 'Gathering', 500, 5],
+    fish: ['fishinglevel', 'Fishing', 1000, 5],
+    hunt: ['huntinglevel', 'Hunting', 1500, 5],
+    craft: ['craftinglevel', 'Crafting', 2000, 5],
+    work: ['workinglevel', 'Working', 2500, 5],
     combat: ['combatlevel', 'Combat', 2000, 5]
   };
 
