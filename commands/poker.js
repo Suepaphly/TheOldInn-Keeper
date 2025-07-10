@@ -142,7 +142,7 @@ function createGameEmbed(game, title, description, showButtons = false) {
     embed.setFooter({ text: 'The Tavernkeeper thanks you for playing.' });
     
     if (showButtons && game.round === 1) {
-        return { embeds: [embed], components: [createHoldButtons(game)] };
+        return { embeds: [embed], components: createHoldButtons(game) };
     } else if (showButtons && game.round === 2) {
         return { embeds: [embed], components: [createDrawButton()] };
     }
@@ -151,11 +151,12 @@ function createGameEmbed(game, title, description, showButtons = false) {
 }
 
 function createHoldButtons(game) {
-    const row = new ActionRowBuilder();
+    const row1 = new ActionRowBuilder();
+    const row2 = new ActionRowBuilder();
     
     for (let i = 0; i < 5; i++) {
         const isHeld = game.held[i];
-        row.addComponents(
+        row1.addComponents(
             new ButtonBuilder()
                 .setCustomId(`hold_${i}`)
                 .setLabel(`Card ${i + 1} ${isHeld ? '🔒' : ''}`)
@@ -163,7 +164,14 @@ function createHoldButtons(game) {
         );
     }
     
-    return row;
+    row2.addComponents(
+        new ButtonBuilder()
+            .setCustomId('done_selecting')
+            .setLabel('Done - Draw New Cards')
+            .setStyle(ButtonStyle.Primary)
+    );
+    
+    return [row1, row2];
 }
 
 function createDrawButton() {
@@ -255,6 +263,10 @@ exports.run = async (client, message, args) => {
             
             await interaction.update(
                 createGameEmbed(game, "First Draw", "Select cards to hold, then draw new cards!", true)
+            );
+        } else if (interaction.customId === 'done_selecting') {
+            await interaction.update(
+                createGameEmbed(game, "Ready to Draw", "Click 'Draw New Cards' to replace your non-held cards!", true)
             );
         } else if (interaction.customId === 'draw') {
             // Replace non-held cards
