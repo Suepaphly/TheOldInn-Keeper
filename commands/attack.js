@@ -28,7 +28,7 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send("🎉 All monsters have been defeated! The tavern is safe for now.");
     }
 
-    const damage = 10;
+    const damage = 1;
     const newMonsterHealth = Math.max(0, currentMonsters - damage);
     await db.set("currentMonsters", newMonsterHealth);
     await db.set(`attackCooldown_${user.id}`, now);
