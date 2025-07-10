@@ -265,9 +265,34 @@ exports.run = async (client, message, args) => {
                 createGameEmbed(game, "First Draw", "Select cards to hold, then draw new cards!", true)
             );
         } else if (interaction.customId === 'done_selecting') {
+            // Replace non-held cards immediately
+            for (let i = 0; i < 5; i++) {
+                if (!game.held[i]) {
+                    game.hand[i] = game.deck.pop();
+                }
+            }
+            
+            game.round = 2;
+            game.gameOver = true;
+            
+            // Evaluate final hand
+            const handRank = evaluateHand(game.hand);
+            const payout = handRankings[handRank].payout * game.betAmount;
+            
+            if (payout > 0) {
+                await db.add(`money_${game.userId}`, payout);
+            }
+            
+            const resultDescription = payout > 0 ? 
+                `🎉 You won ${payout} kopeks with ${handRank}!` : 
+                `💸 No winning hand. Better luck next time!`;
+            
             await interaction.update(
-                createGameEmbed(game, "Ready to Draw", "Click 'Draw New Cards' to replace your non-held cards!", true)
+                createGameEmbed(game, "Final Result", resultDescription, false)
             );
+            
+            activePokerGames.delete(userId);
+            collector.stop();
         } else if (interaction.customId === 'draw') {
             // Replace non-held cards
             for (let i = 0; i < 5; i++) {
