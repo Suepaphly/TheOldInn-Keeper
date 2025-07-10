@@ -107,6 +107,56 @@ const riddles = [
         question: "I have no beginning, end, or middle. What am I?",
         options: ["A circle", "Time", "Space"],
         correct: 0
+    },
+    {
+        question: "What comes once in a minute, twice in a moment, but never in a thousand years?",
+        options: ["The letter M", "Lightning", "A heartbeat"],
+        correct: 0
+    },
+    {
+        question: "I am taken from a mine and shut up in a wooden case, from which I am never released, yet I am used by almost everyone. What am I?",
+        options: ["Coal", "A pencil lead", "A diamond"],
+        correct: 1
+    },
+    {
+        question: "What has one eye but cannot see?",
+        options: ["A cyclops", "A needle", "A potato"],
+        correct: 1
+    },
+    {
+        question: "What goes up but never comes down?",
+        options: ["A balloon", "Your age", "Smoke"],
+        correct: 1
+    },
+    {
+        question: "I am always in front of you but can't be seen. What am I?",
+        options: ["Air", "The future", "Your nose"],
+        correct: 1
+    },
+    {
+        question: "What has a thumb and four fingers but is not alive?",
+        options: ["A statue", "A glove", "A robot"],
+        correct: 1
+    },
+    {
+        question: "I can be cracked, made, told, and played. What am I?",
+        options: ["A joke", "An egg", "Music"],
+        correct: 0
+    },
+    {
+        question: "What runs around the yard without moving?",
+        options: ["A dog", "A fence", "The wind"],
+        correct: 1
+    },
+    {
+        question: "I have branches but no fruit, trunk, or leaves. What am I?",
+        options: ["A tree in winter", "A bank", "A river"],
+        correct: 1
+    },
+    {
+        question: "What disappears as soon as you say its name?",
+        options: ["A secret", "Silence", "Magic"],
+        correct: 1
     }
 ];
 
