@@ -70,46 +70,83 @@ function generateAceWildCombinations(cards, aceCount) {
     }
 
     const nonAces = cards.filter(card => card.rank !== 'A');
-    const combinations = [];
+    const allCombinations = [];
 
-    // For simplicity, try common substitutions
+    // Try all possible substitutions for aces
     const possibleRanks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
     const possibleSuits = ['♠', '♥', '♦', '♣'];
 
-    function tryBestCombination() {
-        // Create a hand with aces substituted optimally
-        const testHand = [...nonAces];
-
-        // Add substituted aces
-        for (let i = 0; i < aceCount; i++) {
-            // Try to make the best possible hand
-            let bestCard = { rank: '2', suit: '♠', value: 2 };
-
-            // Simple heuristic: if we need cards for straight/flush
-            if (testHand.length > 0) {
-                const suits = testHand.map(c => c.suit);
-                const mostCommonSuit = suits.sort((a,b) =>
-                    suits.filter(v => v===a).length - suits.filter(v => v===b).length
-                ).pop();
-
-                bestCard.suit = mostCommonSuit;
-
-                // Try to complete straights or pairs
-                const values = testHand.map(c => c.value).sort((a,b) => a-b);
-                if (values.length > 0) {
-                    bestCard.value = values[values.length - 1];
-                    bestCard.rank = Object.keys(rankValues).find(k => rankValues[k] === bestCard.value) || 'K';
-                }
-            }
-
-            testHand.push(bestCard);
+    // Generate combinations by trying different values for aces
+    function generateCombos(currentHand, acesRemaining) {
+        if (acesRemaining === 0) {
+            allCombinations.push([...currentHand]);
+            return;
         }
 
-        return testHand;
+        // Try each possible rank for this ace
+        for (const rank of possibleRanks) {
+            for (const suit of possibleSuits) {
+                const aceSubstitute = {
+                    rank: rank,
+                    suit: suit,
+                    value: rankValues[rank]
+                };
+                currentHand.push(aceSubstitute);
+                generateCombos(currentHand, acesRemaining - 1);
+                currentHand.pop();
+            }
+        }
     }
 
-    // For wild cards, we'll evaluate the best possible hand
-    return [tryBestCombination()];
+    // Start with non-ace cards
+    generateCombos([...nonAces], aceCount);
+
+    // If too many combinations, try smart substitutions
+    if (allCombinations.length > 1000) {
+        const smartCombinations = [];
+        const values = nonAces.map(c => c.value).sort((a, b) => a - b);
+        const suits = nonAces.map(c => c.suit);
+
+        // Try to complete straights
+        for (let aceIdx = 0; aceIdx < aceCount; aceIdx++) {
+            const testHand = [...nonAces];
+            
+            // Try values that could complete straights
+            const testValues = [1, 14]; // Ace low and high
+            for (let i = 0; i < values.length; i++) {
+                if (values[i + 1]) {
+                    const gap = values[i + 1] - values[i];
+                    if (gap === 2) testValues.push(values[i] + 1);
+                }
+            }
+            
+            // Also try values around existing cards
+            values.forEach(v => {
+                testValues.push(v - 1, v + 1);
+            });
+
+            for (const testValue of testValues) {
+                if (testValue >= 1 && testValue <= 14) {
+                    const rank = Object.keys(rankValues).find(k => rankValues[k] === testValue);
+                    if (rank) {
+                        testHand.push({
+                            rank: rank,
+                            suit: suits[0] || '♠',
+                            value: testValue
+                        });
+                    }
+                }
+            }
+            
+            if (testHand.length === 5) {
+                smartCombinations.push(testHand);
+            }
+        }
+
+        return smartCombinations.length > 0 ? smartCombinations : [allCombinations[0]];
+    }
+
+    return allCombinations;
 }
 
 function evaluateNaturalHand(cards) {
