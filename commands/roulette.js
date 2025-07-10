@@ -145,7 +145,7 @@ function isValidBet(betType) {
 
 async function startBettingRound() {
     global.rouletteGame.roundStartTime = Date.now();
-
+    
     const embed = new EmbedBuilder()
         .setTitle("🎰 ROULETTE - PLACE YOUR BETS!")
         .setColor("#FF6B6B")
@@ -182,12 +182,12 @@ async function startBettingRound() {
         }
 
         const elapsed = Date.now() - global.rouletteGame.roundStartTime;
-
+        
         if (elapsed >= 15000) { // 15 seconds have passed
             global.rouletteGame.cronJob.stop();
             global.rouletteGame.cronJob.destroy();
             global.rouletteGame.cronJob = null;
-
+            
             if (global.rouletteGame.bets.length === 0) {
                 global.rouletteGame.turnCount++;
                 if (global.rouletteGame.turnCount >= 2) {
@@ -207,7 +207,7 @@ async function startBettingRound() {
 
 async function lastCallForBets() {
     global.rouletteGame.roundStartTime = Date.now();
-
+    
     const embed = new EmbedBuilder()
         .setTitle("🎰 ROULETTE - LAST CALL!")
         .setColor("#FFA500")
@@ -224,12 +224,12 @@ async function lastCallForBets() {
         }
 
         const elapsed = Date.now() - global.rouletteGame.roundStartTime;
-
+        
         if (elapsed >= 15000) { // 15 seconds have passed
             global.rouletteGame.cronJob.stop();
             global.rouletteGame.cronJob.destroy();
             global.rouletteGame.cronJob = null;
-
+            
             if (global.rouletteGame.bets.length === 0) {
                 await endGame("No bets were placed. Roulette game ended.");
             } else {
@@ -259,7 +259,7 @@ async function spinWheel() {
         }
 
         const elapsed = Date.now() - global.rouletteGame.roundStartTime;
-
+        
         if (elapsed >= 3000) { // 3 seconds spinning delay
             global.rouletteGame.cronJob.stop();
             global.rouletteGame.cronJob.destroy();
@@ -339,11 +339,11 @@ async function spinWheel() {
             });
 
         await global.rouletteGame.channel.send({ embeds: [resultEmbed] });
-
+        
         // Reset for next round
         global.rouletteGame.bets = [];
         global.rouletteGame.turnCount = 0;
-
+        
         // Wait 3 seconds then start next betting round
         setTimeout(() => {
             if (global.rouletteGame.active) {
@@ -361,7 +361,7 @@ async function endGame(message = null) {
     if (global.rouletteGame.timer) {
         clearTimeout(global.rouletteGame.timer);
     }
-
+    
     if (global.rouletteGame.cronJob) {
         global.rouletteGame.cronJob.stop();
         global.rouletteGame.cronJob.destroy();
@@ -388,27 +388,13 @@ async function endGame(message = null) {
     }
 }
 
-const Discord = require("discord.js");
-const { QuickDB } = require("quick.db");
-const constants = require("../config/constants.js");
-const logger = require("../utility/logger.js");
-const Validator = require("../utility/validation.js");
-const ErrorHandler = require("../utility/errorHandler.js");
-const db = new QuickDB();
-
 module.exports.run = async (client, message, args) => {
-    // Input validation
-    const validation = Validator.validateCommand(message, args, 2);
-    if (!validation.isValid) {
-        await ErrorHandler.handleValidationError(validation.errors, message, 'roulette');
-        return;
-    }
-
     // Check if town is under attack
     const ptt = require("../utility/protectTheTavern.js");
     if (ptt.lockArena) {
-        await message.channel.send(constants.ERRORS.TOWN_UNDER_ATTACK);
-        return;
+        return message.channel.send(
+            "⚔️ The town is under attack! All civilian activities are suspended until the battle ends.",
+        );
     }
 
     const command = args[0]?.toLowerCase();

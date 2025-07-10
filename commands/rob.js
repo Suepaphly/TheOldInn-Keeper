@@ -1,23 +1,14 @@
+const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const Discord = require("discord.js");
-const constants = require("../config/constants.js");
-const logger = require("../utility/logger.js");
-const Validator = require("../utility/validation.js");
-const ErrorHandler = require("../utility/errorHandler.js");
 
-module.exports.run = async (client, message, args) => {
-    // Input validation
-    const validation = Validator.validateCommand(message, args, 1);
-    if (!validation.isValid) {
-        await ErrorHandler.handleValidationError(validation.errors, message, 'rob');
-        return;
-    }
-
-    // Check if town is under attack
-    const ptt = require("../utility/protectTheTavern.js");
-    if (ptt.lockArena) {
-        await message.channel.send(constants.ERRORS.TOWN_UNDER_ATTACK);
+module.exports.run = async (bot, message, args) => {
+    // Import parse-ms dynamically
+    let ms;
+    try {
+        ms = (await import("parse-ms")).default;
+    } catch (error) {
+        console.error("Failed to import parse-ms", error);
         return;
     }
 
@@ -29,7 +20,7 @@ module.exports.run = async (client, message, args) => {
                 .filter(item => item.id.startsWith("money_"))
                 .sort((a, b) => b.value - a.value)
                 .slice(0, 5);
-
+            
             let leaderboardStrings = [];
             for (let i = 0; i < topWallets.length; i++) {
                 try {
@@ -41,7 +32,7 @@ module.exports.run = async (client, message, args) => {
                     console.error(`Failed to fetch user ${topWallets[i].id}:`, error);
                 }
             }
-
+            
             message.channel.send(`**${message.guild.name} Kopek Leaderboard (In Wallet)**\n\n${leaderboardStrings.join('')}`);
         } else {
             message.channel.send("Wrong usage, mention someone to rob that isn't yourself.");

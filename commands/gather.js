@@ -2,10 +2,6 @@ const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
 const mg = require("../utility/utility.js");
-const constants = require('../constants/constants.js');
-const ErrorHandler = require('../utility/error-handler');
-const Validator = require('../utility/validator');
-const logger = require('../utility/logger');
 
 module.exports.run = async (client, message, args) => {
   // Check if town is under attack
@@ -29,16 +25,10 @@ module.exports.run = async (client, message, args) => {
     message.guild.members.cache.get(args[0]) ||
     message.member;
   let user = message.author;
-  let author, userlevel;
-    try {
-        author = await db.get(`gather_${user.id}`);
-        userlevel = await db.get(`gatheringlevel_${user.id}`);
-    } catch (error) {
-        await ErrorHandler.handleDatabaseError(error, user.id, 'fetch gather data');
-        return;
-    }
+  let author = await db.get(`gather_${user.id}`);
+  let userlevel = await db.get(`gatheringlevel_${user.id}`);
 
-  const timeout = constants.COOLDOWNS.GATHER;
+  let timeout = 900000;
 
   if (author !== null && timeout - (Date.now() - author) > 9000) {
     let time = ms(timeout - (Date.now() - author));
@@ -80,45 +70,25 @@ module.exports.run = async (client, message, args) => {
     ];
 
     var fisharray = [trash, fish, bigfish, rarefish];
+    var fishresult;
 
-    try {
-        let fishresult = mg.skillMinigame("gather", userlevel || 0);
+    if (userlevel != null) {
+      fishresult = mg.skillMinigame("gather", userlevel);
+    } else {
+      fishresult = mg.skillMinigame("gather", 0);
+    }
 
-        // Enhanced validation of minigame result
-        if (!fishresult || !Array.isArray(fishresult) || fishresult.length < 3) {
-            throw new Error("Invalid minigame result");
-        }
-
-        const [categoryIndex, itemIndex, reward] = fishresult;
-
-        if (categoryIndex < 0 || categoryIndex >= fisharray.length ||
-            itemIndex < 0 || itemIndex >= fisharray[categoryIndex].length ||
-            !Validator.isValidAmount(reward, 0, constants.ECONOMY.MAX_BET)) {
-            throw new Error("Invalid minigame result values");
-        }
-
-        const gatheredItem = fisharray[categoryIndex][itemIndex];
-
-        await message.channel.send(
-            `**GATHERING MINIGAME:** - :herb:\n<@${user.id}>, you gathered ${gatheredItem} and earned \`${reward}\` kopeks.`
-        );
-
-        // Update database with error handling
-        try {
-            await db.add(`money_${user.id}`, reward);
-            await db.set(`gather_${user.id}`, Date.now());
-
-            logger.economy('gather', user.id, reward, true);
-        } catch (error) {
-            await ErrorHandler.handleDatabaseError(error, user.id, 'update gather rewards');
-            return;
-        }
-
-    } catch (error) {
-        logger.error("Gathering minigame failed", error, user.id, 'gather');
-        await message.channel.send(
-            `**GATHERING MINIGAME:** - :herb:\n<@${user.id}>, something went wrong with your gathering attempt! Please try again.`
-        );
+    if (!args[0]) {
+      message.channel.send(
+        `**GATHERING MINIGAME:** - :basket: \n**<@${message.author.id}>** gathered a ${
+          fisharray[fishresult[0]][fishresult[1]]
+        } and earned \`${fishresult[2]}\` kopeks.`
+      );
+      // Update the user's money
+      let currentMoney = await db.get(`money_${user.id}`);
+      await db.set(`money_${user.id}`, currentMoney + fishresult[2]);
+      // Set the time of the last gather
+      await db.set(`gather_${user.id}`, Date.now());
     }
   }
 };

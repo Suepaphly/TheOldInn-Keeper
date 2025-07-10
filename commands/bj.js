@@ -1,3 +1,4 @@
+
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
@@ -5,18 +6,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("
 // Store active games per user
 const activeGames = new Map();
 
-const constants = require("../config/constants.js");
-const logger = require("../utility/logger.js");
-const Validator = require("../utility/validation.js");
-const ErrorHandler = require("../utility/errorHandler.js");
-
 exports.run = async (client, message, args) => {
-    // Input validation
-    const validation = Validator.validateCommand(message, args, 1);
-    if (!validation.isValid) {
-        await ErrorHandler.handleValidationError(validation.errors, message, 'blackjack');
-        return;
-    }
     // Check if town is under attack
     const ptt = require("../utility/protectTheTavern.js");
     if (ptt.lockArena) {
@@ -24,32 +14,31 @@ exports.run = async (client, message, args) => {
     }
 
     const userId = message.author.id;
-
+    
     // Check if user already has an active game
     if (activeGames.has(userId)) {
         return message.channel.send(`❌ <@${message.author.id}>, you already have an active blackjack game! Finish it before starting a new one.`);
     }
 
-    const user = message.author;
+    let money = Math.abs(parseInt(args[0]));
+    let moneydb = await db.get(`money_${message.author.id}`);
 
-    let currentBal;
-    try {
-        currentBal = await db.get(`money_${user.id}`) || 0;
-    } catch (error) {
-        await ErrorHandler.handleDatabaseError(error, user.id, 'fetch balance for blackjack');
-        return;
+    if (args[0] === 'all' || args[0] === 'max') {
+        money = moneydb;
+    } else {
+        money = parseInt(args[0]);
     }
 
-    const betValidation = Validator.validateEconomyAction(args[0], currentBal, 'spend');
-    if (!betValidation.isValid) {
-        await ErrorHandler.handleValidationError(betValidation.errors, message, 'blackjack');
-        return;
+    if (!money || money < 1 || money > moneydb) {
+        return message.channel.send(`<@${message.author.id}>, enter a valid number of kopeks.`);
     }
 
-    const bet = betValidation.amount;
+    if (!moneydb) {
+        return message.channel.send(`<@${message.author.id}>, you do not have enough kopeks.`);
+    }
 
     // Create game instance for this user
-    const gameInstance = createGameInstance(message.author.id, bet);
+    const gameInstance = createGameInstance(message.author.id, money);
     activeGames.set(userId, gameInstance);
 
     function getCardsValue(a) {
@@ -109,19 +98,18 @@ exports.run = async (client, message, args) => {
     deck.initialize();
     deck.shuffle();
 
-    async function processBet(outcome) {        
-        let betAmount = bet;
+    async function bet(outcome) {        
         if (gameInstance.player.double === true) {
-            betAmount = betAmount * 2;
+            money = money * 2;
         }
         if (outcome === "win") {
-            await db.add(`money_${message.author.id}`, betAmount);
+            await db.add(`money_${message.author.id}`, money);
         }
         if (outcome === "lose") {
-            await db.sub(`money_${message.author.id}`, betAmount);
+            await db.sub(`money_${message.author.id}`, money);
         }
         if (outcome === "bj") {
-            await db.add(`money_${message.author.id}`, betAmount * 2);
+            await db.add(`money_${message.author.id}`, money * 2);
         }
     }
 
@@ -202,37 +190,37 @@ exports.run = async (client, message, args) => {
 
     async function endGame() {
         if (gameInstance.player.score === 21) {
-            processBet('bj');
+            bet('bj');
             gameInstance.gameOver = true;
             activeGames.delete(userId);
             return await endMsg("YOU WIN!", "You Got 21! That's a x3 bonus!", true)
         }
         if (gameInstance.player.score > 21) {
-            processBet('lose');
+            bet('lose');
             gameInstance.gameOver = true;
             activeGames.delete(userId);
             return await endMsg("You Lose", "Over 21, you Bust.", true)
         }
         if (gameInstance.dealer.score === 21) {
-            processBet('lose');
+            bet('lose');
             gameInstance.gameOver = true;
             activeGames.delete(userId);
             return await endMsg("You Lose.", "Dealer has 21.", true)
         }
         if (gameInstance.dealer.score > 21) {
-            processBet('win');
+            bet('win');
             gameInstance.gameOver = true;
             activeGames.delete(userId);
             return await endMsg("YOU WIN!", "Dealer Busts.", true)
         }
         if (gameInstance.dealer.score >= 17 && gameInstance.player.score > gameInstance.dealer.score && gameInstance.player.score < 21) {
-            processBet('win');
+            bet('win');
             gameInstance.gameOver = true;
             activeGames.delete(userId);
             return await endMsg("YOU WIN!", "You beat the Dealer!", true)
         }
         if (gameInstance.dealer.score >= 17 && gameInstance.player.score < gameInstance.dealer.score && gameInstance.dealer.score < 21) {
-            processBet('lose');
+            bet('lose');
             gameInstance.gameOver = true;
             activeGames.delete(userId);
             return await endMsg("You Lose", "The Dealer beat you.", true)
@@ -327,12 +315,12 @@ exports.run = async (client, message, args) => {
 
     collector.on('end', async (collected, reason) => {
         if (reason === 'time' && !gameInstance.gameOver) {
-            await processBet("lose");
+            await bet("lose");
             activeGames.delete(userId);
             const timeoutEmbed = new EmbedBuilder()
                 .setColor('#FF0000')
                 .setTitle('Game Timeout')
-                .setDescription(`**${message.author.username}**, you took too long to respond. You've lost your bet of ${bet} kopeks.`)
+                .setDescription(`**${message.author.username}**, you took too long to respond. You've lost your bet of ${money} kopeks.`)
                 .setFooter({ text: 'The Tavernkeeper thanks you for playing.' });
 
             await gameMessage.edit({ embeds: [timeoutEmbed], components: [] });

@@ -1,8 +1,6 @@
 const config = require("./config.json");
 const { Client, GatewayIntentBits, Collection } = require("discord.js");
 const fs = require("fs");
-const logger = require("./utility/logger.js");
-const ErrorHandler = require("./utility/errorHandler.js");
 
 // Create a new client instance with required intents
 const client = new Client({
@@ -23,11 +21,7 @@ client.aliases = new Collection();
 
 // Load command files
 fs.readdir("./commands/", (err, files) => {
-  if (err) {
-    logger.error("Failed to read commands directory", err);
-    console.log(err);
-    return;
-  }
+  if (err) console.log(err);
   let jsfile = files.filter(f => f.split(".").pop() === "js");
   if (jsfile.length <= 0) {
     console.log("Couldn't find commands.");
@@ -45,7 +39,6 @@ fs.readdir("./commands/", (err, files) => {
 });
 
 client.on("ready", async () => {
-  logger.info(`Bot ${client.user.username} is ready for action!`);
   console.log(`${client.user.username} is ready for action!`);
   if (config.activity.streaming == true) {
     client.user.setActivity(config.activity.game, { url: 'https://twitch.tv/username' });
@@ -86,14 +79,11 @@ client.on("messageCreate", async message => {
 
   if (!commandfile) return;
 
-  // Use standardized error handling
-  await ErrorHandler.handleCommand(
-    commandfile.run.bind(commandfile),
-    client,
-    message,
-    args,
-    commandfile.help.name
-  );
+  try {
+    commandfile.run(client, message, args);
+  } catch (e) {
+    console.error(e);
+  }
 });
 
 client.login(token);
