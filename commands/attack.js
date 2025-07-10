@@ -110,6 +110,10 @@ module.exports.run = async (client, message, args) => {
         
         await db.add(`money_${rewardWinner}`, reward);
         
+        // Check remaining monsters first
+        const updatedMonsters = await db.get("Monsters") || {};
+        const remainingMonsters = Object.values(updatedMonsters).reduce((sum, count) => sum + count, 0);
+        
         // Send appropriate message
         if (rewardWinner === user.id) {
             message.channel.send(`⚔️ ${member} slays a ${killedMonster} with ${damageDealt} damage and claims ${reward} kopeks! ${remainingMonsters} monsters remaining.`);
@@ -118,10 +122,6 @@ module.exports.run = async (client, message, args) => {
             message.channel.send(`⚔️ ${member} slays a ${killedMonster} with ${damageDealt} damage! ${winnerMember} claims the ${reward} kopek bounty due to superior combat skill! ${remainingMonsters} monsters remaining.`);
         }
     }
-
-    // Check remaining monsters
-    const updatedMonsters = await db.get("Monsters") || {};
-    const remainingMonsters = Object.values(updatedMonsters).reduce((sum, count) => sum + count, 0);
 
     if (!killedMonster) {
         if (hitMonster) {
