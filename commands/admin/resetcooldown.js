@@ -1,4 +1,4 @@
-
+const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 
@@ -6,7 +6,7 @@ module.exports.run = async (client, message, args) => {
     const ownerID = [
         "367445249376649217"
     ];
-    
+
     if (!ownerID.includes(message.author.id)) {
         return message.channel.send("You do not have permission to use this command.");
     }
@@ -14,7 +14,7 @@ module.exports.run = async (client, message, args) => {
     try {
         // Get all data from the database
         const allData = await db.all();
-        
+
         // Filter for cooldown-related keys
         const cooldownKeys = allData.filter(item => {
             return item.id.includes('daily_') || 
@@ -33,7 +33,7 @@ module.exports.run = async (client, message, args) => {
         }
 
         message.channel.send(`🔄 **Cooldowns Reset!** Successfully reset ${cooldownKeys.length} cooldown entries for all players.`);
-        
+
     } catch (error) {
         console.error("Error resetting cooldowns:", error);
         message.channel.send("❌ An error occurred while resetting cooldowns.");

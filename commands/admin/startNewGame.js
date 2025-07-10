@@ -2,7 +2,7 @@
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const ptt = require("../utility/protectTheTavern.js");
+const ptt = require("../../utility/protectTheTavern.js");
 
 exports.run = async (client, message, args) => {
    const ownerID = [

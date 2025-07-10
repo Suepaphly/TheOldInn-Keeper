@@ -1,4 +1,3 @@
-
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
@@ -72,7 +71,7 @@ async function startPlayerBattle(message, attacker, target, client) {
 
     const attackerCombatLevel = await db.get(`combatlevel_${attacker.id}`) || 0;
     const targetCombatLevel = await db.get(`combatlevel_${target.id}`) || 0;
-    
+
     const battleData = {
         attacker: {
             id: attacker.id,

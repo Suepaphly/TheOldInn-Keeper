@@ -1,7 +1,7 @@
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
-const ptt = require("../utility/protectTheTavern.js");
+const ptt = require("../../utility/protectTheTavern.js");
 
 module.exports.run = async (client, message, args) => {
 
