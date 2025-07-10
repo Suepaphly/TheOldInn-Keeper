@@ -138,10 +138,26 @@ module.exports.run = async (client, message, args) => {
 
     let level = await db.get(`combatlevel_${message.author.id}`);
 
+    // Check cooldown (same as rob command - 1 hour)
+    const lastUpgrade = await db.get(`levelup_${message.author.id}`);
+    if (lastUpgrade && (3600000 - (Date.now() - lastUpgrade) > 0)) {
+        let ms;
+        try {
+            ms = (await import("parse-ms")).default;
+        } catch (error) {
+            console.error("Failed to import parse-ms", error);
+            return;
+        }
+        let time = ms(3600000 - (Date.now() - lastUpgrade));
+        message.channel.send(`**${message.author.username}**, you already upgraded recently, try again in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`);
+        return;
+    }
+
     if(money >= 25000 && level < 5){
       level++;
       await db.sub(`money_${message.author.id}`, 25000);
       await db.add(`combatlevel_${message.author.id}`, 1);
+      await db.set(`levelup_${message.author.id}`, Date.now());
       message.channel.send(user.username + " just purchased a Level in Combat! New Level: " + level);
     } else if (money < 25000) {
       message.channel.send(user.username + " doesn't have enough money!");            
