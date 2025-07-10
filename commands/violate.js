@@ -330,9 +330,9 @@ async function getBestWeapon(userId) {
     const weapons = [
         { type: "rifle", name: "Rifle", minDamage: 6, maxDamage: 12 },
         { type: "shotgun", name: "Shotgun", minDamage: 4, maxDamage: 10 },
-        { type: "pistol", name: "Pistol", minDamage: 2, maxDamage: 5 },
-        { type: "sword", name: "Sword", minDamage: 1, maxDamage: 3 },
-        { type: "knife", name: "Knife", minDamage: 1, maxDamage: 1 }
+        { type: "pistol", name: "Pistol", minDamage: 3, maxDamage: 5 },
+        { type: "sword", name: "Sword", minDamage: 2, maxDamage: 4 },
+        { type: "knife", name: "Knife", minDamage: 1, maxDamage: 3 }
     ];
 
     for (const weapon of weapons) {

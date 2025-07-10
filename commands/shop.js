@@ -1,4 +1,3 @@
-
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
@@ -36,17 +35,17 @@ module.exports.run = async (client, message, args) => {
                     inline: false
                 }
             );
-        
+
         return message.channel.send({ embeds: [embed] });
     }
 
     if (args[0] === "buy" && args[1]) {
         const item = args[1].toLowerCase();
-        
+
         const weapons = {
-            knife: { cost: 10, name: "Knife", damage: [1, 1] },
-            sword: { cost: 100, name: "Sword", damage: [1, 3] },
-            pistol: { cost: 1000, name: "Pistol", damage: [2, 5] },
+            knife: { cost: 10, name: "Knife", damage: [1, 3] },
+            sword: { cost: 100, name: "Sword", damage: [2, 4] },
+            pistol: { cost: 1000, name: "Pistol", damage: [3, 5] },
             shotgun: { cost: 2500, name: "Shotgun", damage: [4, 10] },
             rifle: { cost: 5000, name: "Rifle", damage: [6, 12] }
         };
@@ -66,7 +65,7 @@ module.exports.run = async (client, message, args) => {
 
             await db.sub(`money_${user.id}`, weapons[item].cost);
             await db.add(`weapon_${item}_${user.id}`, 1);
-            
+
             message.channel.send(`⚔️ You purchased a ${weapons[item].name} for ${weapons[item].cost.toLocaleString()} kopeks!`);
         }
         else if (armor[item]) {
@@ -76,7 +75,7 @@ module.exports.run = async (client, message, args) => {
 
             await db.sub(`money_${user.id}`, armor[item].cost);
             await db.add(`armor_${item}_${user.id}`, 1);
-            
+
             message.channel.send(`🛡️ You purchased ${armor[item].name} for ${armor[item].cost.toLocaleString()} kopeks!`);
         }
         else {

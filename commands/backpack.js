@@ -16,9 +16,9 @@ module.exports.run = async (client, message, args) => {
     );
 
     const weaponData = {
-        knife: { name: "Knife", damage: "1", emoji: "🔪" },
-        sword: { name: "Sword", damage: "1-3", emoji: "⚔️" },
-        pistol: { name: "Pistol", damage: "2-5", emoji: "🔫" },
+        knife: { name: "Knife", damage: "1-3", emoji: "🔪" },
+        sword: { name: "Sword", damage: "2-4", emoji: "⚔️" },
+        pistol: { name: "Pistol", damage: "3-5", emoji: "🔫" },
         shotgun: { name: "Shotgun", damage: "4-10", emoji: "💥" },
         rifle: { name: "Rifle", damage: "6-12", emoji: "🎯" }
     };
