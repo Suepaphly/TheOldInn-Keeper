@@ -9,6 +9,9 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send("⚔️ The town is under attack! All civilian activities are suspended until the battle ends.");
     }
 
+    const { QuickDB } = require("quick.db");
+    const db = new QuickDB();
+
     let ms;
     try {
         ms = (await import("parse-ms")).default;
