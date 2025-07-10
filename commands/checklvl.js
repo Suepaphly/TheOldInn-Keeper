@@ -30,6 +30,6 @@ if (filteredData.length === 0) {
 };
 
 module.exports.help = {
-    name: "checklvls",
-    aliases: ["check", "lvls", "stat", "stats"]
+    name: "checklvl",
+    aliases: ["check", "lvls", "stat", "stats", "checklvls"]
 };

@@ -1,98 +1,53 @@
-
-const { EmbedBuilder } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
+const Discord = require('discord.js');
 const ptt = require("../utility/protectTheTavern.js");
 
 module.exports.run = async (client, message, args) => {
     try {
-        // Get defense data
-        const ramparts = await db.get("rampart") || 0;
-        const walls = await db.get("wall") || 0;
-        const castle = await db.get("castle") || 0;
-        
-        // Get troop data
-        const rampartTroops = await db.get("Troops_rampart") || {};
-        const wallTroops = await db.get("Troops_wall") || {};
-        const castleTroops = await db.get("Troops_castle") || {};
-        
-        // Get trap data
-        const rampartTraps = await db.get("Traps_rampart") || {};
-        const wallTraps = await db.get("Traps_wall") || {};
-        const castleTraps = await db.get("Traps_castle") || {};
-        
-        // Get monster data
-        const monsters = await db.get("Monsters") || {};
-        
-        // Calculate total defenses
+        const user = message.author;
+
+        // Get town defense data
+        const townWalls = await db.get("townWalls") || 0;
+        const townTroops = await db.get("townTroops") || {};
+        const townTraps = await db.get("townTraps") || {};
+
+        // Get current threats
+        const currentMonsters = await db.get("currentMonsters") || 0;
+        const battleActive = await db.get("battleActive") || false;
+
+        // Calculate total troop count
         let totalTroops = 0;
+        for (const [location, troops] of Object.entries(townTroops)) {
+            for (const [troopType, count] of Object.entries(troops)) {
+                totalTroops += count || 0;
+            }
+        }
+
+        // Calculate total trap count
         let totalTraps = 0;
-        
-        for (const troopType of ptt.troopArray) {
-            totalTroops += (rampartTroops[troopType] || 0) + (wallTroops[troopType] || 0) + (castleTroops[troopType] || 0);
+        for (const [location, traps] of Object.entries(townTraps)) {
+            for (const [trapType, count] of Object.entries(traps)) {
+                totalTraps += count || 0;
+            }
         }
-        
-        for (const trapType of ptt.trapArray) {
-            totalTraps += (rampartTraps[trapType] || 0) + (wallTraps[trapType] || 0) + (castleTraps[trapType] || 0);
-        }
-        
-        // Calculate total monsters
-        const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
-        
-        // Battle status
-        const battleStatus = ptt.lockArena ? `🔴 **BATTLE IN PROGRESS** (Turn ${ptt.currentBattleTurn})` : "🟢 **PEACEFUL**";
-        
-        const embed = new EmbedBuilder()
+
+        const embed = new Discord.EmbedBuilder()
             .setTitle("🏰 TOWN STATUS REPORT")
-            .setColor(ptt.lockArena ? "#FF0000" : "#00FF00")
+            .setColor("#4169E1")
             .addFields(
-                { name: "🛡️ **DEFENSES**", value: `Ramparts: ${ramparts}\nWalls: ${walls}\nCastle: ${castle}`, inline: true },
-                { name: "⚔️ **FORCES**", value: `Total Troops: ${totalTroops}\nTotal Traps: ${totalTraps}`, inline: true },
-                { name: "👹 **THREATS**", value: `Monsters: ${totalMonsters}`, inline: true },
-                { name: "🏁 **STATUS**", value: battleStatus, inline: false }
+                { name: "🧱 Total Walls", value: `${townWalls}`, inline: true },
+                { name: "⚔️ Total Troops", value: `${totalTroops}`, inline: true },
+                { name: "🕳️ Total Traps", value: `${totalTraps}`, inline: true },
+                { name: "👹 Current Threat", value: battleActive ? `${currentMonsters} monsters attacking!` : "No active threats", inline: false },
+                { name: "🛡️ Defense Slots", value: `${Math.floor(townWalls / 5)} available per player`, inline: true }
             )
-            .setFooter({ text: "Use =help for more commands" });
-        
-        // Add detailed breakdown if requested
-        if (args[0] === "detailed" || args[0] === "detail") {
-            let troopDetails = "";
-            let trapDetails = "";
-            let monsterDetails = "";
-            
-            // Troop breakdown
-            for (const troopType of ptt.troopArray) {
-                const total = (rampartTroops[troopType] || 0) + (wallTroops[troopType] || 0) + (castleTroops[troopType] || 0);
-                if (total > 0) {
-                    troopDetails += `${troopType}: ${total}\n`;
-                }
-            }
-            
-            // Trap breakdown
-            for (const trapType of ptt.trapArray) {
-                const total = (rampartTraps[trapType] || 0) + (wallTraps[trapType] || 0) + (castleTraps[trapType] || 0);
-                if (total > 0) {
-                    trapDetails += `${trapType}: ${total}\n`;
-                }
-            }
-            
-            // Monster breakdown
-            for (const [monsterType, count] of Object.entries(monsters)) {
-                if (count > 0) {
-                    monsterDetails += `${monsterType}: ${count}\n`;
-                }
-            }
-            
-            if (troopDetails) embed.addFields({ name: "📊 **TROOP DETAILS**", value: troopDetails, inline: true });
-            if (trapDetails) embed.addFields({ name: "📊 **TRAP DETAILS**", value: trapDetails, inline: true });
-            if (monsterDetails) embed.addFields({ name: "📊 **MONSTER DETAILS**", value: monsterDetails, inline: true });
-        } else {
-            embed.addFields({ name: "💡 **TIP**", value: "Use `=townstatus detailed` for breakdown", inline: false });
-        }
-        
+            .setFooter({ text: "Use =map for detailed defense layout" });
+
         message.channel.send({ embeds: [embed] });
-        
+
     } catch (error) {
-        console.error("Error in townstatus command:", error);
+        console.error(error);
         message.channel.send("❌ Error retrieving town status!");
     }
 };

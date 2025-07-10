@@ -1,52 +1,54 @@
 
-const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
+const Discord = require('discord.js');
 const ptt = require("../utility/protectTheTavern.js");
 
-exports.run = async (client, message, args) => {
+module.exports.run = async (client, message, args) => {
     const user = message.author;
-    const type = args[0];
-    const amount = parseInt(args[1]) || 1;
+    const member = message.guild.members.cache.get(user.id);
     
-    if (!type) {
-        const embed = new Discord.MessageEmbed()
-            .setTitle("👹 Monster Summoning")
-            .setDescription("Summon monsters to attack the town!")
-            .addField("Usage", "=summon [monster_type] [amount]")
-            .addField("Available Monsters", 
-                ptt.monsterArray.map((monster, i) => 
-                    `**${monster}**: ${ptt.monsterCostArray[i]} kopeks (HP: ${ptt.monsterHealthArray[i]}, DMG: ${ptt.monsterDmgArray[i]})`
-                ).join("\n")
-            )
-            .setColor("#8B0000")
-            .setFooter("The Tavernkeeper thanks you for playing.");
-        
-        return message.channel.send(embed);
+    if (!args[0] || !args[1]) {
+        return message.channel.send("❌ Usage: `=summon [monster_type] [amount]`\nMonster types: goblin, mephit, broodling, ogre, automaton");
     }
     
-    if (!ptt.monsterArray.includes(type)) {
-        return message.channel.send(`Invalid monster type! Available monsters: ${ptt.monsterArray.join(", ")}`);
+    const monsterType = args[0].toLowerCase();
+    const amount = parseInt(args[1]);
+    
+    if (!ptt.monsterArray.includes(monsterType)) {
+        return message.channel.send("❌ Invalid monster type! Available: goblin, mephit, broodling, ogre, automaton");
     }
     
-    if (amount <= 0 || amount > 100) {
-        return message.channel.send("Amount must be between 1 and 100!");
+    if (isNaN(amount) || amount <= 0 || amount > 20) {
+        return message.channel.send("❌ Amount must be a number between 1 and 20!");
     }
     
-    const success = await ptt.summonMonster(type, amount, user.id);
+    const monsterIndex = ptt.monsterArray.indexOf(monsterType);
+    const cost = ptt.monsterCostArray[monsterIndex] * amount;
+    const userMoney = await db.get(`money_${user.id}`) || 0;
     
-    if (success) {
-        const typeIndex = ptt.monsterArray.indexOf(type);
-        const totalCost = ptt.monsterCostArray[typeIndex] * amount;
-        message.channel.send(`👹 ${user.username} has summoned ${amount} ${type}(s) for ${totalCost} kopeks!`);
+    if (userMoney < cost) {
+        return message.channel.send(`❌ You need ${cost} kopeks to summon ${amount} ${monsterType}(s)! You have ${userMoney} kopeks.`);
+    }
+    
+    // Deduct cost and add monsters
+    await db.subtract(`money_${user.id}`, cost);
+    
+    const monsterHealth = ptt.monsterHealthArray[monsterIndex] * amount;
+    const currentMonsters = await db.get("currentMonsters") || 0;
+    await db.set("currentMonsters", currentMonsters + monsterHealth);
+    
+    // Check if battle should start (50+ total monster health)
+    const totalMonsters = await db.get("currentMonsters");
+    if (totalMonsters >= 50 && !await db.get("battleActive")) {
+        await db.set("battleActive", true);
+        message.channel.send(`👹 ${member} summons ${amount} ${monsterType}(s) for ${cost} kopeks!\n🚨 **BATTLE BEGINS!** The town is under attack with ${totalMonsters} total monster health! Use \`=attack\` to defend!`);
     } else {
-        const typeIndex = ptt.monsterArray.indexOf(type);
-        const totalCost = ptt.monsterCostArray[typeIndex] * amount;
-        message.channel.send(`${user.username}, you need ${totalCost} kopeks to summon ${amount} ${type}(s)!`);
+        message.channel.send(`👹 ${member} summons ${amount} ${monsterType}(s) for ${cost} kopeks! Current threat level: ${totalMonsters} monster health.`);
     }
 };
 
 module.exports.help = {
     name: "summon",
-    aliases: ["monster", "spawn"]
+    aliases: ["monster", "spawn", "call"]
 };
