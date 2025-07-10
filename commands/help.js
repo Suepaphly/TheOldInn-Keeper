@@ -87,6 +87,7 @@ module.exports.run = async (client, message, args) => {
       { name: "=bj [bet]", value: "Play blackjack", inline: true },
       { name: "=craps [bet]", value: "Play craps", inline: true },
       { name: "=slots [bet]", value: "Play slots", inline: true },
+      { name: "=poker [bet]", value: "Play 5-card stud poker", inline: true },
       { name: "=startroulette", value: "Start roulette game", inline: true },
       { name: "=rbet [type] [amount]", value: "Place roulette bet", inline: true },
       { name: "=rhelp", value: "Roulette rules & bets", inline: true }
