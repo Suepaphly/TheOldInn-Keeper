@@ -25,11 +25,14 @@ exports.run = async (client, message, args) => {
         return message.channel.send("No monsters to battle! Use the summon command to add monsters first.");
     }
     
-    message.channel.send(`⚔️ Battle commencing! ${totalMonsters} monsters are attacking the town!`);
+    message.channel.send(`⚔️ **IMMEDIATE BATTLE TRIGGERED!** ${totalMonsters} monsters are attacking the town!`);
+    
+    // Reschedule the next random attack
+    ptt.scheduleRandomAttack();
     
     // Start the battle (this will run in background)
     ptt.startBattle(message.channel).then(() => {
-        message.channel.send("🏰 Battle has concluded!");
+        message.channel.send("🏰 Battle has concluded! Next automatic attack has been rescheduled.");
     }).catch(error => {
         console.error("Battle error:", error);
         message.channel.send("❌ Battle encountered an error!");
