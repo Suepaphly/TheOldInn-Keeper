@@ -29,8 +29,10 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send("🎉 All monsters have been defeated! The battle will end soon.");
     }
 
-    // Deal 1 damage to monsters
-    let damageDealt = 1;
+    // Get combat level and calculate damage
+    const combatLevel = await db.get(`combatlevel_${user.id}`) || 0;
+    const combatDamageArray = [1, 1, 2, 3, 5, 10]; // Base damage + level bonuses
+    let damageDealt = combatDamageArray[combatLevel];
     let killedMonster = "";
     let hitMonster = "";
     
@@ -47,7 +49,7 @@ module.exports.run = async (client, message, args) => {
             
             // Get current damage for this monster type
             const currentDamage = await db.get(`monster_damage_${monsterType}`) || 0;
-            const newDamage = currentDamage + 1;
+            const newDamage = currentDamage + damageDealt;
             
             // Check if monster dies
             if (newDamage >= monsterHealthArray[i]) {
@@ -71,11 +73,11 @@ module.exports.run = async (client, message, args) => {
     const remainingMonsters = Object.values(updatedMonsters).reduce((sum, count) => sum + count, 0);
 
     if (killedMonster) {
-        message.channel.send(`⚔️ ${member} slays a ${killedMonster}! ${remainingMonsters} monsters remaining.`);
+        message.channel.send(`⚔️ ${member} slays a ${killedMonster} with ${damageDealt} damage! ${remainingMonsters} monsters remaining.`);
     } else if (hitMonster) {
         const currentDamage = await db.get(`monster_damage_${hitMonster}`) || 0;
         const maxHealth = monsterHealthArray[monsterArray.indexOf(hitMonster)];
-        message.channel.send(`⚔️ ${member} hits a ${hitMonster} for 1 damage! (${currentDamage}/${maxHealth} damage) ${remainingMonsters} monsters remaining.`);
+        message.channel.send(`⚔️ ${member} hits a ${hitMonster} for ${damageDealt} damage! (${currentDamage}/${maxHealth} damage) ${remainingMonsters} monsters remaining.`);
     } else {
         message.channel.send(`⚔️ ${member} attacks but misses! ${remainingMonsters} monsters remaining.`);
     }

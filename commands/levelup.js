@@ -28,6 +28,7 @@ module.exports.run = async (client, message, args) => {
         "Increase Hunting: 'hunt' => 15,000 Kopeks\n" +
         "Increase Crafting: 'craft' => 20,000 Kopeks\n" +
         "Increase Work: 'work' => 25,000 Kopeks\n" +
+        "Increase Combat: 'combat' => 25,000 Kopeks\n" +
         "The Tavernkeeper thanks you for playing.\n" +
         "```";
     message.channel.send(buyMessage);
@@ -126,6 +127,23 @@ module.exports.run = async (client, message, args) => {
       await db.add(`thieflevel_${message.author.id}`, 1);
       message.channel.send(user.username + " just purchased a Level in Robbery! New Level: " + level);
     } else if (money < 2000) {
+      message.channel.send(user.username + " doesn't have enough money!");            
+    } else if (level === 5) {
+      message.channel.send(user.username + " is already max level!");
+    } else {
+      message.channel.send(user.username + " sorry, something went wrong.");            
+    }
+
+  } else if (item === "combat") {
+
+    let level = await db.get(`combatlevel_${message.author.id}`);
+
+    if(money >= 25000 && level < 5){
+      level++;
+      await db.sub(`money_${message.author.id}`, 25000);
+      await db.add(`combatlevel_${message.author.id}`, 1);
+      message.channel.send(user.username + " just purchased a Level in Combat! New Level: " + level);
+    } else if (money < 25000) {
       message.channel.send(user.username + " doesn't have enough money!");            
     } else if (level === 5) {
       message.channel.send(user.username + " is already max level!");
