@@ -24,7 +24,16 @@ exports.run = async (client, message, args) => {
     let timeout = 21600000;
 
     if (!deposit || deposit === 0) {
-        message.channel.send(`**<@${user.id}>'s Bank Balance: ${bbal}**`);
+        // If no amount specified, deposit all wallet funds
+        if (wbal && wbal > 0) {
+            await db.sub(`money_${user.id}`, wbal);
+            await db.add(`bank_${user.id}`, wbal);
+            let newbal = await db.get(`bank_${user.id}`);
+            await db.set(`deposit_${user.id}`, Date.now());
+            message.channel.send(`**<@${user.id}>** deposited all their wallet funds (${wbal}) into their bank. New bank balance: ${newbal}`);
+        } else {
+            message.channel.send(`**<@${user.id}>'s Bank Balance: ${bbal}**`);
+        }
     } else if (timeout - (Date.now() - timer) > 9000) {
         let time = ms(timeout - (Date.now() - timer));
         message.channel.send(`Bank Balance: ${bbal} **${member.user.tag}**, try again in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`);
