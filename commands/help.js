@@ -12,10 +12,11 @@ module.exports.run = async (client, message, args) => {
     .addFields(
       { name: "💰 Economy", value: "Wallet, bank, pay, daily", inline: true },
       { name: "⚔️ Earning", value: "Gather, hunt, fish, craft, work", inline: true },
-      { name: "🎲 Gambling", value: "Blackjack, craps, slots, rob", inline: true },
+      { name: "🎲 Gambling", value: "Blackjack, craps, slots", inline: true },
       { name: "🏰 Defense", value: "Buy walls, troops, traps", inline: true },
       { name: "⚡ Combat", value: "Attack monsters in battle", inline: true },
-      { name: "📊 Status", value: "Cooldowns, levels, skills", inline: true }
+      { name: "📊 Status", value: "Cooldowns, levels, skills", inline: true },
+      { name: "💀 Dirty Deeds", value: "Rob players, summon monsters", inline: true }
     )
     .setFooter({ text: "The Tavernkeeper thanks you for playing! 🍺" });
 
@@ -85,8 +86,7 @@ module.exports.run = async (client, message, args) => {
     .addFields(
       { name: "=bj [bet]", value: "Play blackjack", inline: true },
       { name: "=craps [bet]", value: "Play craps", inline: true },
-      { name: "=slots [bet]", value: "Play slots", inline: true },
-      { name: "=rob [user]", value: "Rob up to 20% (20% fail chance)", inline: false }
+      { name: "=slots [bet]", value: "Play slots", inline: true }
     );
 
   // Defense embed
@@ -100,9 +100,7 @@ module.exports.run = async (client, message, args) => {
       { name: "=buy [amount] [type]", value: "Buy walls: `=buy 10 rampart`", inline: false },
       { name: "=buy [amount] [location] [item]", value: "Buy troops/traps: `=buy 5 rampart town_guard`", inline: false },
       { name: "Important", value: "Every 5 walls = 1 troop + 1 trap slot per player", inline: false },
-      { name: "=map", value: "View town status & threats", inline: true },
-      { name: "=summon [type] [amount]", value: "Summon monsters to attack", inline: true },
-      { name: "=startBattle", value: "Begin attack (auto at 50+ monsters)", inline: true }
+      { name: "=map", value: "View town status & threats", inline: true }
     );
 
   // Combat embed
@@ -123,6 +121,35 @@ module.exports.run = async (client, message, args) => {
       { name: "=lvl [skill]", value: "Level up skills", inline: true },
       { name: "=townstatus", value: "Check town defenses & threats", inline: true }
     );
+
+  // Dirty Deeds embed
+  const dirtyDeedsEmbed = new EmbedBuilder()
+    .setTitle("💀 DIRTY DEEDS - NEFARIOUS ACTIVITIES")
+    .setColor("#8B0000")
+    .setDescription("⚠️ **WARNING**: These commands allow you to attack your fellow townspeople and the town itself! Use at your own risk...")
+    .addFields(
+      { 
+        name: "🏴‍☠️ Attacking Other Players", 
+        value: "• **=rob [user]**: Rob up to 20% of another player's wallet (20% fail chance)\n• Higher thief levels increase success rate and steal amount\n• 10 hour cooldown between robberies", 
+        inline: false 
+      },
+      { 
+        name: "👹 Attacking the Town", 
+        value: "• **=summon [type] [amount]**: Summon monsters to attack (costs kopeks)\n• **=startBattle**: Force immediate battle start (costs 1000 kopeks)\n• Monster types: goblin, mephit, broodling, ogre, automaton", 
+        inline: false 
+      },
+      { 
+        name: "💰 Town Raid Rewards", 
+        value: "If monsters WIN the battle, participating attackers split 20-80% of ALL players' bank balances! Only the top 5 contributors are shown during battle messages.", 
+        inline: false 
+      },
+      { 
+        name: "⚖️ Consequences", 
+        value: "• Failed robberies result in paying restitution to your victim\n• Failed town attacks waste your kopeks\n• The town guard doesn't look kindly on troublemakers...", 
+        inline: false 
+      }
+    )
+    .setFooter({ text: "Choose your side wisely, the tavern's fate hangs in the balance! ⚔️" });
 
   // Create buttons
   const row1 = new ActionRowBuilder()
@@ -166,7 +193,11 @@ module.exports.run = async (client, message, args) => {
       new ButtonBuilder()
         .setCustomId('status')
         .setLabel('📊 Status')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('dirtydeeds')
+        .setLabel('💀 Dirty Deeds')
+        .setStyle(ButtonStyle.Danger)
     );
 
   // Send message with buttons (ephemeral - only visible to command user)
@@ -206,6 +237,9 @@ module.exports.run = async (client, message, args) => {
         break;
       case 'status':
         embed = statusEmbed;
+        break;
+      case 'dirtydeeds':
+        embed = dirtyDeedsEmbed;
         break;
       default:
         embed = mainEmbed;
