@@ -20,8 +20,8 @@ const handRankings = {
     'Full House': { rank: 6, payout: 5 },
     'Flush': { rank: 5, payout: 3 },
     'Straight': { rank: 4, payout: 2 },
-    'Three of a Kind': { rank: 3, payout: 2 },
-    'Two Pair': { rank: 2, payout: 2 },
+    'Three of a Kind': { rank: 3, payout: 1.5 },
+    'Two Pair': { rank: 2, payout: 1.5 },
     'Jacks or Better': { rank: 1, payout: 1 },
     'High Card': { rank: 0, payout: 0 }
 };
@@ -313,8 +313,8 @@ exports.run = async (client, message, args) => {
                 { name: 'Full House', value: '5x your bet', inline: true },
                 { name: 'Flush', value: '3x your bet', inline: true },
                 { name: 'Straight', value: '2x your bet', inline: true },
-                { name: 'Three of a Kind', value: '2x your bet', inline: true },
-                { name: 'Two Pair', value: '2x your bet', inline: true },
+                { name: 'Three of a Kind', value: '1.5x your bet', inline: true },
+                { name: 'Two Pair', value: '1.5x your bet', inline: true },
                 { name: 'Jacks or Better', value: '1x your bet (J,Q,K,A pairs only)', inline: false }
             )
             .setFooter({ text: 'Hold cards by clicking the buttons, bold cards are held!' });
