@@ -32,7 +32,7 @@ module.exports.run = async (client, message, args) => {
     }
     
     // Deduct cost and add monsters
-    await db.subtract(`money_${user.id}`, cost);
+    await db.sub(`money_${user.id}`, cost);
     
     const monsterHealth = ptt.monsterHealthArray[monsterIndex] * amount;
     const currentMonsters = await db.get("currentMonsters") || 0;
