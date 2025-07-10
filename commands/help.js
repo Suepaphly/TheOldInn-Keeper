@@ -137,6 +137,11 @@ module.exports.run = async (client, message, args) => {
         inline: false 
       },
       { 
+        name: "⚔️ Player vs Player Combat", 
+        value: "• **=attackplayer [user]**: Challenge another player to combat\n• **=violate [user]**: Humiliate another player (4 rounds, no damage to attacker)\n• **=revive [user]**: Revive a dead player for 1000 kopeks\n• Combat uses health: 5 base + 2 per combat level\n• Weapons: knife (1-3), sword (2-4), pistol (3-5) + combat level bonus", 
+        inline: false 
+      },
+      { 
         name: "👹 Attacking the Town", 
         value: "• **=summon [type] [amount]**: Summon monsters to attack (costs kopeks)\n• **=startBattle**: Force immediate battle start (costs 1000 kopeks)\n• Monster types: goblin, mephit, broodling, ogre, automaton", 
         inline: false 
@@ -148,7 +153,7 @@ module.exports.run = async (client, message, args) => {
       },
       { 
         name: "⚖️ Consequences", 
-        value: "• Failed robberies result in paying restitution to your victim\n• Failed town attacks waste your kopeks\n• The town guard doesn't look kindly on troublemakers...", 
+        value: "• Failed robberies result in paying restitution to your victim\n• Failed town attacks waste your kopeks\n• PvP combat losers are dead for 24 hours (unless revived)\n• The town guard doesn't look kindly on troublemakers...", 
         inline: false 
       }
     )
