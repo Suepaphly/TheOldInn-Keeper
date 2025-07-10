@@ -30,7 +30,7 @@ module.exports.run = async (client, message, args) => {
             .setDescription(`${slotItems[number[0]]} | ${slotItems[number[1]]} | ${slotItems[number[2]]}\n\nYou won \`${money}\` kopeks.`)
             .setColor("#363940")
             .setFooter({ text: 'The Tavernkeeper thanks you for playing.' });
-        message.channel.send(slotsEmbed1)
+        message.channel.send({ embeds: [slotsEmbed1] })
 
         await db.add(`money_${user.id}`, money)
     } else {
@@ -40,7 +40,7 @@ module.exports.run = async (client, message, args) => {
             .setColor("#363940")
             .setFooter({ text: 'The Tavernkeeper thanks you for playing.' });
 
-        message.channel.send(slotsEmbed)
+        message.channel.send({ embeds: [slotsEmbed] })
         await db.sub(`money_${user.id}`, money)
     }
 
