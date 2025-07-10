@@ -14,19 +14,26 @@ module.exports.run = async (bot, message, args) => {
 
     let user = message.mentions.members.first();
     if (!user || user.id === message.author.id) {
-        if (args[0] === null) {
+        if (!args[0]) {
             let moneyData = await db.all();
-            let leaderboard = moneyData
+            let topWallets = moneyData
                 .filter(item => item.id.startsWith("money_"))
                 .sort((a, b) => b.value - a.value)
-                .slice(0, 5)
-                .map(async (item, index) => {
-                    let tag = (await bot.users.fetch(item.id.split('_')[1])).tag;
-                    return `${index + 1}. **${tag}** => ${item.value.toLocaleString()}\n`;
-                });
-            Promise.all(leaderboard).then(leaderboardStrings => {
-                message.channel.send(`**${message.guild.name} Kopek Leaderboard (In Wallet)**\n\n${leaderboardStrings.join('')}`);
-            });
+                .slice(0, 5);
+            
+            let leaderboardStrings = [];
+            for (let i = 0; i < topWallets.length; i++) {
+                try {
+                    let userId = topWallets[i].id.split('_')[1];
+                    let user = await bot.users.fetch(userId);
+                    let formattedAmount = topWallets[i].value.toLocaleString();
+                    leaderboardStrings.push(`${i + 1}. **${user.tag}** => ${formattedAmount}\n`);
+                } catch (error) {
+                    console.error(`Failed to fetch user ${topWallets[i].id}:`, error);
+                }
+            }
+            
+            message.channel.send(`**${message.guild.name} Kopek Leaderboard (In Wallet)**\n\n${leaderboardStrings.join('')}`);
         } else {
             message.channel.send("Wrong usage, mention someone to rob that isn't yourself.");
         }
