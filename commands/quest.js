@@ -406,7 +406,7 @@ async function startLocationQuest(interaction, location, userId) {
         startCollector.on('collect', async (i) => {
             if (i.customId === 'quest_start_first') {
                 questData.currentQuest = randomQuest;
-                
+
                 switch (randomQuest) {
                     case 'monster':
                         await startMonsterQuest(i, userId);
@@ -548,7 +548,7 @@ async function handleMonsterCombat(interaction, userId, collector) {
             );
 
         await interaction.update({ embeds: [embed], components: [row] });
-        
+
         // Set up collector for continue button
         const filter = (i) => i.user.id === userId;
         const continueCollector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
@@ -793,13 +793,17 @@ async function startMazeQuest(interaction, userId) {
         );
 
     try {
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ embeds: [embed], components: [row] });
+        } else {
+            await interaction.editReply({ embeds: [embed], components: [row] });
+        }
     } catch (error) {
-        if (error.code === 10062) {
+        if (error.code === 10062 || error.code === 'InteractionNotReplied') {
             // Interaction expired, send a new message instead
             await interaction.followUp({ embeds: [embed], components: [row] });
         } else {
-            console.error('Error editing reply:', error);
+            console.error('Error with interaction:', error);
             throw error;
         }
     }
@@ -998,7 +1002,7 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
             );
 
         await interaction.update({ embeds: [embed], components: [row] });
-        
+
         // Set up collector for continue button
         const filter = (i) => i.user.id === userId;
         const continueCollector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
@@ -1471,7 +1475,7 @@ async function completeQuest(interaction, userId, trolleyMessage = null) {
             startCollector.on('collect', async (i) => {
                 if (i.customId === 'quest_start_second') {
                     quest.currentQuest = randomQuest;
-                    
+
                     switch (randomQuest) {
                         case 'monster':
                             await startMonsterQuest(i, userId);
