@@ -1,98 +1,136 @@
+
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
 const mg = require("../utility/utility.js");
+const constants = require("../config/constants.js");
+const logger = require("../utility/logger.js");
+const Validator = require("../utility/validation.js");
+const ErrorHandler = require("../utility/errorHandler.js");
 
 module.exports.run = async (client, message, args) => {
+    // Input validation
+    const validation = Validator.validateCommand(message, args, 0);
+    if (!validation.isValid) {
+        await ErrorHandler.handleValidationError(validation.errors, message, 'craft');
+        return;
+    }
+
     // Check if town is under attack
     const ptt = require("../utility/protectTheTavern.js");
     if (ptt.lockArena) {
-        return message.channel.send("⚔️ The town is under attack! All civilian activities are suspended until the battle ends.");
+        await message.channel.send(constants.ERRORS.TOWN_UNDER_ATTACK);
+        return;
     }
 
     let ms;
     try {
         ms = (await import("parse-ms")).default;
     } catch (error) {
-        console.error("Failed to import parse-ms", error);
+        logger.error("Failed to import parse-ms", error, message.author.id, 'craft');
+        await message.channel.send("❌ A system error occurred. Please try again later.");
         return;
     }
 
-    const member =
-        message.mentions.members.first() ||
-        message.guild.members.cache.get(args[0]) ||
-        message.member;
     const user = message.author;
-    const author = await db.get(`craft_${user.id}`);
-    const userlevel = await db.get(`craftinglevel_${user.id}`);
+    let author, userlevel;
 
-    const timeout = 9000000; // 2.5 hours
+    try {
+        author = await db.get(`craft_${user.id}`);
+        userlevel = await db.get(`craftinglevel_${user.id}`);
+    } catch (error) {
+        await ErrorHandler.handleDatabaseError(error, user.id, 'fetch craft data');
+        return;
+    }
+
+    const timeout = constants.COOLDOWNS.CRAFT;
 
     if (author !== null && Date.now() - author < timeout) {
         const time = ms(timeout - (Date.now() - author));
-
-        message.channel.send(
-            `<@${user.id}>, you already crafted recently, try again in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`,
+        await message.channel.send(
+            `<@${user.id}>, you already crafted recently, try again in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`
         );
-    } else {
-        const rarefish = [
-            ":violin: (Violin)",
-            ":guitar: (Guitar)",
-            ":telescope: (Telescope)",
-            ":house: (House)",
-            ":sailboat: (Sailboat)",
-        ];
+        return;
+    }
 
-        const bigfish = [
-            ":crossed_swords: (Swords)",
-            ":shield: (Shield)",
-            ":hut: (Hut)",
-            ":trumpet: (Trumpet)",
-            ":canoe: (Canoe)",
-        ];
+    // Craft items arrays
+    const rarefish = [
+        ":violin: (Violin)",
+        ":guitar: (Guitar)",
+        ":telescope: (Telescope)",
+        ":house: (House)",
+        ":sailboat: (Sailboat)",
+    ];
 
-        const fish = [
-            ":axe: (Axe)",
-            ":tent: (Tent)",
-            ":dagger: (Dagger)",
-            ":boomerang: (Boomerang)",
-            ":teapot: (Teapot)",
-        ];
+    const bigfish = [
+        ":crossed_swords: (Swords)",
+        ":shield: (Shield)",
+        ":hut: (Hut)",
+        ":trumpet: (Trumpet)",
+        ":canoe: (Canoe)",
+    ];
 
-        const trash = [
-            ":hammer: (Hammer)",
-            ":wrench: (Wrench)",
-            ":screwdriver: (Screwdriver)",
-            ":pick: (Pickaxe)",
-            ":closed_lock_with_key: (Lock and Key)",
-        ];
+    const fish = [
+        ":axe: (Axe)",
+        ":tent: (Tent)",
+        ":dagger: (Dagger)",
+        ":boomerang: (Boomerang)",
+        ":teapot: (Teapot)",
+    ];
 
-        const fisharray = [trash, fish, bigfish, rarefish];
-        let fishresult;
+    const trash = [
+        ":hammer: (Hammer)",
+        ":wrench: (Wrench)",
+        ":screwdriver: (Screwdriver)",
+        ":pick: (Pickaxe)",
+        ":closed_lock_with_key: (Lock and Key)",
+    ];
 
+    const fisharray = [trash, fish, bigfish, rarefish];
+    let fishresult;
+
+    try {
         if (userlevel !== null) {
             fishresult = mg.skillMinigame("craft", userlevel);
         } else {
             fishresult = mg.skillMinigame("craft", 0);
         }
 
-        if (!args[0]) {
-            // Validate fishresult to prevent undefined errors
-            if (fishresult && fishresult.length >= 3 && 
-                fishresult[0] >= 0 && fishresult[0] < fisharray.length &&
-                fishresult[1] >= 0 && fishresult[1] < fisharray[fishresult[0]].length) {
-                
-                message.channel.send(
-                    `**CRAFTING MINIGAME:** - :tools:\n<@${user.id}>, you crafted a ${
-                        fisharray[fishresult[0]][fishresult[1]]
-                    } and earned \`${fishresult[2]}\` kopeks.`,
-                );
-                await db.add(`money_${user.id}`, fishresult[2]);
-                db.set(`craft_${user.id}`, Date.now());
-            } else {
-                message.channel.send(`**CRAFTING MINIGAME:** - :tools:\n<@${user.id}>, something went wrong with your crafting attempt!`);
-            }
+        // Enhanced validation of minigame result
+        if (!fishresult || !Array.isArray(fishresult) || fishresult.length < 3) {
+            throw new Error("Invalid minigame result");
         }
+
+        const [categoryIndex, itemIndex, reward] = fishresult;
+
+        if (categoryIndex < 0 || categoryIndex >= fisharray.length ||
+            itemIndex < 0 || itemIndex >= fisharray[categoryIndex].length ||
+            !Validator.isValidAmount(reward, 0, constants.ECONOMY.MAX_BET)) {
+            throw new Error("Invalid minigame result values");
+        }
+
+        const craftedItem = fisharray[categoryIndex][itemIndex];
+        
+        await message.channel.send(
+            `**CRAFTING MINIGAME:** - :tools:\n<@${user.id}>, you crafted a ${craftedItem} and earned \`${reward}\` kopeks.`
+        );
+
+        // Update database with error handling
+        try {
+            await db.add(`money_${user.id}`, reward);
+            await db.set(`craft_${user.id}`, Date.now());
+            
+            logger.economy('craft', user.id, reward, true);
+        } catch (error) {
+            await ErrorHandler.handleDatabaseError(error, user.id, 'update craft rewards');
+            return;
+        }
+
+    } catch (error) {
+        logger.error("Crafting minigame failed", error, user.id, 'craft');
+        await message.channel.send(
+            `**CRAFTING MINIGAME:** - :tools:\n<@${user.id}>, something went wrong with your crafting attempt! Please try again.`
+        );
     }
 };
 
