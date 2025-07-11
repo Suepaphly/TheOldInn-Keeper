@@ -87,6 +87,14 @@ async function handleMonsterCombat(interaction, userId, collector, activeQuests)
     }
 
     const currentMonster = quest.data.monsters[quest.data.round - 1];
+    
+    if (!currentMonster) {
+        console.error(`No monster found for round ${quest.data.round}. Available monsters:`, quest.data.monsters);
+        await endQuest(interaction, userId, false, "An error occurred - no monster found for this round!", activeQuests);
+        collector.stop();
+        return;
+    }
+    
     const monsterStats = getMonsterStats(currentMonster, quest.data.combatLevel);
 
     // Player attacks monster
@@ -146,8 +154,16 @@ async function handleMonsterCombat(interaction, userId, collector, activeQuests)
 
         continueCollector.on('collect', async (i) => {
             if (i.customId === 'monster_victory_continue') {
-                // Next monster
+                // Next monster - ensure we have a valid monster
                 const nextMonster = quest.data.monsters[quest.data.round - 1];
+                
+                if (!nextMonster) {
+                    console.error(`No monster found for round ${quest.data.round}. Available monsters:`, quest.data.monsters);
+                    await endQuest(i, userId, false, "An error occurred - no monster found for the next round!", activeQuests);
+                    continueCollector.stop();
+                    return;
+                }
+                
                 const nextMonsterStats = getMonsterStats(nextMonster, quest.data.combatLevel);
                 quest.data.currentMonsterHealth = nextMonsterStats.health;
                 quest.data.currentMonsterMaxHealth = nextMonsterStats.health;
@@ -161,7 +177,7 @@ async function handleMonsterCombat(interaction, userId, collector, activeQuests)
                         { name: "Your Weapon", value: quest.data.playerWeapon?.name || "Unknown", inline: true },
                         { name: "Your Armor", value: quest.data.playerArmor?.name || "Unknown", inline: true },
                         { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
-                        { name: "Enemy", value: nextMonster || "Unknown", inline: true }
+                        { name: "Enemy", value: nextMonster, inline: true }
                     );
 
                 const nextRow = new ActionRowBuilder()
