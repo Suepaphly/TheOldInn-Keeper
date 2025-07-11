@@ -1,4 +1,3 @@
-
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -53,7 +52,7 @@ async function startMazeQuest(interaction, userId, activeQuests) {
     }
 
     const filter = (i) => i.user.id === userId;
-    
+
     // Get the message from the interaction response
     let message;
     try {
@@ -66,7 +65,7 @@ async function startMazeQuest(interaction, userId, activeQuests) {
         console.error('Error getting message for collector:', error);
         return;
     }
-    
+
     const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
@@ -209,7 +208,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
     // Set up maze combat collector
     const filter = (i) => i.user.id === userId;
-    
+
     // Get the message from the interaction response
     let message;
     try {
@@ -222,7 +221,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
         console.error('Error getting message for maze combat collector:', error);
         return;
     }
-    
+
     const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
@@ -274,11 +273,20 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
                     .setStyle(ButtonStyle.Primary)
             );
 
-        await interaction.update({ embeds: [embed], components: [row] });
+        try {
+            await interaction.update({ embeds: [embed], components: [row] });
+        } catch (error) {
+            if (error.code === 10062 || error.code === 'InteractionNotReplied') {
+                await interaction.followUp({ embeds: [embed], components: [row] });
+            } else {
+                console.error('Error updating maze victory interaction:', error);
+                throw error;
+            }
+        }
 
         // Set up collector for continue button
         const filter = (i) => i.user.id === userId;
-        
+
         // Get the message from the interaction response
         let message;
         try {
@@ -291,7 +299,7 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
             console.error('Error getting message for continue collector:', error);
             return;
         }
-        
+
         const continueCollector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
         continueCollector.on('collect', async (i) => {
@@ -375,7 +383,27 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
                 .setStyle(ButtonStyle.Secondary)
         );
 
-    await interaction.update({ embeds: [embed], components: [row] });
+    try {
+        await interaction.update({ embeds: [embed], components: [row] });
+    } catch (error) {
+        if (error.code === 10062 || error.code === 'InteractionNotReplied') {
+            // Interaction expired, try to send a follow-up instead
+            try {
+                await interaction.followUp({ embeds: [embed], components: [row] });
+            } catch (followUpError) {
+                console.error('Failed to send follow-up message:', followUpError);
+                // If all else fails, end the quest
+                const { endQuest } = require('../quest.js');
+                await endQuest(interaction, userId, false, "Combat session expired. Please try starting a new quest.", activeQuests);
+                collector.stop();
+                parentCollector.stop();
+                return;
+            }
+        } else {
+            console.error('Error updating maze combat interaction:', error);
+            throw error;
+        }
+    }
 }
 
 async function getBestWeapon(userId) {
