@@ -497,3 +497,5 @@ module.exports.help = {
 module.exports.isOnQuest = isOnQuest;
 module.exports.endQuest = endQuest;
 module.exports.completeQuest = completeQuest;
+module.exports.activeQuests = activeQuests;
+module.exports.enabled = true;
