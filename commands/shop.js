@@ -91,9 +91,63 @@ module.exports.run = async (client, message, args) => {
                 `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate`,
             );
         }
+    } else if (args[0] === "sell" && args[1]) {
+        const item = args[1].toLowerCase();
+
+        const weapons = {
+            knife: { cost: 10, name: "Knife", damage: [1, 3] },
+            sword: { cost: 100, name: "Sword", damage: [2, 4] },
+            pistol: { cost: 1000, name: "Pistol", damage: [3, 5] },
+            shotgun: { cost: 2500, name: "Shotgun", damage: [4, 10] },
+            rifle: { cost: 5000, name: "Rifle", damage: [6, 12] },
+        };
+
+        const armor = {
+            cloth: { cost: 500, name: "Cloth Armor", defense: 1 },
+            leather: { cost: 1000, name: "Leather Armor", defense: 2 },
+            chainmail: { cost: 1500, name: "Chainmail Armor", defense: 3 },
+            studded: { cost: 3000, name: "Studded Armor", defense: 5 },
+            plate: { cost: 6000, name: "Plate Armor", defense: 10 },
+        };
+
+        if (weapons[item]) {
+            const userWeaponCount = (await db.get(`weapon_${item}_${user.id}`)) || 0;
+            if (userWeaponCount <= 0) {
+                return message.channel.send(
+                    `❌ You don't have any ${weapons[item].name} to sell!`,
+                );
+            }
+
+            const sellPrice = Math.floor(weapons[item].cost / 2);
+            await db.sub(`weapon_${item}_${user.id}`, 1);
+            await db.add(`money_${user.id}`, sellPrice);
+
+            message.channel.send(
+                `💰 You sold a ${weapons[item].name} for ${sellPrice.toLocaleString()} kopeks!`,
+            );
+        } else if (armor[item]) {
+            const userArmorCount = (await db.get(`armor_${item}_${user.id}`)) || 0;
+            if (userArmorCount <= 0) {
+                return message.channel.send(
+                    `❌ You don't have any ${armor[item].name} to sell!`,
+                );
+            }
+
+            const sellPrice = Math.floor(armor[item].cost / 2);
+            await db.sub(`armor_${item}_${user.id}`, 1);
+            await db.add(`money_${user.id}`, sellPrice);
+
+            message.channel.send(
+                `💰 You sold ${armor[item].name} for ${sellPrice.toLocaleString()} kopeks!`,
+            );
+        } else {
+            message.channel.send(
+                `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate`,
+            );
+        }
     } else {
         message.channel.send(
-            `❌ Use \`=shop\` to view items or \`=shop buy [item]\` to purchase.`,
+            `❌ Use \`=shop\` to view items, \`=shop buy [item]\` to purchase, or \`=shop sell [item]\` to sell.`,
         );
     }
 };
