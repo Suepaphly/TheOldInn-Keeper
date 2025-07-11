@@ -49,22 +49,8 @@ async function startMonsterQuest(interaction, userId, activeQuests) {
                 .setStyle(ButtonStyle.Secondary)
         );
 
-    try {
-        // First check if interaction has been replied to, if not, reply instead of edit
-        if (interaction.replied || interaction.deferred) {
-            await interaction.editReply({ embeds: [embed], components: [row] });
-        } else {
-            await interaction.update({ embeds: [embed], components: [row] });
-        }
-    } catch (error) {
-        if (error.code === 10062 || error.code === 'InteractionNotReplied') {
-            // Interaction expired or not replied, send a new message instead
-            await interaction.followUp({ embeds: [embed], components: [row] });
-        } else {
-            console.error('Error with interaction:', error);
-            throw error;
-        }
-    }
+    const { updateInteractionSafely } = require('../../utility/combatUtils.js');
+    await updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     // Set up monster combat collector
     const filter = (i) => i.user.id === userId;
@@ -76,172 +62,41 @@ async function startMonsterQuest(interaction, userId, activeQuests) {
 }
 
 async function handleMonsterCombat(interaction, userId, collector, activeQuests) {
-    const { endQuest, completeQuest } = require('../quest.js');
+    const { handleCombatRound } = require('../../utility/combatUtils.js');
     const quest = activeQuests.get(userId);
     if (!quest) return;
 
-    if (interaction.customId === 'monster_run') {
-        await endQuest(interaction, userId, false, "You fled from the monsters! Your quest ends in cowardly retreat.", activeQuests);
-        collector.stop();
-        return;
-    }
-
+    // Setup combat data for current monster
     const currentMonster = quest.data.monsters[quest.data.round - 1];
     
     if (!currentMonster) {
         console.error(`No monster found for round ${quest.data.round}. Available monsters:`, quest.data.monsters);
+        const { endQuest } = require('../quest.js');
         await endQuest(interaction, userId, false, "An error occurred - no monster found for this round!", activeQuests);
         collector.stop();
         return;
     }
-    
+
     const monsterStats = getMonsterStats(currentMonster, quest.data.combatLevel);
 
-    // Player attacks monster
-    const playerCombatDamage = quest.data.combatLevel + 1;
-    const playerWeaponDamage = Math.floor(Math.random() * (quest.data.playerWeapon.maxDamage - quest.data.playerWeapon.minDamage + 1)) + quest.data.playerWeapon.minDamage;
-    const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
-    const playerFinalDamage = Math.max(1, playerTotalDamage - monsterStats.defense);
+    // Create combat data object for combat utils
+    const combatData = {
+        playerHealth: quest.data.playerHealth,
+        playerMaxHealth: quest.data.playerMaxHealth,
+        playerWeapon: quest.data.playerWeapon,
+        playerArmor: quest.data.playerArmor,
+        combatLevel: quest.data.combatLevel,
+        monsterHealth: quest.data.currentMonsterHealth,
+        monsterMaxHealth: quest.data.currentMonsterMaxHealth,
+        monsterDamage: monsterStats.damage,
+        monsterDefense: monsterStats.defense,
+        monsterName: currentMonster,
+        monsterValue: monsterStats.value,
+        round: quest.data.round,
+        monsters: quest.data.monsters
+    };
 
-    quest.data.currentMonsterHealth -= playerFinalDamage;
-    quest.data.currentMonsterHealth = Math.max(0, quest.data.currentMonsterHealth);
-
-    let battleText = `You attack the ${currentMonster} for ${playerFinalDamage} damage!`;
-
-    // Check if monster is defeated
-    if (quest.data.currentMonsterHealth <= 0) {
-        quest.totalMonsterValue += monsterStats.value;
-        quest.data.round++;
-
-        if (quest.data.round > 2) {
-            // Monster quest complete!
-            const embed = new EmbedBuilder()
-                .setTitle("⚔️ AMBUSH COMPLETE!")
-                .setColor("#00FF00")
-                .setDescription(`${battleText}\n\n**All monsters defeated!** You have successfully completed the ambush quest.`);
-
-            await interaction.update({ embeds: [embed], components: [] });
-            
-            // Complete the quest after a short delay to ensure interaction is properly handled
-            setTimeout(async () => {
-                await completeQuest(interaction, userId, activeQuests);
-            }, 1000);
-            
-            collector.stop();
-            return;
-        }
-
-        // Show victory message first with continue button
-        const embed = new EmbedBuilder()
-            .setTitle(`⚔️ AMBUSH - ${currentMonster} DEFEATED!`)
-            .setColor("#00FF00")
-            .setDescription(`${battleText}\n\n**${currentMonster} defeated!** You stand victorious over your fallen foe.`)
-            .addFields(
-                { name: "Victory", value: "The creature falls to your superior combat skills!", inline: false }
-            );
-
-        const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('monster_victory_continue')
-                    .setLabel('➡️ Continue')
-                    .setStyle(ButtonStyle.Primary)
-            );
-
-        await interaction.update({ embeds: [embed], components: [row] });
-
-        // Set up collector for continue button
-        const filter = (i) => i.user.id === userId;
-        const continueCollector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
-
-        continueCollector.on('collect', async (i) => {
-            if (i.customId === 'monster_victory_continue') {
-                // Next monster - ensure we have a valid monster
-                const nextMonster = quest.data.monsters[quest.data.round - 1];
-                
-                if (!nextMonster) {
-                    console.error(`No monster found for round ${quest.data.round}. Available monsters:`, quest.data.monsters);
-                    await endQuest(i, userId, false, "An error occurred - no monster found for the next round!", activeQuests);
-                    continueCollector.stop();
-                    return;
-                }
-                
-                const nextMonsterStats = getMonsterStats(nextMonster, quest.data.combatLevel);
-                quest.data.currentMonsterHealth = nextMonsterStats.health;
-                quest.data.currentMonsterMaxHealth = nextMonsterStats.health;
-
-                const nextEmbed = new EmbedBuilder()
-                    .setTitle(`⚔️ AMBUSH - ${nextMonster} (${quest.data.round}/2)`)
-                    .setColor("#FF0000")
-                    .setDescription(`You advance to the next monster.\n\nA **${nextMonster}** appears!`)
-                    .addFields(
-                        { name: "Your Health", value: `${quest.data.playerHealth}/${quest.data.playerMaxHealth} HP`, inline: true },
-                        { name: "Your Weapon", value: quest.data.playerWeapon?.name || "Unknown", inline: true },
-                        { name: "Your Armor", value: quest.data.playerArmor?.name || "Unknown", inline: true },
-                        { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
-                        { name: "Enemy", value: nextMonster, inline: true }
-                    );
-
-                const nextRow = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('monster_attack')
-                            .setLabel('⚔️ Attack')
-                            .setStyle(ButtonStyle.Danger),
-                        new ButtonBuilder()
-                            .setCustomId('monster_run')
-                            .setLabel('🏃 Run Away')
-                            .setStyle(ButtonStyle.Secondary)
-                    );
-
-                await i.update({ embeds: [nextEmbed], components: [nextRow] });
-                continueCollector.stop();
-            }
-        });
-
-        return;
-    }
-
-    // Monster attacks back
-    const monsterFinalDamage = Math.max(1, monsterStats.damage - quest.data.playerArmor.defense);
-    quest.data.playerHealth -= monsterFinalDamage;
-    quest.data.playerHealth = Math.max(0, quest.data.playerHealth);
-
-    battleText += `\nThe ${currentMonster} retaliates for ${monsterFinalDamage} damage!`;
-
-    // Check if player died
-    if (quest.data.playerHealth <= 0) {
-        await endQuest(interaction, userId, false, "You were defeated in combat!", activeQuests);
-        collector.stop();
-        return;
-    }
-
-    // Combat continues
-    const embed = new EmbedBuilder()
-        .setTitle(`⚔️ AMBUSH - ${currentMonster} (${quest.data.round}/2)`)
-        .setColor("#FF0000")
-        .setDescription(`${battleText}\n\nThe battle continues!`)
-        .addFields(
-            { name: "Your Health", value: `${quest.data.playerHealth}/${quest.data.playerMaxHealth} HP`, inline: true },
-            { name: "Your Weapon", value: quest.data.playerWeapon?.name || "Unknown", inline: true },
-            { name: "Your Armor", value: quest.data.playerArmor?.name || "Unknown", inline: true },
-            { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
-            { name: "Enemy", value: currentMonster || "Unknown", inline: true }
-        );
-
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('monster_attack')
-                .setLabel('⚔️ Attack')
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId('monster_run')
-                .setLabel('🏃 Run Away')
-                .setStyle(ButtonStyle.Secondary)
-        );
-
-    await interaction.update({ embeds: [embed], components: [row] });
+    await handleCombatRound(interaction, userId, combatData, 'monster', collector, null, activeQuests);
 }
 
 // Helper function to get monster stats scaled to player combat level
@@ -313,5 +168,6 @@ async function getBestArmor(userId) {
 }
 
 module.exports = {
-    startMonsterQuest
+    startMonsterQuest,
+    getMonsterStats
 };

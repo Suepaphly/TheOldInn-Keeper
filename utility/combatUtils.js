@@ -1,4 +1,3 @@
-
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
 async function updateInteractionSafely(interaction, options) {
@@ -42,7 +41,7 @@ async function handleCombatRound(interaction, userId, combatData, combatType, co
     const playerCombatDamage = combatData.combatLevel + 1;
     const playerWeaponDamage = Math.floor(Math.random() * (combatData.playerWeapon.maxDamage - combatData.playerWeapon.minDamage + 1)) + combatData.playerWeapon.minDamage;
     const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
-    
+
     let enemyDefense = 0;
     if (combatType === 'vengeance') {
         enemyDefense = 0; // No armor for vengeance enemy
@@ -52,7 +51,7 @@ async function handleCombatRound(interaction, userId, combatData, combatType, co
         // For other combat types, calculate defense based on enemy stats
         enemyDefense = combatData.monsterDefense || 0;
     }
-    
+
     const playerFinalDamage = Math.max(1, playerTotalDamage - enemyDefense);
 
     // Apply damage to enemy
@@ -79,7 +78,7 @@ async function handleCombatRound(interaction, userId, combatData, combatType, co
     } else {
         enemyDamage = combatData.monsterDamage || 2;
     }
-    
+
     const enemyFinalDamage = Math.max(1, enemyDamage - combatData.playerArmor.defense);
     combatData.playerHealth -= enemyFinalDamage;
     combatData.playerHealth = Math.max(0, combatData.playerHealth);
@@ -94,7 +93,7 @@ async function handleCombatRound(interaction, userId, combatData, combatType, co
         } else if (combatType === 'maze') {
             deathMessage = "You were defeated by the vine beast! Your quest ends in failure.";
         }
-        
+
         await endQuest(interaction, userId, false, deathMessage, activeQuests);
         collector.stop();
         if (parentCollector) parentCollector.stop();
@@ -103,7 +102,7 @@ async function handleCombatRound(interaction, userId, combatData, combatType, co
 
     // Combat continues - create embed and buttons
     const { embed, row } = createCombatEmbed(combatData, combatType, battleText);
-    
+
     await updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 }
 
@@ -112,7 +111,7 @@ async function handleCombatVictory(interaction, userId, combatData, combatType, 
         // Vengeance victory - give rewards and continue quest
         const { QuickDB } = require("quick.db");
         const db = new QuickDB();
-        
+
         await db.add(`money_${userId}`, 25);
         await db.add(`weapon_pistol_${userId}`, 1);
 
@@ -138,7 +137,7 @@ async function handleCombatVictory(interaction, userId, combatData, combatType, 
     } else {
         // Regular quest combat victory
         const { completeQuest } = require('../commands/quest.js');
-        
+
         let victoryTitle, victoryDescription;
         if (combatType === 'maze') {
             victoryTitle = "🌿 HEDGE MAZE - VICTORY!";
@@ -183,9 +182,12 @@ async function handleCombatVictory(interaction, userId, combatData, combatType, 
 }
 
 function createCombatEmbed(combatData, combatType, battleText) {
-    let title, enemyName, enemyHealth, enemyMaxHealth;
-    
-    if (combatType === 'vengeance') {
+    let title, description;
+
+    if (combatType === 'monster') {
+        title = `⚔️ AMBUSH - ${combatData.monsterName} (${combatData.round}/2)`;
+        description = `${battleText}\n\nThe battle continues!`;
+    } else if (combatType === 'vengeance') {
         title = `⚔️ VENGEANCE COMBAT - Round ${combatData.round}`;
         enemyName = "Pistol";
         enemyHealth = combatData.vengeanceHealth;
@@ -205,28 +207,81 @@ function createCombatEmbed(combatData, combatType, battleText) {
     const embed = new EmbedBuilder()
         .setTitle(title)
         .setColor("#FF0000")
-        .setDescription(`${battleText}\n\nThe battle continues!`)
-        .addFields(
+        .setDescription(description);
+
+    if (combatType === 'monster') {
+        embed.addFields(
+            { name: "Your Health", value: `${combatData.playerHealth}/${combatData.playerMaxHealth} HP`, inline: true },
+            { name: "Your Weapon", value: combatData.playerWeapon?.name || "Unknown", inline: true },
+            { name: "Your Armor", value: combatData.playerArmor?.name || "Unknown", inline: true },
+            { name: "Enemy Health", value: `${combatData.monsterHealth}/${combatData.monsterMaxHealth} HP`, inline: true },
+            { name: "Enemy", value: combatData.monsterName || "Unknown", inline: true }
+        );
+    } else if (combatType === 'vengeance') {
+        embed.addFields(
             { name: "Your Health", value: `${combatData.playerHealth}/${combatData.playerMaxHealth} HP`, inline: true },
             { name: "Your Weapon", value: combatData.playerWeapon.name, inline: true },
             { name: "Your Armor", value: combatData.playerArmor.name, inline: true },
             { name: "Enemy Health", value: `${enemyHealth}/${enemyMaxHealth} HP`, inline: true },
             { name: "Enemy Weapon", value: enemyName, inline: true }
         );
+    } else {
+        embed.addFields(
+            { name: "Your Health", value: `${combatData.playerHealth}/${combatData.playerMaxHealth} HP`, inline: true },
+            { name: "Your Weapon", value: combatData.playerWeapon.name, inline: true },
+            { name: "Your Armor", value: combatData.playerArmor.name, inline: true },
+            { name: "Enemy Health", value: `${enemyHealth}/${enemyMaxHealth} HP`, inline: true },
+            { name: "Enemy Weapon", value: enemyName, inline: true }
+        );
+    }
 
-    const customId = combatType === 'vengeance' ? 'vengeance' : combatType === 'maze' ? 'maze_combat' : 'combat';
-    
-    const row = new ActionRowBuilder()
-        .addComponents(
+    const row = new ActionRowBuilder();
+
+    if (combatType === 'monster') {
+        row.addComponents(
             new ButtonBuilder()
-                .setCustomId(`${customId}_attack`)
+                .setCustomId('monster_attack')
                 .setLabel('⚔️ Attack')
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
-                .setCustomId(`${customId}_run`)
+                .setCustomId('monster_run')
                 .setLabel('🏃 Run Away')
                 .setStyle(ButtonStyle.Secondary)
         );
+    } else if (combatType === 'vengeance') {
+        row.addComponents(
+            new ButtonBuilder()
+                .setCustomId('vengeance_attack')
+                .setLabel('⚔️ Attack')
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('vengeance_run')
+                .setLabel('🏃 Run Away')
+                .setStyle(ButtonStyle.Secondary)
+        );
+    } else if (combatType === 'maze') {
+        row.addComponents(
+            new ButtonBuilder()
+                .setCustomId('maze_combat_attack')
+                .setLabel('⚔️ Attack')
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('maze_combat_run')
+                .setLabel('🏃 Run Away')
+                .setStyle(ButtonStyle.Secondary)
+        );
+    } else {
+        row.addComponents(
+            new ButtonBuilder()
+                .setCustomId('combat_attack')
+                .setLabel('⚔️ Attack')
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('combat_run')
+                .setLabel('🏃 Run Away')
+                .setStyle(ButtonStyle.Secondary)
+        );
+    }
 
     return { embed, row };
 }
