@@ -328,16 +328,21 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
             );
 
         try {
-            await interaction.update({ embeds: [embed], components: [] });
-        } catch (error) {
-            if (error.code === 10062) {
-                // Interaction expired, send a new message instead
-                await interaction.followUp({ embeds: [embed], components: [] });
-            } else {
-                console.error('Error updating interaction:', error);
-                throw error;
+                // Check if interaction has already been replied to or deferred
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.editReply({ embeds: [embed], components: [] });
+                } else {
+                    await interaction.update({ embeds: [embed], components: [] });
+                }
+            } catch (error) {
+                if (error.code === 10062 || error.code === 'InteractionNotReplied') {
+                    // Interaction expired or not replied, send a new message instead
+                    await interaction.followUp({ embeds: [embed], components: [] });
+                } else {
+                    console.error('Error updating interaction:', error);
+                    throw error;
+                }
             }
-        }
 
         // Add a continue button for better pacing
         setTimeout(() => {
@@ -401,10 +406,15 @@ async function endQuest(interaction, userId, success, message, activeQuests) {
         .setDescription(message);
 
     try {
-        await interaction.update({ embeds: [embed], components: [] });
+        // Check if interaction has already been replied to or deferred
+        if (interaction.replied || interaction.deferred) {
+            await interaction.editReply({ embeds: [embed], components: [] });
+        } else {
+            await interaction.update({ embeds: [embed], components: [] });
+        }
     } catch (error) {
-        if (error.code === 10062) {
-            // Interaction expired, send a new message instead
+        if (error.code === 10062 || error.code === 'InteractionNotReplied') {
+            // Interaction expired or not replied, send a new message instead
             await interaction.followUp({ embeds: [embed], components: [] });
         } else {
             console.error('Error updating interaction:', error);

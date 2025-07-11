@@ -107,6 +107,15 @@ async function handleMonsterCombat(interaction, userId, collector, activeQuests)
 
         if (quest.data.round > 2) {
             // Monster quest complete!
+            // First reply to the interaction to avoid InteractionNotReplied error
+            const embed = new EmbedBuilder()
+                .setTitle("⚔️ AMBUSH COMPLETE!")
+                .setColor("#00FF00")
+                .setDescription(`${battleText}\n\n**All monsters defeated!** You have successfully completed the ambush quest.`);
+
+            await interaction.update({ embeds: [embed], components: [] });
+            
+            // Now complete the quest
             await completeQuest(interaction, userId, activeQuests);
             collector.stop();
             return;
