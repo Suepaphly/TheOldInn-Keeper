@@ -22,7 +22,7 @@ module.exports.run = async (client, message, args) => {
       },
       { 
         name: "⚔️ Join Battle", 
-        value: "`=attack` - Fight monsters\n`=shop` - Buy weapons/armor\n`=backpack` - Check inventory", 
+        value: "`=attack` - Fight monsters\n`=shop` - Buy weapons/armor\n`=backpack` - Check inventory (5 item limit)", 
         inline: true 
       },
       { 
@@ -91,12 +91,12 @@ module.exports.run = async (client, message, args) => {
       },
       { 
         name: "💰 Economy & Skills", 
-        value: "• **Earning**: gather, hunt, fish, craft, work (all have cooldowns)\n• **Gambling**: blackjack, craps, slots, poker, roulette\n• **Skills**: Level up with `=lvl [skill]` to improve rewards\n• **PvP**: Rob other players or fight them directly", 
+        value: "• **Earning**: gather, hunt, fish, craft, work (all have cooldowns)\n• **Gambling**: blackjack, craps, slots, poker, roulette\n• **Skills**: Level up with `=lvl [skill]` to improve rewards\n• **Trading**: Send items with `=send @user [item]`, sell with `=shop sell [item]`\n• **PvP**: Rob other players or fight them directly", 
         inline: false 
       },
       { 
         name: "🛡️ Survival Tips", 
-        value: "• Bank your kopeks regularly for safety\n• Buy defenses early and often\n• Level up skills for better earning potential\n• Participate in battles to earn bounties\n• Check `=map` and `=townstatus` regularly", 
+        value: "• Bank your kopeks regularly for safety\n• Buy defenses early and often\n• Level up skills for better earning potential\n• Participate in battles to earn bounties\n• Manage your 5-item backpack limit with `=shop sell [item]`\n• Check `=map` and `=townstatus` regularly", 
         inline: false 
       }
     )
@@ -112,6 +112,8 @@ module.exports.run = async (client, message, args) => {
       { name: "=bank [amount]", value: "Check balance & deposit kopeks (SAFE from monsters!)", inline: false },
       { name: "=withdraw [amount]", value: "Withdraw kopeks from bank to wallet", inline: true },
       { name: "=pay [user] [amount]", value: "Pay another user kopeks from wallet", inline: true },
+      { name: "=send @user [item]", value: "Send weapons/armor to another player", inline: true },
+      { name: "=shop sell [item]", value: "Sell items for 50% of purchase price", inline: true },
       { name: "=top", value: "See top wallets leaderboard", inline: true },
       { name: "=daily", value: "Receive daily 100 kopeks", inline: true },
       { name: "=beg", value: "Beg for kopeks (small chance)", inline: true },
@@ -171,10 +173,13 @@ module.exports.run = async (client, message, args) => {
     .addFields(
       { name: "=attack", value: "Deal damage to monsters during battle (once per turn, 5 sec intervals)", inline: false },
       { name: "=shop", value: "Browse and buy weapons, armor, and combat items", inline: true },
-      { name: "=backpack", value: "View your inventory and equipped items", inline: true },
+      { name: "=shop sell [item]", value: "Sell items for 50% of their original value", inline: true },
+      { name: "=backpack", value: "View your inventory and equipped items (5 item limit)", inline: true },
+      { name: "=send @user [item]", value: "Send weapons or armor to another player", inline: true },
       { name: "=attackplayer [user]", value: "Challenge another player to PvP combat", inline: true },
       { name: "=violate [user]", value: "Humiliate another player (4 rounds, attacker takes no damage)", inline: true },
       { name: "=revive [user]", value: "Revive a dead player for 1000 kopeks", inline: true },
+      { name: "Backpack Rules", value: "• Maximum 5 items per player\n• Use `=shop sell [item]` to make space\n• Cannot receive items if backpack is full", inline: false },
       { name: "Combat Info", value: "• Health: 5 base + 2 per combat level\n• Weapons: knife (1-3), sword (2-4), pistol (3-5) + combat level bonus\n• Dead players cannot act for 24 hours", inline: false }
     );
 
