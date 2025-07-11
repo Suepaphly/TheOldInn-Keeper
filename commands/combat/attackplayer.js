@@ -2,6 +2,7 @@ const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
 const cron = require("node-cron");
+const { canAddToBackpack, getBackpackFullMessage } = require("../../utility/backpackUtils.js");
 
 // Store active battles
 const activeBattles = new Map();
@@ -270,14 +271,41 @@ async function handleBattleEnd(message, battleData, client) {
     const loserBestWeapon = await getBestWeapon(loser.id);
     const loserBestArmor = await getBestArmor(loser.id);
 
+    let itemsToTransfer = 0;
+    if (loserBestWeapon.type !== "none") itemsToTransfer++;
+    if (loserBestArmor.type !== "none") itemsToTransfer++;
+
+    let transferredItems = [];
+    let droppedItems = [];
+
     if (loserBestWeapon.type !== "none") {
-        await db.sub(`weapon_${loserBestWeapon.type}_${loser.id}`, 1);
-        await db.add(`weapon_${loserBestWeapon.type}_${winner.id}`, 1);
+        if (await canAddToBackpack(winner.id)) {
+            await db.sub(`weapon_${loserBestWeapon.type}_${loser.id}`, 1);
+            await db.add(`weapon_${loserBestWeapon.type}_${winner.id}`, 1);
+            transferredItems.push(loserBestWeapon.name);
+        } else {
+            await db.sub(`weapon_${loserBestWeapon.type}_${loser.id}`, 1);
+            droppedItems.push(loserBestWeapon.name);
+        }
     }
 
     if (loserBestArmor.type !== "none") {
-        await db.sub(`armor_${loserBestArmor.type}_${loser.id}`, 1);
-        await db.add(`armor_${loserBestArmor.type}_${winner.id}`, 1);
+        if (await canAddToBackpack(winner.id)) {
+            await db.sub(`armor_${loserBestArmor.type}_${loser.id}`, 1);
+            await db.add(`armor_${loserBestArmor.type}_${winner.id}`, 1);
+            transferredItems.push(loserBestArmor.name);
+        } else {
+            await db.sub(`armor_${loserBestArmor.type}_${loser.id}`, 1);
+            droppedItems.push(loserBestArmor.name);
+        }
+    }
+
+    let spoilsText = `💰 Kopeks Stolen: ${loserMoney.toLocaleString()}`;
+    if (transferredItems.length > 0) {
+        spoilsText += `\n🎒 Items Taken: ${transferredItems.join(', ')}`;
+    }
+    if (droppedItems.length > 0) {
+        spoilsText += `\n💔 Items Lost (backpack full): ${droppedItems.join(', ')}`;
     }
 
     const embed = new Discord.EmbedBuilder()
@@ -287,7 +315,7 @@ async function handleBattleEnd(message, battleData, client) {
         .addFields(
             {
                 name: "Spoils of War",
-                value: `💰 Kopeks Stolen: ${loserMoney.toLocaleString()}\n🗡️ Weapon Taken: ${loserBestWeapon.name}\n🛡️ Armor Taken: ${loserBestArmor.name}`,
+                value: spoilsText,
                 inline: false
             },
             {
@@ -296,6 +324,14 @@ async function handleBattleEnd(message, battleData, client) {
                 inline: false
             }
         );
+
+    if (droppedItems.length > 0) {
+        embed.addFields({
+            name: "💡 Tip",
+            value: `Use \`=shop sell [item]\` to make backpack space for future battles!`,
+            inline: false
+        });
+    }
 
     message.channel.send({ embeds: [embed] });
 }

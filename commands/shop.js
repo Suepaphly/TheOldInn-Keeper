@@ -2,6 +2,28 @@ const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
 
+// Utility function to check if the user can add to their backpack
+async function canAddToBackpack(userId) {
+    const weaponCounts = await db.get(`weapon_${userId}`) || {};
+    const armorCounts = await db.get(`armor_${userId}`) || {};
+
+    let totalItems = 0;
+
+    for (const weapon in weaponCounts) {
+        totalItems += weaponCounts[weapon];
+    }
+    for (const armor in armorCounts) {
+        totalItems += armorCounts[armor];
+    }
+
+    return totalItems < 5;
+}
+
+// Utility function to get the backpack full message
+function getBackpackFullMessage() {
+    return `🎒 Your backpack is full! You can only carry 5 items. Please sell some items using \`=sell\` before acquiring more.`;
+}
+
 module.exports.run = async (client, message, args) => {
     // Check if town is under attack
     const ptt = require("../utility/protectTheTavern.js");
@@ -67,11 +89,15 @@ module.exports.run = async (client, message, args) => {
                 );
             }
 
+            if (!(await canAddToBackpack(user.id))) {
+                return message.channel.send(getBackpackFullMessage());
+            }
+
             await db.sub(`money_${user.id}`, weapons[item].cost);
             await db.add(`weapon_${item}_${user.id}`, 1);
 
             message.channel.send(
-                `⚔️ You purchased a ${weapons[item].name} for ${weapons[item].cost.toLocaleString()} kopeks!`,
+                `✅ You bought a ${weapons[item].name} for ${weapons[item].cost.toLocaleString()} kopeks!`,
             );
         } else if (armor[item]) {
             if (money < armor[item].cost) {
@@ -80,11 +106,15 @@ module.exports.run = async (client, message, args) => {
                 );
             }
 
+            if (!(await canAddToBackpack(user.id))) {
+                return message.channel.send(getBackpackFullMessage());
+            }
+
             await db.sub(`money_${user.id}`, armor[item].cost);
             await db.add(`armor_${item}_${user.id}`, 1);
 
             message.channel.send(
-                `🛡️ You purchased ${armor[item].name} for ${armor[item].cost.toLocaleString()} kopeks!`,
+                `✅ You bought ${armor[item].name} for ${armor[item].cost.toLocaleString()} kopeks!`,
             );
         } else {
             message.channel.send(

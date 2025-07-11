@@ -1,6 +1,7 @@
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
+const { canAddToBackpack, getBackpackFullMessage } = require("../../utility/backpackUtils.js");
 
 // Store active pranks
 const activePranks = new Map();
@@ -302,26 +303,55 @@ async function handlePrankFailed(message, prankData, client) {
     const pranksterBestWeapon = await getBestWeapon(prankData.prankster.id);
     const pranksterBestArmor = await getBestArmor(prankData.prankster.id);
 
+    let transferredItems = [];
+    let droppedItems = [];
+
     if (pranksterBestWeapon.type !== "none") {
-        await db.sub(
-            `weapon_${pranksterBestWeapon.type}_${prankData.prankster.id}`,
-            1,
-        );
-        await db.add(
-            `weapon_${pranksterBestWeapon.type}_${prankData.target.id}`,
-            1,
-        );
+        if (await canAddToBackpack(prankData.target.id)) {
+            await db.sub(
+                `weapon_${pranksterBestWeapon.type}_${prankData.prankster.id}`,
+                1,
+            );
+            await db.add(
+                `weapon_${pranksterBestWeapon.type}_${prankData.target.id}`,
+                1,
+            );
+            transferredItems.push(pranksterBestWeapon.name);
+        } else {
+            await db.sub(
+                `weapon_${pranksterBestWeapon.type}_${prankData.prankster.id}`,
+                1,
+            );
+            droppedItems.push(pranksterBestWeapon.name);
+        }
     }
 
     if (pranksterBestArmor.type !== "none") {
-        await db.sub(
-            `armor_${pranksterBestArmor.type}_${prankData.prankster.id}`,
-            1,
-        );
-        await db.add(
-            `armor_${pranksterBestArmor.type}_${prankData.target.id}`,
-            1,
-        );
+        if (await canAddToBackpack(prankData.target.id)) {
+            await db.sub(
+                `armor_${pranksterBestArmor.type}_${prankData.prankster.id}`,
+                1,
+            );
+            await db.add(
+                `armor_${pranksterBestArmor.type}_${prankData.target.id}`,
+                1,
+            );
+            transferredItems.push(pranksterBestArmor.name);
+        } else {
+            await db.sub(
+                `armor_${pranksterBestArmor.type}_${prankData.prankster.id}`,
+                1,
+            );
+            droppedItems.push(pranksterBestArmor.name);
+        }
+    }
+
+    let justiceText = `💰 Kopeks Stolen: ${pranksterMoney.toLocaleString()}`;
+    if (transferredItems.length > 0) {
+        justiceText += `\n🎒 Items Taken: ${transferredItems.join(', ')}`;
+    }
+    if (droppedItems.length > 0) {
+        justiceText += `\n💔 Items Lost (backpack full): ${droppedItems.join(', ')}`;
     }
 
     const embed = new Discord.EmbedBuilder()
@@ -333,7 +363,7 @@ async function handlePrankFailed(message, prankData, client) {
         .addFields(
             {
                 name: "Justice Served!",
-                value: `💰 Kopeks Stolen: ${pranksterMoney.toLocaleString()}\n🗡️ Weapon Taken: ${pranksterBestWeapon.name}\n🛡️ Armor Taken: ${pranksterBestArmor.name}`,
+                value: justiceText,
                 inline: false,
             },
             {
@@ -342,6 +372,14 @@ async function handlePrankFailed(message, prankData, client) {
                 inline: false,
             },
         );
+
+    if (droppedItems.length > 0) {
+        embed.addFields({
+            name: "💡 Tip",
+            value: `Use \`=shop sell [item]\` to make backpack space!`,
+            inline: false
+        });
+    }
 
     message.channel.send({ embeds: [embed] });
 }

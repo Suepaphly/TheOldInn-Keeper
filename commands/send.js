@@ -2,6 +2,7 @@
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
+const { canAddToBackpack, getBackpackFullMessage } = require("../utility/backpackUtils.js");
 
 module.exports.run = async (client, message, args) => {
     // Check if town is under attack
@@ -62,6 +63,12 @@ module.exports.run = async (client, message, args) => {
             );
         }
 
+        if (!(await canAddToBackpack(target.id))) {
+            return message.channel.send(
+                `❌ ${target.username}'s backpack is full! They can only carry 5 items.`,
+            );
+        }
+
         await db.sub(`weapon_${itemLower}_${user.id}`, 1);
         await db.add(`weapon_${itemLower}_${target.id}`, 1);
 
@@ -95,6 +102,12 @@ module.exports.run = async (client, message, args) => {
         if (userArmorCount <= 0) {
             return message.channel.send(
                 `❌ You don't have any ${armor[itemLower].name} to send!`,
+            );
+        }
+
+        if (!(await canAddToBackpack(target.id))) {
+            return message.channel.send(
+                `❌ ${target.username}'s backpack is full! They can only carry 5 items.`,
             );
         }
 
