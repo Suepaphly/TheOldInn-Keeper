@@ -73,39 +73,4 @@ module.exports.run = async (client, message, args) => {
 module.exports.help = {
     name: "endquest",
     aliases: ["forceendquest", "stopquest"]
-};id}`);
-
-        const embed = new Discord.EmbedBuilder()
-            .setTitle("⚡ Quest Force Ended")
-            .setColor("#FF6600")
-            .setDescription(`${target.username}'s quest has been forcibly ended by the bot owner.`)
-            .addFields(
-                { name: "Target User", value: target.username, inline: true },
-                { name: "Ended By", value: message.author.username, inline: true }
-            );
-
-        message.channel.send({ embeds: [embed] });
-
-        // Try to notify the user if possible
-        try {
-            const dmEmbed = new Discord.EmbedBuilder()
-                .setTitle("🛑 Quest Terminated")
-                .setColor("#FF0000")
-                .setDescription("Your quest has been forcibly ended by the bot administrator. You can start a new quest when ready.");
-            
-            await target.send({ embeds: [dmEmbed] });
-        } catch (err) {
-            // User has DMs disabled or bot can't DM them
-            console.log(`Could not DM ${target.username} about quest termination`);
-        }
-
-    } catch (error) {
-        console.error("Error ending quest:", error);
-        message.channel.send("❌ An error occurred while trying to end the quest. The user may not be on a quest or there was a database error.");
-    }
-};
-
-module.exports.help = {
-    name: "endquest",
-    aliases: ["forceendquest", "stopquest"]
 };
