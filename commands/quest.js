@@ -490,7 +490,8 @@ async function startDebugQuest(message, userId, questType) {
 
 module.exports.help = {
     name: "quest",
-    aliases: ["q", "adventure"]
+    aliases: ["q", "adventure"],
+    enabled: true
 };
 
 module.exports.isOnQuest = isOnQuest;

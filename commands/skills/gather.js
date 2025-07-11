@@ -12,6 +12,17 @@ module.exports.run = async (client, message, args) => {
     );
   }
 
+  // Check if user is on a quest
+  try {
+    const { isOnQuest } = require("../quest.js");
+    const onQuest = await isOnQuest(message.author.id);
+    if (onQuest) {
+      return message.channel.send("❌ You cannot gather while on a quest! Complete your quest first.");
+    }
+  } catch (error) {
+    // Quest system not available, continue normally
+  }
+
   let ms;
   try {
     ms = (await import("parse-ms")).default;
