@@ -48,13 +48,13 @@ const questTypes = {
 };
 
 module.exports.run = async (client, message, args) => {
-    // Quest command is temporarily disabled
-    return message.channel.send("🚧 The quest system is temporarily disabled for maintenance. Please try again later!");
-
     const userId = message.author.id;
 
     // Check for debug mode (owner only) - Replace '217069557263286273' with your actual Discord user ID
-    if (args[0] === 'debug') { // Temporarily removed owner check for testing
+    if (args[0] === 'debug') {
+        if (userId !== '217069557263286273') { // Replace with your actual Discord user ID
+            return message.channel.send("❌ This command is owner-only!");
+        }
         if (!args[1]) {
             const debugEmbed = new EmbedBuilder()
                 .setTitle("🔧 QUEST DEBUG COMMANDS")
