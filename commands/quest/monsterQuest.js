@@ -115,7 +115,6 @@ async function handleMonsterCombat(interaction, userId, collector, activeQuests)
 
         if (quest.data.round > 2) {
             // Monster quest complete!
-            // First reply to the interaction to avoid InteractionNotReplied error
             const embed = new EmbedBuilder()
                 .setTitle("⚔️ AMBUSH COMPLETE!")
                 .setColor("#00FF00")
@@ -123,8 +122,11 @@ async function handleMonsterCombat(interaction, userId, collector, activeQuests)
 
             await interaction.update({ embeds: [embed], components: [] });
             
-            // Now complete the quest
-            await completeQuest(interaction, userId, activeQuests);
+            // Complete the quest after a short delay to ensure interaction is properly handled
+            setTimeout(async () => {
+                await completeQuest(interaction, userId, activeQuests);
+            }, 1000);
+            
             collector.stop();
             return;
         }
