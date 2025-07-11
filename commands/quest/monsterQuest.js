@@ -31,10 +31,10 @@ async function startMonsterQuest(interaction, userId, activeQuests) {
         .setDescription(`You are ambushed by a **${currentMonster}**!`)
         .addFields(
             { name: "Your Health", value: `${quest.data.playerHealth}/${quest.data.playerMaxHealth} HP`, inline: true },
-            { name: "Your Weapon", value: quest.data.playerWeapon.name, inline: true },
-            { name: "Your Armor", value: quest.data.playerArmor.name, inline: true },
+            { name: "Your Weapon", value: quest.data.playerWeapon?.name || "Unknown", inline: true },
+            { name: "Your Armor", value: quest.data.playerArmor?.name || "Unknown", inline: true },
             { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
-            { name: "Enemy", value: currentMonster, inline: true }
+            { name: "Enemy", value: currentMonster || "Unknown", inline: true }
         );
 
     const row = new ActionRowBuilder()
@@ -149,10 +149,10 @@ async function handleMonsterCombat(interaction, userId, collector, activeQuests)
                     .setDescription(`You advance to the next monster.\n\nA **${nextMonster}** appears!`)
                     .addFields(
                         { name: "Your Health", value: `${quest.data.playerHealth}/${quest.data.playerMaxHealth} HP`, inline: true },
-                        { name: "Your Weapon", value: quest.data.playerWeapon.name, inline: true },
-                        { name: "Your Armor", value: quest.data.playerArmor.name, inline: true },
+                        { name: "Your Weapon", value: quest.data.playerWeapon?.name || "Unknown", inline: true },
+                        { name: "Your Armor", value: quest.data.playerArmor?.name || "Unknown", inline: true },
                         { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
-                        { name: "Enemy", value: nextMonster, inline: true }
+                        { name: "Enemy", value: nextMonster || "Unknown", inline: true }
                     );
 
                 const nextRow = new ActionRowBuilder()
@@ -196,10 +196,10 @@ async function handleMonsterCombat(interaction, userId, collector, activeQuests)
         .setDescription(`${battleText}\n\nThe battle continues!`)
         .addFields(
             { name: "Your Health", value: `${quest.data.playerHealth}/${quest.data.playerMaxHealth} HP`, inline: true },
-            { name: "Your Weapon", value: quest.data.playerWeapon.name, inline: true },
-            { name: "Your Armor", value: quest.data.playerArmor.name, inline: true },
+            { name: "Your Weapon", value: quest.data.playerWeapon?.name || "Unknown", inline: true },
+            { name: "Your Armor", value: quest.data.playerArmor?.name || "Unknown", inline: true },
             { name: "Enemy Health", value: `${quest.data.currentMonsterHealth}/${quest.data.currentMonsterMaxHealth} HP`, inline: true },
-            { name: "Enemy", value: currentMonster, inline: true }
+            { name: "Enemy", value: currentMonster || "Unknown", inline: true }
         );
 
     const row = new ActionRowBuilder()
