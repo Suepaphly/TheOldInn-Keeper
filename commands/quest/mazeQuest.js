@@ -53,7 +53,21 @@ async function startMazeQuest(interaction, userId, activeQuests) {
     }
 
     const filter = (i) => i.user.id === userId;
-    const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+    
+    // Get the message from the interaction response
+    let message;
+    try {
+        if (interaction.replied || interaction.deferred) {
+            message = await interaction.fetchReply();
+        } else {
+            message = interaction.message;
+        }
+    } catch (error) {
+        console.error('Error getting message for collector:', error);
+        return;
+    }
+    
+    const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
         await handleMazeChoice(i, userId, collector, activeQuests);
@@ -195,7 +209,21 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
     // Set up maze combat collector
     const filter = (i) => i.user.id === userId;
-    const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+    
+    // Get the message from the interaction response
+    let message;
+    try {
+        if (interaction.replied || interaction.deferred) {
+            message = await interaction.fetchReply();
+        } else {
+            message = interaction.message;
+        }
+    } catch (error) {
+        console.error('Error getting message for maze combat collector:', error);
+        return;
+    }
+    
+    const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
         await handleMazeCombatAttack(i, userId, collector, parentCollector, activeQuests);
@@ -250,7 +278,21 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
 
         // Set up collector for continue button
         const filter = (i) => i.user.id === userId;
-        const continueCollector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+        
+        // Get the message from the interaction response
+        let message;
+        try {
+            if (interaction.replied || interaction.deferred) {
+                message = await interaction.fetchReply();
+            } else {
+                message = interaction.message;
+            }
+        } catch (error) {
+            console.error('Error getting message for continue collector:', error);
+            return;
+        }
+        
+        const continueCollector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
         continueCollector.on('collect', async (i) => {
             if (i.customId === 'maze_victory_continue') {
