@@ -50,12 +50,18 @@ async function startMonsterQuest(interaction, userId, activeQuests) {
         );
 
     try {
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        // First check if interaction has been replied to, if not, reply instead of edit
+        if (interaction.replied || interaction.deferred) {
+            await interaction.editReply({ embeds: [embed], components: [row] });
+        } else {
+            await interaction.update({ embeds: [embed], components: [row] });
+        }
     } catch (error) {
-        if (error.code === 10062) {
+        if (error.code === 10062 || error.code === 'InteractionNotReplied') {
+            // Interaction expired or not replied, send a new message instead
             await interaction.followUp({ embeds: [embed], components: [row] });
         } else {
-            console.error('Error editing reply:', error);
+            console.error('Error with interaction:', error);
             throw error;
         }
     }
