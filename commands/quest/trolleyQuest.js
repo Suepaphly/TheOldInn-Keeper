@@ -1,4 +1,3 @@
-
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -74,12 +73,18 @@ async function startTrolleyQuest(interaction, userId, activeQuests) {
         );
 
     try {
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        // Check if interaction has already been replied to or deferred
+        if (interaction.replied || interaction.deferred) {
+            await interaction.editReply({ embeds: [embed], components: [row] });
+        } else {
+            await interaction.update({ embeds: [embed], components: [row] });
+        }
     } catch (error) {
-        if (error.code === 10062) {
+        if (error.code === 10062 || error.code === 'InteractionNotReplied') {
+            // Interaction expired or not replied, send a new message instead
             await interaction.followUp({ embeds: [embed], components: [row] });
         } else {
-            console.error('Error editing reply:', error);
+            console.error('Error with interaction:', error);
             throw error;
         }
     }
