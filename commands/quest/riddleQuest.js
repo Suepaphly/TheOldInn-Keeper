@@ -155,15 +155,16 @@ async function startRiddleQuest(interaction, userId, activeQuests) {
                 .setStyle(ButtonStyle.Secondary)
         );
 
+    let riddleMessage;
     try {
         if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ embeds: [embed], components: [row] });
+            riddleMessage = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
         } else {
-            await interaction.editReply({ embeds: [embed], components: [row] });
+            riddleMessage = await interaction.editReply({ embeds: [embed], components: [row] });
         }
     } catch (error) {
         if (error.code === 10062 || error.code === 'InteractionNotReplied') {
-            await interaction.followUp({ embeds: [embed], components: [row] });
+            riddleMessage = await interaction.followUp({ embeds: [embed], components: [row] });
         } else {
             console.error('Error with interaction:', error);
             throw error;
@@ -171,7 +172,7 @@ async function startRiddleQuest(interaction, userId, activeQuests) {
     }
 
     const filter = (i) => i.user.id === userId;
-    const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+    const collector = riddleMessage.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
         await handleRiddleAnswer(i, userId, collector, activeQuests);
