@@ -414,8 +414,18 @@ async function endQuest(interaction, userId, success, message, activeQuests) {
         }
     } catch (error) {
         if (error.code === 10062 || error.code === 'InteractionNotReplied') {
-            // Interaction expired or not replied, send a new message instead
-            await interaction.followUp({ embeds: [embed], components: [] });
+            // Interaction expired or not replied, try to reply first then followUp
+            try {
+                await interaction.reply({ embeds: [embed], components: [] });
+            } catch (replyError) {
+                // If reply also fails, try deferring first then editing
+                try {
+                    await interaction.deferReply();
+                    await interaction.editReply({ embeds: [embed], components: [] });
+                } catch (deferError) {
+                    console.error('All interaction methods failed:', { error, replyError, deferError });
+                }
+            }
         } else {
             console.error('Error updating interaction:', error);
             throw error;
