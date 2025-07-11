@@ -1,0 +1,113 @@
+   const userId = message.author.id;
+
+    // Check for debug mode (owner only) - Replace '217069557263286273' with your actual Discord user ID
+    if (args[0] === 'debug') { // Temporarily removed owner check for testing
+        if (!args[1]) {
+            const debugEmbed = new EmbedBuilder()
+                .setTitle("🔧 QUEST DEBUG COMMANDS")
+                .setColor("#FFA500")
+                .setDescription("**Owner-only debug commands for testing individual quest types**\n\n**Available Quest Names:**\n• `monster` - Combat quest with 2 monsters\n• `riddle` - Ancient riddle solving quest\n• `maze` - Hedge maze navigation quest\n• `trolley` - Moral dilemma trolley problem")
+                .addFields(
+                    { name: "Usage", value: "`=quest debug <questname>`", inline: false },
+                    { name: "Quest Details", value: "🗡️ **monster** - Fight Goblin Scout → Orc Raider\n🧩 **riddle** - Solve 2 random riddles (death on failure)\n🌿 **maze** - Navigate 2-stage maze with traps/combat\n🚃 **trolley** - Face moral choices with vengeance risk", inline: false },
+                    { name: "Debug Features", value: "• Complete after 1 quest instead of 2\n• 30-minute timeout still applies\n• No real rewards given", inline: false }
+                );
+
+            return message.channel.send({ embeds: [debugEmbed] });
+        }
+
+        const questType = args[1].toLowerCase();
+        if (!questTypes[questType]) {
+            return message.channel.send("❌ Invalid quest type! Available: monster, riddle, maze, trolley");
+        }
+
+        // Start debug quest immediately
+        await startDebugQuest(message, userId, questType);
+        return;
+    }
+
+    // Check if user is already on a quest
+    if (activeQuests.has(userId)) {
+        return message.channel.send("❌ You are already on a quest! Complete it first before starting another.");
+    }
+
+    // Check if user is dead
+    const deathTimer = await db.get(`death_cooldown_${userId}`);
+    if (deathTimer && Date.now() - deathTimer < 86400000) { // 24 hours
+        return message.channel.send("💀 You cannot go on quests while dead! Use `=revive` first.");
+    }
+
+    // Create location selection embed
+    const embed = new EmbedBuilder()
+        .setTitle("🗺️ CHOOSE YOUR DESTINATION")
+        .setColor("#FFD700")
+        .setDescription("Select a location to explore. You must complete **TWO quests** to earn the 250 kopek reward!\n\n⚠️ Once started, you cannot engage in combat, gambling, or economic activities until completed!")
+        .addFields(
+            { name: locations.plains.name, value: `${locations.plains.description}\n*Leads to: ${locations.plains.second}*`, inline: false },
+            { name: locations.forest.name, value: `${locations.forest.description}\n*Leads to: ${locations.forest.second}*`, inline: false }
+        )
+        .setFooter({ text: "⏰ You have 30 minutes to complete once started!" });
+
+    // Create buttons
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('location_plains')
+                .setLabel('🌾 Wide Open Plains')
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('location_forest')
+                .setLabel('🌲 Dark Forest')
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId('quest_cancel')
+                .setLabel('❌ Cancel')
+                .setStyle(ButtonStyle.Secondary)
+        );
+
+    const questMessage = await message.channel.send({ 
+        embeds: [embed], 
+        components: [row] 
+    });
+
+    // Set up collector
+    const filter = (interaction) => {
+        return interaction.user.id === message.author.id;
+    };
+
+    const collector = questMessage.createMessageComponentCollector({
+        filter,
+        time: 60000 // 1 minute to choose
+    });
+
+    collector.on('collect', async (interaction) => {
+        if (interaction.customId === 'quest_cancel') {
+            await interaction.update({
+                embeds: [new EmbedBuilder()
+                    .setTitle("❌ Quest Cancelled")
+                    .setColor("#FF0000")
+                    .setDescription("You decided not to embark on a quest today.")],
+                components: []
+            });
+            collector.stop();
+            return;
+        }
+
+        // Start the selected location
+        const location = interaction.customId.replace('location_', '');
+        await startLocationQuest(interaction, location, userId);
+        collector.stop();
+    });
+
+    collector.on('end', (collected, reason) => {
+        if (reason === 'time' && !collected.size) {
+            questMessage.edit({
+                embeds: [new EmbedBuilder()
+                    .setTitle("⏰ Quest Selection Timeout")
+                    .setColor("#FF0000")
+                    .setDescription("You took too long to choose a location.")],
+                components: []
+            });
+        }
+    });
+};
