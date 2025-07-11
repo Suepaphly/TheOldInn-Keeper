@@ -54,20 +54,19 @@ async function handleCombatRound(interaction, userId, combatData, combatType, co
 
     const playerFinalDamage = Math.max(1, playerTotalDamage - enemyDefense);
 
-    // Apply damage to enemy
+    // Apply damage to enemy - use monsterHealth for all types for consistency
+    combatData.monsterHealth -= playerFinalDamage;
+    combatData.monsterHealth = Math.max(0, combatData.monsterHealth);
+    
+    // Also update vengeanceHealth for vengeance type for backward compatibility
     if (combatType === 'vengeance') {
-        combatData.vengeanceHealth -= playerFinalDamage;
-        combatData.vengeanceHealth = Math.max(0, combatData.vengeanceHealth);
-    } else {
-        combatData.monsterHealth -= playerFinalDamage;
-        combatData.monsterHealth = Math.max(0, combatData.monsterHealth);
+        combatData.vengeanceHealth = combatData.monsterHealth;
     }
 
     let battleText = `You attack for ${playerFinalDamage} damage!`;
 
     // Check if enemy is defeated
-    const enemyHealth = combatType === 'vengeance' ? combatData.vengeanceHealth : combatData.monsterHealth;
-    if (enemyHealth <= 0) {
+    if (combatData.monsterHealth <= 0) {
         return await handleCombatVictory(interaction, userId, combatData, combatType, collector, parentCollector, activeQuests, battleText);
     }
 
@@ -182,23 +181,29 @@ async function handleCombatVictory(interaction, userId, combatData, combatType, 
 }
 
 function createCombatEmbed(combatData, combatType, battleText) {
-    let title, description;
+    let title, description, enemyName, enemyHealth, enemyMaxHealth;
 
     if (combatType === 'monster') {
         title = `⚔️ AMBUSH - ${combatData.monsterName} (${combatData.round}/2)`;
         description = `${battleText}\n\nThe battle continues!`;
+        enemyName = combatData.monsterName || "Unknown";
+        enemyHealth = combatData.monsterHealth;
+        enemyMaxHealth = combatData.monsterMaxHealth;
     } else if (combatType === 'vengeance') {
         title = `⚔️ VENGEANCE COMBAT - Round ${combatData.round}`;
+        description = `${battleText}\n\nThe battle continues!`;
         enemyName = "Pistol";
-        enemyHealth = combatData.vengeanceHealth;
-        enemyMaxHealth = combatData.vengeanceMaxHealth;
+        enemyHealth = combatData.monsterHealth;
+        enemyMaxHealth = combatData.monsterMaxHealth;
     } else if (combatType === 'maze') {
         title = `🌿 HEDGE MAZE - VINE BEAST COMBAT - Round ${combatData.round}`;
+        description = `${battleText}\n\nThe battle continues!`;
         enemyName = "Vine Beast";
         enemyHealth = combatData.monsterHealth;
         enemyMaxHealth = combatData.monsterMaxHealth;
     } else {
         title = `⚔️ COMBAT - Round ${combatData.round}`;
+        description = `${battleText}\n\nThe battle continues!`;
         enemyName = "Enemy";
         enemyHealth = combatData.monsterHealth;
         enemyMaxHealth = combatData.monsterMaxHealth;

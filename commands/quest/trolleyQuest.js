@@ -192,6 +192,10 @@ async function startVengeanceCombat(interaction, userId, parentCollector, active
         combatLevel: combatLevel,
         vengeanceHealth: 7,
         vengeanceMaxHealth: 7,
+        monsterHealth: 7, // Add this for compatibility with combat utils
+        monsterMaxHealth: 7, // Add this for compatibility with combat utils
+        monsterDamage: 4, // Pistol damage
+        monsterDefense: 0, // No armor
         round: 0
     };
 
