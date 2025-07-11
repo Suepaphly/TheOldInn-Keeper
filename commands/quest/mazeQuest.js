@@ -273,34 +273,11 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
                     .setStyle(ButtonStyle.Primary)
             );
 
-        try {
-            await interaction.update({ embeds: [embed], components: [row] });
-        } catch (error) {
-            if (error.code === 10062 || error.code === 'InteractionNotReplied') {
-                await interaction.followUp({ embeds: [embed], components: [row] });
-            } else {
-                console.error('Error updating maze victory interaction:', error);
-                throw error;
-            }
-        }
+        await interaction.update({ embeds: [embed], components: [row] });
 
         // Set up collector for continue button
         const filter = (i) => i.user.id === userId;
-
-        // Get the message from the interaction response
-        let message;
-        try {
-            if (interaction.replied || interaction.deferred) {
-                message = await interaction.fetchReply();
-            } else {
-                message = interaction.message;
-            }
-        } catch (error) {
-            console.error('Error getting message for continue collector:', error);
-            return;
-        }
-
-        const continueCollector = message.createMessageComponentCollector({ filter, time: 1800000 });
+        const continueCollector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
 
         continueCollector.on('collect', async (i) => {
             if (i.customId === 'maze_victory_continue') {
@@ -383,27 +360,7 @@ async function handleMazeCombatAttack(interaction, userId, collector, parentColl
                 .setStyle(ButtonStyle.Secondary)
         );
 
-    try {
-        await interaction.update({ embeds: [embed], components: [row] });
-    } catch (error) {
-        if (error.code === 10062 || error.code === 'InteractionNotReplied') {
-            // Interaction expired, try to send a follow-up instead
-            try {
-                await interaction.followUp({ embeds: [embed], components: [row] });
-            } catch (followUpError) {
-                console.error('Failed to send follow-up message:', followUpError);
-                // If all else fails, end the quest
-                const { endQuest } = require('../quest.js');
-                await endQuest(interaction, userId, false, "Combat session expired. Please try starting a new quest.", activeQuests);
-                collector.stop();
-                parentCollector.stop();
-                return;
-            }
-        } else {
-            console.error('Error updating maze combat interaction:', error);
-            throw error;
-        }
-    }
+    await interaction.update({ embeds: [embed], components: [row] });
 }
 
 async function getBestWeapon(userId) {
