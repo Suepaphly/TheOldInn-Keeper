@@ -1,8 +1,6 @@
 
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
-const { QuickDB } = require("quick.db");
-const Discord = require("discord.js");
 const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
