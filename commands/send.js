@@ -1,4 +1,3 @@
-
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
@@ -65,7 +64,7 @@ module.exports.run = async (client, message, args) => {
 
         if (!(await canAddToBackpack(target.id))) {
             return message.channel.send(
-                `❌ ${target.username}'s backpack is full! They can only carry 5 items.`,
+                `❌ ${target.username}'s backpack is full! They can only carry 5 items. They need to use \`=shop sell [item]\` to make space.`,
             );
         }
 
@@ -107,7 +106,7 @@ module.exports.run = async (client, message, args) => {
 
         if (!(await canAddToBackpack(target.id))) {
             return message.channel.send(
-                `❌ ${target.username}'s backpack is full! They can only carry 5 items.`,
+                `❌ ${target.username}'s backpack is full! They can only carry 5 items. They need to use \`=shop sell [item]\` to make space.`,
             );
         }
 
