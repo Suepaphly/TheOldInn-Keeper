@@ -195,16 +195,8 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
                 .setStyle(ButtonStyle.Secondary)
         );
 
-    try {
-        await interaction.update({ embeds: [embed], components: [row] });
-    } catch (error) {
-        if (error.code === 10062) {
-            await interaction.followUp({ embeds: [embed], components: [row] });
-        } else {
-            console.error('Error updating interaction:', error);
-            throw error;
-        }
-    }
+    const { updateInteractionSafely } = require('../../utility/combatUtils.js');
+    await updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     // Set up maze combat collector
     const filter = (i) => i.user.id === userId;
@@ -230,137 +222,16 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 }
 
 async function handleMazeCombatAttack(interaction, userId, collector, parentCollector, activeQuests) {
-    const { endQuest } = require('../quest.js');
+    const { handleCombatRound } = require('../../utility/combatUtils.js');
     const quest = activeQuests.get(userId);
     if (!quest || !quest.data.mazeCombatData) return;
 
-    if (interaction.customId === 'maze_combat_run') {
-        await endQuest(interaction, userId, false, "You fled from the vine beast! Your quest ends in cowardly retreat.", activeQuests);
-        collector.stop();
-        parentCollector.stop();
-        return;
+    // Add monster damage if not present
+    if (!quest.data.mazeCombatData.monsterDamage) {
+        quest.data.mazeCombatData.monsterDamage = 3 + quest.data.mazeCombatData.combatLevel;
     }
 
-    quest.data.mazeCombatData.round++;
-
-    // Player attacks first
-    const playerCombatDamage = quest.data.mazeCombatData.combatLevel + 1;
-    const playerWeaponDamage = Math.floor(Math.random() * (quest.data.mazeCombatData.playerWeapon.maxDamage - quest.data.mazeCombatData.playerWeapon.minDamage + 1)) + quest.data.mazeCombatData.playerWeapon.minDamage;
-    const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
-    const playerFinalDamage = Math.max(1, playerTotalDamage - quest.data.mazeCombatData.monsterDefense);
-
-    quest.data.mazeCombatData.monsterHealth -= playerFinalDamage;
-    quest.data.mazeCombatData.monsterHealth = Math.max(0, quest.data.mazeCombatData.monsterHealth);
-
-    let battleText = `You attack the vine beast for ${playerFinalDamage} damage!`;
-
-    // Check if vine beast is defeated
-    if (quest.data.mazeCombatData.monsterHealth <= 0) {
-        // Player wins - show victory message first with continue button
-        const embed = new EmbedBuilder()
-            .setTitle("🌿 HEDGE MAZE - VICTORY!")
-            .setColor("#00FF00")
-            .setDescription(`${battleText}\n\n**Vine beast defeated!** The massive creature falls with a thunderous crash, clearing your path forward.`)
-            .addFields(
-                { name: "Victory", value: "You stand victorious over the defeated beast!", inline: false }
-            );
-
-        const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('maze_victory_continue')
-                    .setLabel('➡️ Continue Deeper')
-                    .setStyle(ButtonStyle.Primary)
-            );
-
-        await interaction.update({ embeds: [embed], components: [row] });
-
-        // Set up collector for continue button
-        const filter = (i) => i.user.id === userId;
-        const continueCollector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
-
-        continueCollector.on('collect', async (i) => {
-            if (i.customId === 'maze_victory_continue') {
-                quest.data.stage = 2;
-
-                const nextEmbed = new EmbedBuilder()
-                    .setTitle("🌿 HEDGE MAZE - Stage 2/2")
-                    .setColor("#228B22")
-                    .setDescription("You advance deeper into the maze. The air grows thick with ancient magic.\n\n⚠️ **FINAL STAGE** - Choose very carefully:")
-                    .addFields(
-                        { name: "🚪 Path 1", value: "A golden archway beckoning", inline: true },
-                        { name: "🚪 Path 2", value: "A dark tunnel with echoes", inline: true },
-                        { name: "🚪 Path 3", value: "A bright exit with sunlight", inline: true },
-                        { name: "💀 DANGER", value: "Wrong choice here means death!", inline: false }
-                    );
-
-                const nextRow = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('maze_1')
-                            .setLabel('🚪 Path 1')
-                            .setStyle(ButtonStyle.Secondary),
-                        new ButtonBuilder()
-                            .setCustomId('maze_2')
-                            .setLabel('🚪 Path 2')
-                            .setStyle(ButtonStyle.Secondary),
-                        new ButtonBuilder()
-                            .setCustomId('maze_3')
-                            .setLabel('🚪 Path 3')
-                            .setStyle(ButtonStyle.Secondary)
-                    );
-
-                await i.update({ embeds: [nextEmbed], components: [nextRow] });
-                continueCollector.stop();
-            }
-        });
-
-        collector.stop();
-        return;
-    }
-
-    // Monster attacks back
-    const monsterFinalDamage = Math.max(1, quest.data.mazeCombatData.monsterDamage - quest.data.mazeCombatData.playerArmor.defense);
-    quest.data.mazeCombatData.playerHealth -= monsterFinalDamage;
-    quest.data.mazeCombatData.playerHealth = Math.max(0, quest.data.mazeCombatData.playerHealth);
-
-    battleText += `\nThe vine beast lashes back for ${monsterFinalDamage} damage!`;
-
-    // Check if player died
-    if (quest.data.mazeCombatData.playerHealth <= 0) {
-        // Player dies in quest
-        await endQuest(interaction, userId, false, "You were defeated by the vine beast! Your quest ends in failure.", activeQuests);
-        collector.stop();
-        parentCollector.stop();
-        return;
-    }
-
-    // Combat continues
-    const embed = new EmbedBuilder()
-        .setTitle(`🌿 HEDGE MAZE - VINE BEAST COMBAT - Round ${quest.data.mazeCombatData.round}`)
-        .setColor("#FF0000")
-        .setDescription(`${battleText}\n\nThe battle continues!`)
-        .addFields(
-            { name: "Your Health", value: `${quest.data.mazeCombatData.playerHealth}/${quest.data.mazeCombatData.playerMaxHealth} HP`, inline: true },
-            { name: "Your Weapon", value: quest.data.mazeCombatData.playerWeapon.name, inline: true },
-            { name: "Your Armor", value: quest.data.mazeCombatData.playerArmor.name, inline: true },
-            { name: "Vine Beast Health", value: `${quest.data.mazeCombatData.monsterHealth}/${quest.data.mazeCombatData.monsterMaxHealth} HP`, inline: true },
-            { name: "Enemy", value: "Vine Beast", inline: true }
-        );
-
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('maze_combat_attack')
-                .setLabel('⚔️ Attack')
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId('maze_combat_run')
-                .setLabel('🏃 Run Away')
-                .setStyle(ButtonStyle.Secondary)
-        );
-
-    await interaction.update({ embeds: [embed], components: [row] });
+    await handleCombatRound(interaction, userId, quest.data.mazeCombatData, 'maze', collector, parentCollector, activeQuests);
 }
 
 async function getBestWeapon(userId) {

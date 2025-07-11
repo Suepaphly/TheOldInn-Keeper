@@ -219,16 +219,8 @@ async function startVengeanceCombat(interaction, userId, parentCollector, active
                 .setStyle(ButtonStyle.Secondary)
         );
 
-    try {
-        await interaction.editReply({ embeds: [embed], components: [row] });
-    } catch (error) {
-        if (error.code === 10062) {
-            await interaction.followUp({ embeds: [embed], components: [row] });
-        } else {
-            console.error('Error editing reply:', error);
-            throw error;
-        }
-    }
+    const { updateInteractionSafely } = require('../../utility/combatUtils.js');
+    await updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     // Set up vengeance combat collector
     const filter = (i) => i.user.id === userId;
@@ -240,100 +232,11 @@ async function startVengeanceCombat(interaction, userId, parentCollector, active
 }
 
 async function handleVengeanceCombat(interaction, userId, collector, parentCollector, activeQuests) {
-    const { endQuest } = require('../quest.js');
+    const { handleCombatRound } = require('../../utility/combatUtils.js');
     const quest = activeQuests.get(userId);
     if (!quest || !quest.data.combat) return;
 
-    if (interaction.customId === 'vengeance_run') {
-        await endQuest(interaction, userId, false, "You fled from the vengeful attacker! Your quest ends in cowardly retreat.", activeQuests);
-        collector.stop();
-        parentCollector.stop();
-        return;
-    }
-
-    quest.data.combat.round++;
-
-    // Player attacks first
-    const playerCombatDamage = quest.data.combat.combatLevel + 1;
-    const playerWeaponDamage = Math.floor(Math.random() * (quest.data.combat.playerWeapon.maxDamage - quest.data.combat.playerWeapon.minDamage + 1)) + quest.data.combat.playerWeapon.minDamage;
-    const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
-    const playerFinalDamage = Math.max(1, playerTotalDamage); // No armor for vengeance enemy
-
-    quest.data.combat.vengeanceHealth -= playerFinalDamage;
-    quest.data.combat.vengeanceHealth = Math.max(0, quest.data.combat.vengeanceHealth);
-
-    let battleText = `You attack for ${playerFinalDamage} damage!`;
-
-    // Check if vengeance enemy is defeated
-    if (quest.data.combat.vengeanceHealth <= 0) {
-        // Player wins - give rewards
-        await db.add(`money_${userId}`, 25);
-        await db.add(`weapon_pistol_${userId}`, 1);
-
-        const embed = new EmbedBuilder()
-            .setTitle("🏆 VENGEANCE DEFEATED")
-            .setColor("#00FF00")
-            .setDescription(`${battleText}\n\nYou have defeated your attacker in self-defense!\n\n**Rewards:**\n💰 +25 kopeks\n🔫 +1 pistol`)
-            .addFields(
-                { name: "Victory", value: "You continue your quest with a heavy heart.", inline: false }
-            );
-
-        const continueRow = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('trolley_vengeance_continue')
-                    .setLabel('➡️ Continue Quest')
-                    .setStyle(ButtonStyle.Primary)
-            );
-
-        await interaction.update({ embeds: [embed], components: [continueRow] });
-        collector.stop();
-        return;
-    }
-
-    // Enemy attacks back (pistol damage: 3-5)
-    const enemyDamage = Math.floor(Math.random() * 3) + 3; // 3-5 damage
-    const enemyFinalDamage = Math.max(1, enemyDamage - quest.data.combat.playerArmor.defense);
-    quest.data.combat.playerHealth -= enemyFinalDamage;
-    quest.data.combat.playerHealth = Math.max(0, quest.data.combat.playerHealth);
-
-    battleText += `\nThe attacker shoots back for ${enemyFinalDamage} damage!`;
-
-    // Check if player died
-    if (quest.data.combat.playerHealth <= 0) {
-        // Player dies in quest - this ends the quest in failure
-        await endQuest(interaction, userId, false, "You were killed by the vengeful relative! Your quest ends in tragedy.", activeQuests);
-        collector.stop();
-        parentCollector.stop();
-        return;
-    }
-
-    // Combat continues
-    const embed = new EmbedBuilder()
-        .setTitle(`⚔️ VENGEANCE COMBAT - Round ${quest.data.combat.round}`)
-        .setColor("#FF0000")
-        .setDescription(`${battleText}\n\nThe fight continues!`)
-        .addFields(
-            { name: "Your Health", value: `${quest.data.combat.playerHealth}/${quest.data.combat.playerMaxHealth} HP`, inline: true },
-            { name: "Your Weapon", value: quest.data.combat.playerWeapon.name, inline: true },
-            { name: "Your Armor", value: quest.data.combat.playerArmor.name, inline: true },
-            { name: "Enemy Health", value: `${quest.data.combat.vengeanceHealth}/${quest.data.combat.vengeanceMaxHealth} HP`, inline: true },
-            { name: "Enemy Weapon", value: "Pistol", inline: true }
-        );
-
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('vengeance_attack')
-                .setLabel('⚔️ Attack')
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId('vengeance_run')
-                .setLabel('🏃 Run Away')
-                .setStyle(ButtonStyle.Secondary)
-        );
-
-    await interaction.update({ embeds: [embed], components: [row] });
+    await handleCombatRound(interaction, userId, quest.data.combat, 'vengeance', collector, parentCollector, activeQuests);
 }
 
 async function getBestWeapon(userId) {
