@@ -5,10 +5,11 @@ const db = new QuickDB();
 
 module.exports.run = async (client, message, args) => {
     const user = message.author;
+    const ownerID = "367445249376649217";
     
-    // Check if user has the Investigator feat
+    // Check if user is bot owner or has the Investigator feat
     const hasInvestigatorFeat = await db.get(`feat_investigator_${user.id}`) || 0;
-    if (!hasInvestigatorFeat) {
+    if (user.id !== ownerID && !hasInvestigatorFeat) {
         return message.channel.send("❌ You need the **Investigator** feat to use this command! Purchase it with `=lvl investigator`");
     }
 
