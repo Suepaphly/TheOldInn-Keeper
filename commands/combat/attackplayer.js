@@ -300,6 +300,13 @@ async function handleBattleEnd(message, battleData, client) {
         }
     }
 
+    // Check if winner can carry the loot
+    if (!(await canAddToBackpack(winner.id, itemsToTransfer))) {
+        return message.channel.send(
+            `❌ ${winner.username}'s backpack is full! They can only carry 10 items. Some loot was dropped.`,
+        );
+    }
+
     let spoilsText = `💰 Kopeks Stolen: ${loserMoney.toLocaleString()}`;
     if (transferredItems.length > 0) {
         spoilsText += `\n🎒 Items Taken: ${transferredItems.join(', ')}`;
