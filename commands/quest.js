@@ -417,13 +417,6 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
         await db.add(`money_${userId}`, totalReward);
         await endQuest(interaction, userId, true, rewardText, activeQuests);
     } else {
-        // Handle special case for Tiamat realm - shouldn't reach here but just in case
-        if (quest.location === 'tiamat_realm') {
-            // Tiamat battles should complete immediately, this is an error state
-            await endQuest(interaction, userId, true, "Tiamat battle completed unexpectedly. Please report this bug.", activeQuests);
-            return;
-        }
-
         // First quest completed, move to second location
         const location = locations[quest.location];
 
