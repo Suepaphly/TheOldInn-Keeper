@@ -144,6 +144,106 @@ const riddles = [
         question: "What building has the most stories?",
         answer: "library",
         alternatives: ["a library"]
+    },
+    {
+        question: "What gets sharper the more you use it?",
+        answer: "brain",
+        alternatives: ["your brain", "mind", "your mind"]
+    },
+    {
+        question: "I am always in front of you but can't be seen. What am I?",
+        answer: "future",
+        alternatives: ["the future"]
+    },
+    {
+        question: "What has many teeth but cannot bite?",
+        answer: "saw",
+        alternatives: ["a saw"]
+    },
+    {
+        question: "I can fly without wings, cry without eyes. Wherever I go, darkness flies. What am I?",
+        answer: "cloud",
+        alternatives: ["clouds", "a cloud"]
+    },
+    {
+        question: "What disappears as soon as you say its name?",
+        answer: "silence",
+        alternatives: []
+    },
+    {
+        question: "The more of this there is, the less you see. What is it?",
+        answer: "darkness",
+        alternatives: ["dark"]
+    },
+    {
+        question: "What starts with T, ends with T, and has T in it?",
+        answer: "teapot",
+        alternatives: ["a teapot"]
+    },
+    {
+        question: "I have no life, but I can die. What am I?",
+        answer: "battery",
+        alternatives: ["a battery"]
+    },
+    {
+        question: "What word becomes shorter when you add two letters to it?",
+        answer: "short",
+        alternatives: ["the word short"]
+    },
+    {
+        question: "I am taken before you can get me. What am I?",
+        answer: "picture",
+        alternatives: ["a picture", "photo", "a photo"]
+    },
+    {
+        question: "What has four fingers and a thumb but is not alive?",
+        answer: "glove",
+        alternatives: ["a glove"]
+    },
+    {
+        question: "I have a golden head and a golden tail, but no body. What am I?",
+        answer: "coin",
+        alternatives: ["a coin", "penny", "a penny"]
+    },
+    {
+        question: "What can you hold in your right hand but never in your left hand?",
+        answer: "left hand",
+        alternatives: ["your left hand"]
+    },
+    {
+        question: "I am full of holes but still hold water. What am I?",
+        answer: "sponge",
+        alternatives: ["a sponge"]
+    },
+    {
+        question: "What goes through cities and fields but never moves?",
+        answer: "road",
+        alternatives: ["a road", "roads"]
+    },
+    {
+        question: "I have one foot but cannot walk. What am I?",
+        answer: "ruler",
+        alternatives: ["a ruler", "measuring stick"]
+    },
+    {
+        question: "What has words but never speaks?",
+        answer: "book",
+        alternatives: ["a book"]
+    },
+    {
+        question: "I am always coming but never arrive. What am I?",
+        answer: "tomorrow",
+        alternatives: []
+    },
+    {
+        question: "What can you serve but never eat?",
+        answer: "tennis ball",
+        alternatives: ["ball", "a ball", "volleyball", "a tennis ball"]
+    },
+    {
+        question: "I get smaller every time I take a bath. What am I?",
+        answer: "soap",
+        alternatives: ["a soap", "bar of soap"]
     }
 ];
 
