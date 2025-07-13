@@ -188,11 +188,11 @@ async function runBattleRounds(message, battleData, players, currentPlayerIndex,
         finalDamage = firstFinalDamage + secondFinalDamage;
         
         const dualAttacks = [
-            "spins both pistols like a gunslinger and unleashes a devastating barrage",
-            "draws both pistols in a blur of motion, bullets flying in perfect sync",
-            "empties both clips in a thunderous display of firepower",
-            "channels their inner cowboy with a spectacular dual-pistol assault",
-            "becomes a whirlwind of lead and steel with both guns blazing"
+            "activates **Guns Akimbo** and spins both pistols like a gunslinger, unleashing a devastating barrage",
+            "triggers **Guns Akimbo** and draws both pistols in a blur of motion, bullets flying in perfect sync",
+            "uses **Guns Akimbo** to empty both clips in a thunderous display of firepower",
+            "channels **Guns Akimbo** with a spectacular dual-pistol assault like an old west gunslinger",
+            "unleashes **Guns Akimbo** and becomes a whirlwind of lead and steel with both guns blazing"
         ];
         const randomDualAttack = dualAttacks[Math.floor(Math.random() * dualAttacks.length)];
         attackDescription = `${randomDualAttack}! 🔫🔫\nFirst shot: ${firstFinalDamage} damage! Second shot: ${secondFinalDamage} damage!\nTotal damage: ${finalDamage}!`;
