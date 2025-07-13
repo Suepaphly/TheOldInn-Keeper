@@ -20,10 +20,20 @@ module.exports.run = async (bot, message, args) => {
     for (let i = 0; i < maxEntries; i++) {
         const [key, amount] = bankEntries[i];
         const userId = key.split('_')[1];
-        const user = bot.users.cache.get(userId);
-        if (user) {
+        
+        try {
+            // Try cache first, then fetch from Discord API
+            let user = bot.users.cache.get(userId);
+            if (!user) {
+                user = await bot.users.fetch(userId);
+            }
+            
             const formattedAmount = amount.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
             content += `${i + 1}. **${user.tag}** => ${formattedAmount}\n`;
+        } catch (error) {
+            // If user can't be fetched (deleted account, etc.), show with ID
+            const formattedAmount = amount.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
+            content += `${i + 1}. **Unknown User (${userId})** => ${formattedAmount}\n`;
         }
     }
   message.channel.send(`**${message.guild.name} Kopek Leaderboard (In Bank)**\n\n${content}`);
