@@ -280,6 +280,13 @@ async function buyArmy(type, number, location, player, message) {
         // Ensure number is parsed as integer
         number = parseInt(number);
         
+        // Check for Tactician feat (50% cost reduction, rounded up)
+        const hasTacticianFeat = await db.get(`feat_tactician_${player.id}`) || 0;
+        let troopCost = troopCostArray[typeIndex] * number;
+        if (hasTacticianFeat) {
+            troopCost = Math.ceil(troopCost * 0.5); // 50% reduction, rounded up
+        }
+        
         // Calculate player's current troops at this location
         var playerTroops = await db.get(`player_troops_${player.id}_${wallArray[locIndex]}`) || 0;
         
@@ -289,14 +296,19 @@ async function buyArmy(type, number, location, player, message) {
         
         if (troopsAfterPurchase > maxTroopsForPlayer) {
             message.channel.send(`${player.username} you can only have ${maxTroopsForPlayer} troops at ${wallArray[locIndex]} (1 per 5 walls). You currently have ${playerTroops}.`);
-        } else if (wBal < troopCostArray[typeIndex] * number) {
+        } else if (wBal < troopCost) {
             message.channel.send(`${player.username} doesn't have enough kopeks to buy ${number} of ${troopArray[typeIndex]}.`);
         } else {
             await db.add(`Troops_${wallArray[locIndex]}.total`, number);
             await db.add(`Troops_${wallArray[locIndex]}.${troopArray[typeIndex]}`, number);
             await db.add(`player_troops_${player.id}_${wallArray[locIndex]}`, number);
-            await db.sub(`money_${player.id}`, troopCostArray[typeIndex] * number);
-            message.channel.send(`${player.username} just bought ${number} units of ${troopArray[typeIndex]}. (${troopsAfterPurchase}/${maxTroopsForPlayer} troops at ${wallArray[locIndex]})`);
+            await db.sub(`money_${player.id}`, troopCost);
+            
+            let purchaseMessage = `${player.username} just bought ${number} units of ${troopArray[typeIndex]}. (${troopsAfterPurchase}/${maxTroopsForPlayer} troops at ${wallArray[locIndex]})`;
+            if (hasTacticianFeat) {
+                purchaseMessage += ` ⚔️ **Tactician feat** reduced the cost by 50%!`;
+            }
+            message.channel.send(purchaseMessage);
         }
     } catch (error) {
         console.error('Error buying army:', error);
