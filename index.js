@@ -28,9 +28,9 @@ commandDirs.forEach(dir => {
       console.log(`Directory ${dir} not found or error reading:`, err);
       return;
     }
-    
+
     let jsfile = files.filter(f => f.split(".").pop() === "js");
-    
+
     jsfile.forEach((f, i) => {
       let props = require(`${dir}${f}`);
       console.log(`${f} loaded from ${dir}!`);
@@ -50,14 +50,14 @@ client.on("ready", async () => {
     client.user.setActivity(config.activity.game, { type: 'WATCHING' }); // PLAYING, LISTENING, WATCHING
     client.user.setStatus('dnd'); // dnd, idle, online, invisible
   }
-  
+
   // Initialize the random monster attack scheduler
   // Look for "the_castle" channel specifically
   const ptt = require("./utility/protectTheTavern.js");
   const castleChannel = client.channels.cache.find(channel => 
     channel.name === 'the_castle' && channel.type === 0
   );
-  
+
   if (castleChannel) {
     ptt.initializeScheduler(client, castleChannel);
     console.log("Random monster attack scheduler initialized for #the_castle");
@@ -88,6 +88,15 @@ client.on("messageCreate", async message => {
   } catch (e) {
     console.error(e);
   }
+});
+
+const ptt = require("./utility/protectTheTavern.js");
+const { startCooldownCleanup } = require("./utility/cooldownCleanup.js");
+
+client.on("ready", () => {
+    console.log(`The Ol' Innkeeper is ready for action!`);
+    ptt.initializeScheduler(client, client.channels.cache.get('881226993253179392'));
+    startCooldownCleanup(client);
 });
 
 client.login(token);
