@@ -20,6 +20,12 @@ module.exports.run = async (client, message, args) => {
     let cost = 1000;
     let usingGreenCrystal = false;
 
+    // Check for Healer feat (50% cost reduction, rounded up)
+    const hasHealerFeat = await db.get(`feat_healer_${user.id}`) || 0;
+    if (hasHealerFeat) {
+        cost = Math.ceil(cost * 0.5); // 50% reduction, rounded up
+    }
+
     // Check for green crystal free revive
     const { hasCrystal } = require("../../utility/crystalUtils.js");
     const hasGreenCrystal = await hasCrystal(user.id, 'green');
@@ -77,9 +83,13 @@ module.exports.run = async (client, message, args) => {
     } else {
         await db.sub(`money_${user.id}`, cost);
         await db.delete(`death_cooldown_${targetUser.id}`);
-        message.channel.send(
-            `✨ ${user.username} spent ${cost.toLocaleString()} kopeks to revive ${targetUser.user.username}! They can now participate in combat again.`,
-        );
+        
+        let reviveMessage = `✨ ${user.username} spent ${cost.toLocaleString()} kopeks to revive ${targetUser.user.username}! They can now participate in combat again.`;
+        if (hasHealerFeat) {
+            reviveMessage += ` 🩺 **Healer feat** reduced the cost by 50%!`;
+        }
+        
+        message.channel.send(reviveMessage);
     }
 };
 
