@@ -53,15 +53,27 @@ module.exports.run = async (client, message, args) => {
     combat: ['combatlevel', 'Combat', 2000, 5]
   };
 
+  // Feats configuration: [dbKey, displayName, cost, description]
+  const feats = {
+    akimbo: ['feat_akimbo', 'Guns Akimbo', 2500, 'Allows wielding two pistols simultaneously for double attacks']
+  };
+
   if (!item) {
     let buyMessage = "```css\n" +
-        "Level Up Your Skills\n" +
-        "Just type the skill name after =lvl to purchase the upgrade.\n" +
-        "Maximum level is 5, players start at level 0. Ex: '=lvl rob'\n" +
-        "Cost Formula: Base Cost × Next Level\n\n";
+        "Level Up Your Skills & Purchase Feats\n" +
+        "Just type the skill/feat name after =lvl to purchase. Ex: '=lvl rob'\n" +
+        "Maximum skill level is 5, players start at level 0.\n" +
+        "Cost Formula: Base Cost × Next Level\n\n" +
+        "=== SKILLS ===\n";
 
     for (const [skillName, [dbKey, displayName, baseCost, maxLevel]] of Object.entries(skills)) {
       buyMessage += `${displayName}: '${skillName}' => ${baseCost.toLocaleString()} Kopeks (base)\n`;
+    }
+
+    buyMessage += "\n=== FEATS (One-Time Purchase) ===\n";
+    for (const [featName, [dbKey, displayName, cost, description]] of Object.entries(feats)) {
+      buyMessage += `${displayName}: '${featName}' => ${cost.toLocaleString()} Kopeks\n`;
+      buyMessage += `  └ ${description}\n`;
     }
 
     buyMessage += "\nThe Tavernkeeper thanks you for playing.\n```";
@@ -69,9 +81,38 @@ module.exports.run = async (client, message, args) => {
     return;
   }
 
+  // Check if it's a feat
+  if (feats[item]) {
+    const [dbKey, displayName, cost, description] = feats[item];
+    const hasFeat = await db.get(`${dbKey}_${user.id}`) || 0;
+
+    // Check if already purchased
+    if (hasFeat) {
+      message.channel.send(`${user.username} already has the ${displayName} feat!`);
+      return;
+    }
+
+    // Check if user has enough money
+    if (money < cost) {
+      message.channel.send(`${user.username} doesn't have enough money! Need ${cost.toLocaleString()} kopeks, but only have ${money.toLocaleString()}.`);
+      return;
+    }
+
+    // Process the feat purchase
+    try {
+      await db.sub(`money_${user.id}`, cost);
+      await db.set(`${dbKey}_${user.id}`, 1);
+      message.channel.send(`${user.username} just purchased the ${displayName} feat! ${description} (Cost: ${cost.toLocaleString()} kopeks)`);
+    } catch (error) {
+      console.error("Error processing feat purchase:", error);
+      message.channel.send(`${user.username}, sorry, something went wrong with the feat purchase.`);
+    }
+    return;
+  }
+
   // Check if the skill exists
   if (!skills[item]) {
-    message.channel.send(`${user.username}, that's not a valid skill! Use =lvl to see available skills.`);
+    message.channel.send(`${user.username}, that's not a valid skill or feat! Use =lvl to see available options.`);
     return;
   }
 

@@ -83,17 +83,42 @@ class CombatSystem {
 
         // Player attacks first
         const playerBaseDamage = this.combatData.combatLevel + 1;
-        const playerWeaponDamage = Math.floor(Math.random() * 
-            (this.combatData.playerWeapon.maxDamage - this.combatData.playerWeapon.minDamage + 1)) + 
-            this.combatData.playerWeapon.minDamage;
-        const playerTotalDamage = playerBaseDamage + playerWeaponDamage;
-        const playerFinalDamage = Math.max(1, playerTotalDamage - this.combatData.enemyDefense);
+        let playerFinalDamage = 0;
+        let battleText = "";
+
+        // Handle dual pistols
+        if (this.combatData.playerWeapon.isDual) {
+            // First pistol attack
+            const firstWeaponDamage = Math.floor(Math.random() * 
+                (this.combatData.playerWeapon.maxDamage - this.combatData.playerWeapon.minDamage + 1)) + 
+                this.combatData.playerWeapon.minDamage;
+            const firstTotalDamage = playerBaseDamage + firstWeaponDamage;
+            const firstFinalDamage = Math.max(1, firstTotalDamage - this.combatData.enemyDefense);
+
+            // Second pistol attack
+            const secondWeaponDamage = Math.floor(Math.random() * 
+                (this.combatData.playerWeapon.maxDamage - this.combatData.playerWeapon.minDamage + 1)) + 
+                this.combatData.playerWeapon.minDamage;
+            const secondTotalDamage = playerBaseDamage + secondWeaponDamage;
+            const secondFinalDamage = Math.max(1, secondTotalDamage - this.combatData.enemyDefense);
+
+            playerFinalDamage = firstFinalDamage + secondFinalDamage;
+            battleText = `You unleash a barrage with your ${this.combatData.playerWeapon.name}!\n` +
+                        `First shot: ${firstFinalDamage} damage! Second shot: ${secondFinalDamage} damage!\n` +
+                        `Total damage: ${playerFinalDamage}!\n`;
+        } else {
+            // Normal single weapon attack
+            const playerWeaponDamage = Math.floor(Math.random() * 
+                (this.combatData.playerWeapon.maxDamage - this.combatData.playerWeapon.minDamage + 1)) + 
+                this.combatData.playerWeapon.minDamage;
+            const playerTotalDamage = playerBaseDamage + playerWeaponDamage;
+            playerFinalDamage = Math.max(1, playerTotalDamage - this.combatData.enemyDefense);
+            battleText = `You attack for ${playerFinalDamage} damage with your ${this.combatData.playerWeapon.name}!\n`;
+        }
 
         // Apply damage to enemy
         this.combatData.enemyHealth -= playerFinalDamage;
         this.combatData.enemyHealth = Math.max(0, this.combatData.enemyHealth);
-
-        let battleText = `You attack for ${playerFinalDamage} damage!`;
 
         // Check if enemy is defeated
         if (this.combatData.enemyHealth <= 0) {
