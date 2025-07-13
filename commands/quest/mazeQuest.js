@@ -143,49 +143,23 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
     const { embed, row } = combat.createCombatEmbed("A massive vine beast blocks your path!");
 
-    // Properly handle the interaction based on its state
-    try {
-        if (interaction.safeUpdate) {
-            // Debug interaction
-            await interaction.safeUpdate({ embeds: [embed], components: [row] });
-        } else if (interaction.replied || interaction.deferred) {
-            // Normal interaction that has already been replied to
-            await interaction.editReply({ embeds: [embed], components: [row] });
-        } else {
-            // Interaction hasn't been replied to yet - defer first then edit
-            await interaction.deferUpdate();
-            await interaction.editReply({ embeds: [embed], components: [row] });
-        }
-    } catch (error) {
-        console.error('Error updating maze combat interaction:', error);
-        // Final fallback - try to send a new message to the channel
-        try {
-            await interaction.channel.send({ embeds: [embed], components: [row] });
-        } catch (channelError) {
-            console.error('Channel send also failed:', channelError);
-        }
-    }
+    // Use the same safe update method as other quests
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     // Set up maze combat collector
     const filter = (i) => i.user.id === userId;
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
-        try {
-            // Always acknowledge the interaction first
-            if (!i.deferred && !i.replied) {
-                await i.deferUpdate();
-            }
+        if (i.customId === 'maze_run') {
+            const { endQuest } = require('../quest.js');
+            collector.stop();
+            parentCollector.stop();
+            await endQuest(i, userId, false, "You fled from combat! Your quest ends in cowardly retreat.", activeQuests);
+            return;
+        }
 
-            if (i.customId === 'maze_run') {
-                const { endQuest } = require('../quest.js');
-                collector.stop();
-                parentCollector.stop();
-                await endQuest(i, userId, false, "You fled from combat! Your quest ends in cowardly retreat.", activeQuests);
-                return;
-            }
-
-            if (i.customId === 'maze_attack') {
+        if (i.customId === 'maze_attack') {
                 const combatResult = await quest.data.combat.processCombatRound();
 
                 if (combatResult.result === 'victory') {
@@ -280,28 +254,9 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
                 } else {
                     // Combat continues
                     const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
-                    await i.editReply({ embeds: [embed], components: [row] });
+                    await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [row] });
                 }
             }
-        } catch (error) {
-            console.error('Error in maze combat collector:', error);
-            // Try to clean up and send error message
-            try {
-                collector.stop();
-                if (parentCollector) parentCollector.stop();
-                
-                // Remove user from quest if interaction fails completely
-                const { endQuest } = require('../quest.js');
-                await endQuest(i, userId, false, "Combat system error occurred. Quest ended.", activeQuests);
-            } catch (cleanupError) {
-                console.error('Cleanup also failed:', cleanupError);
-                // Final fallback - just remove from active quests
-                if (activeQuests.has(userId)) {
-                    activeQuests.delete(userId);
-                    await db.delete(`on_quest_${userId}`);
-                }
-            }
-        }
     });
 }
 
