@@ -593,11 +593,7 @@ class DragonCombatSystem extends CombatSystem {
         // Award the crystal
         const crystalKey = `crystal_${dragon.color}_${this.userId}`;
         await db.add(crystalKey, 1);
-        const { completeQuest } = require('../quest.js');
-        const activeQuest = activeQuests.get(this.userId);
-        if (this.dragon.name === "Spinx") {
-             completeQuest(null, this.userId, activeQuests, "You have defeated the spinx");
-        }
+        
         return `You have slain the mighty ${dragon.name}! As it falls, a ${dragon.crystal} materializes and flies into your backpack. This rare artifact pulses with ancient power...`;
     }
 
@@ -810,7 +806,7 @@ async function handleDragonCombat(interaction, userId, collector, activeQuests) 
 
             if (combatResult.result === 'victory') {
                 const victoryMessage = await dragonCombat.handleVictory();
-                await completeQuest(interaction, userId, activeQuests, victoryMessage);
+                await endQuest(interaction, userId, true, victoryMessage, activeQuests);
                 collector.stop();
             } else if (combatResult.result === 'defeat') {
                 const defeatMessage = await dragonCombat.handleDefeat();
