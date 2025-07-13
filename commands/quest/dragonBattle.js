@@ -761,7 +761,7 @@ async function handleTiamatCombat(interaction, userId, collector, activeQuests) 
 
             if (combatResult.result === 'victory') {
                 const victoryMessage = await tiamatCombat.handleVictory();
-                await endQuest(interaction, userId, true, victoryMessage, activeQuests);
+                await completeQuest(interaction, userId, activeQuests, victoryMessage);
                 collector.stop();
             } else if (combatResult.result === 'defeat') {
                 const defeatMessage = await tiamatCombat.handleDefeat();
