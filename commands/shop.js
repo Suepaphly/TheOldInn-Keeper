@@ -44,7 +44,7 @@ module.exports.run = async (client, message, args) => {
         const embed = new Discord.EmbedBuilder()
             .setTitle("🛍️ Weapon & Armor Shop")
             .setColor("#FFD700")
-            .setDescription("Use `=shop buy [item]` to purchase items")
+            .setDescription("Use `=buy [item]` or `=shop buy [item]` to purchase • `=sell [item]` to sell")
             .addFields(
                 {
                     name: "🗡️ Weapons",
@@ -66,6 +66,11 @@ module.exports.run = async (client, message, args) => {
                 {
                     name: "💰 Your Balance",
                     value: `${money.toLocaleString()} kopeks`,
+                    inline: false,
+                },
+                {
+                    name: "🏰 Town Defense",
+                    value: `Use \`=protect\` for walls, troops, and traps`,
                     inline: false,
                 },
             );

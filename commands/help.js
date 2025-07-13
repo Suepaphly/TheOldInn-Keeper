@@ -16,12 +16,12 @@ module.exports.run = async (client, message, args) => {
       },
       { 
         name: "🏰 Build Defenses", 
-        value: "`=buy 10 rampart` - Buy walls\n`=buy 5 rampart town_guard` - Buy troops\n`=map` - Check town status", 
+        value: "`=protect 10 rampart` - Buy walls\n`=protect 5 rampart town_guard` - Buy troops\n`=map` - Check town status", 
         inline: true 
       },
       { 
         name: "⚔️ Join Battle", 
-        value: "`=attack` - Fight monsters\n`=shop` - Buy weapons/armor\n`=backpack` - Check inventory (5 item limit)", 
+        value: "`=attack` - Fight monsters\n`=buy sword` - Buy weapons/armor\n`=backpack` - Check inventory (10 item limit)", 
         inline: true 
       },
       { 
@@ -80,7 +80,7 @@ module.exports.run = async (client, message, args) => {
       },
       { 
         name: "🏰 The Castle & Defenses", 
-        value: "• **Walls**: rampart (100k), wall (500k), castle (5000k) - Your first line of defense\n• **Troops**: town_guard, mercenary, soldier, knight, royal_guard - Fight monsters\n• **Traps**: spikes, boiling_oil, repeater, ballista, cannon - Permanent defenses\n• **Rule**: Every 5 walls = 1 troop slot + 1 trap slot per player\n• Use `=buy [amount] [type]` for walls, `=buy [amount] [location] [item]` for troops/traps", 
+        value: "• **Walls**: rampart (100k), wall (500k), castle (5000k) - Your first line of defense\n• **Troops**: town_guard, mercenary, soldier, knight, royal_guard - Fight monsters\n• **Traps**: spikes, boiling_oil, repeater, ballista, cannon - Permanent defenses\n• **Rule**: Every 5 walls = 1 troop slot + 1 trap slot per player\n• Use `=protect [amount] [type]` for walls, `=protect [amount] [location] [item]` for troops/traps", 
         inline: false 
       },
       { 
@@ -95,12 +95,12 @@ module.exports.run = async (client, message, args) => {
       },
       { 
         name: "💰 Economy & Skills", 
-        value: "• **Earning**: gather, hunt, fish, craft, work (all have cooldowns)\n• **Gambling**: blackjack, craps, slots, poker, roulette\n• **Skills**: Level up with `=lvl [skill]` to improve rewards\n• **Trading**: Send items with `=send @user [item]`, sell with `=shop sell [item]`\n• **PvP**: Rob other players or fight them directly", 
+        value: "• **Earning**: gather, hunt, fish, craft, work (all have cooldowns)\n• **Gambling**: blackjack, craps, slots, poker, roulette\n• **Skills**: Level up with `=lvl [skill]` to improve rewards\n• **Trading**: Send items with `=send @user [item]`, sell with `=sell [item]`\n• **PvP**: Rob other players or fight them directly", 
         inline: false 
       },
       { 
         name: "🛡️ Survival Tips", 
-        value: "• Bank your kopeks regularly for safety\n• Buy defenses early and often\n• Level up skills for better earning potential\n• Participate in battles to earn bounties\n• Manage your 5-item backpack limit with `=shop sell [item]`\n• Check `=map` and `=townstatus` regularly", 
+        value: "• Bank your kopeks regularly for safety\n• Buy defenses early and often\n• Level up skills for better earning potential\n• Participate in battles to earn bounties\n• Manage your 10-item backpack limit with `=sell [item]`\n• Check `=map` and `=townstatus` regularly", 
         inline: false 
       }
     )
@@ -117,7 +117,7 @@ module.exports.run = async (client, message, args) => {
       { name: "=withdraw [amount]", value: "Withdraw kopeks from bank to wallet", inline: true },
       { name: "=pay [user] [amount]", value: "Pay another user kopeks from wallet", inline: true },
       { name: "=send @user [item]", value: "Send weapons/armor to another player", inline: true },
-      { name: "=shop sell [item]", value: "Sell items for 50% of purchase price", inline: true },
+      { name: "=sell [item] [qty]", value: "Sell items for 50% of purchase price", inline: true },
       { name: "=top", value: "See top wallets leaderboard", inline: true },
       { name: "=daily", value: "Receive daily 100 kopeks", inline: true },
       { name: "=beg", value: "Beg for kopeks (small chance)", inline: true },
@@ -165,7 +165,7 @@ module.exports.run = async (client, message, args) => {
       { name: "Troop Types", value: "• **town_guard** - Basic defender\n• **mercenary** - Hired fighter\n• **soldier** - Trained warrior\n• **knight** - Elite defender\n• **royal_guard** - Ultimate protection", inline: true },
       { name: "Trap Types", value: "• **spikes** - Basic damage\n• **boiling_oil** - Area damage\n• **repeater** - Multiple shots\n• **ballista** - Heavy damage\n• **cannon** - Massive damage", inline: true },
       { name: "=protect", value: "Interactive defense system with buttons", inline: false },
-      { name: "Legacy: =buy [amount] [location] [item]", value: "Old text-based system still works", inline: false },
+      { name: "Text Commands", value: "`=protect [amount] [type]` for walls\n`=protect [amount] [location] [item]` for troops/traps", inline: false },
       { name: "Defense Rules", value: "• Every 5 walls = 1 troop slot + 1 trap slot per player\n• Troops are dismissed after each battle\n• Traps are permanent until destroyed", inline: false },
       { name: "=map", value: "View town status, defenses & monster threats", inline: true }
     );
@@ -176,14 +176,15 @@ module.exports.run = async (client, message, args) => {
     .setColor("#DC143C")
     .addFields(
       { name: "=attack", value: "Deal damage to monsters during battle (once per turn, 5 sec intervals)", inline: false },
-      { name: "=shop", value: "Browse and buy weapons, armor, and combat items", inline: true },
-      { name: "=shop sell [item]", value: "Sell items for 50% of their original value", inline: true },
-      { name: "=backpack", value: "View your inventory and equipped items (5 item limit)", inline: true },
+      { name: "=buy [item]", value: "Buy weapons, armor, and combat items", inline: true },
+      { name: "=sell [item] [qty]", value: "Sell items for 50% of their original value", inline: true },
+      { name: "=shop", value: "Browse shop (same as =buy without parameters)", inline: true },
+      { name: "=backpack", value: "View your inventory and equipped items", inline: true },
       { name: "=send @user [item]", value: "Send weapons or armor to another player", inline: true },
       { name: "=attackplayer [user]", value: "Challenge another player to PvP combat", inline: true },
       { name: "=violate [user]", value: "Humiliate another player (4 rounds, attacker takes no damage)", inline: true },
       { name: "=revive [user]", value: "Revive a dead player for 1000 kopeks", inline: true },
-      { name: "Backpack Rules", value: "• Maximum 5 items per player\n• Use `=shop sell [item]` to make space\n• Cannot receive items if backpack is full", inline: false },
+      { name: "Backpack Rules", value: "• Maximum 10 items per player\n• Use `=sell [item]` to make space\n• Cannot receive items if backpack is full", inline: false },
       { name: "Combat Info", value: "• Health: 5 base + 2 per combat level\n• Weapons: knife (1-3), sword (2-4), pistol (3-5) + combat level bonus\n• Dead players cannot act for 24 hours", inline: false }
     );
 

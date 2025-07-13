@@ -17,7 +17,40 @@ module.exports.run = async (client, message, args) => {
     const quantity = parseInt(args[1]) || 1;
 
     if (!itemName) {
-        return message.channel.send("❌ You must specify an item to sell! Usage: `=sell [item] [quantity]`");
+        // Show shop items (same as =shop default)
+        const embed = new Discord.EmbedBuilder()
+            .setTitle("🛍️ Weapon & Armor Shop")
+            .setColor("#FFD700")
+            .setDescription("Use `=sell [item] [quantity]` to sell items or `=buy [item]` to purchase")
+            .addFields(
+                {
+                    name: "🗡️ Weapons",
+                    value: `**Knife** - 10 kopeks (+1 Damage)\n**Sword** - 100 kopeks (1-3 Damage)\n**Pistol** - 1,000 kopeks (2-5 Damage)\n**Shotgun** - 2,500 kopeks (4-10 Damage)\n**Rifle** - 5,000 kopeks (6-12 Damage)`,
+                    inline: true,
+                },
+                {
+                    name: "🛡️ Armor",
+                    value: `**Cloth** - 500 kopeks (+1 Defense)\n**Leather** - 1,000 kopeks (+2 Defense)\n**Chainmail** - 1,500 kopeks (+3 Defense)\n**Studded** - 3,000 kopeks (+5 Defense)\n**Plate** - 6,000 kopeks (+10 Defense)\n**Dragonscale** - 12,000 kopeks (+20 Defense)`,
+                    inline: true,
+                },
+                {
+                    name: "💎 Crystals",
+                    value: `**White/Black/Red/Blue/Green** - 4,000 kopeks each (Quest rewards only)`,
+                    inline: true,
+                },
+                {
+                    name: "💰 Your Balance",
+                    value: `${(await db.get(`money_${user.id}`)) || 0} kopeks`,
+                    inline: false,
+                },
+                {
+                    name: "💡 Selling",
+                    value: `Items sell for 50% of their purchase price`,
+                    inline: false,
+                },
+            );
+
+        return message.channel.send({ embeds: [embed] });
     }
 
     if (quantity < 1) {
