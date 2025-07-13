@@ -61,7 +61,27 @@ const trolleyScenarios = [
     { many: "4 lottery winners", one: "1 person who's never won anything" },
     { many: "3 extroverts", one: "1 introvert" },
     { many: "5 people with phobias", one: "1 fearless person" },
-    { many: "2 time travelers", one: "1 person from this era" }
+    { many: "2 time travelers", one: "1 person from this era" },
+    { many: "4 comedians", one: "1 serious person" },
+    { many: "3 book lovers", one: "1 person who can't read" },
+    { many: "5 mountain climbers", one: "1 person afraid of heights" },
+    { many: "2 insomniacs", one: "1 person who loves sleep" },
+    { many: "6 social workers", one: "1 recluse" },
+    { many: "3 professional dancers", one: "1 person in a wheelchair" },
+    { many: "4 weather forecasters", one: "1 person who loves surprises" },
+    { many: "5 perfectionists", one: "1 person who embraces chaos" },
+    { many: "2 professional speakers", one: "1 mute person" },
+    { many: "3 memory champions", one: "1 person with amnesia" },
+    { many: "4 peace activists", one: "1 war veteran" },
+    { many: "5 professional organizers", one: "1 hoarder" },
+    { many: "2 professional athletes", one: "1 couch potato" },
+    { many: "6 morning people", one: "1 night owl" },
+    { many: "3 adventurers", one: "1 person who never leaves home" },
+    { many: "4 future-focused planners", one: "1 person who lives in the past" },
+    { many: "5 people who trust everyone", one: "1 paranoid person" },
+    { many: "2 eternal optimists", one: "1 realist" },
+    { many: "3 people seeking fame", one: "1 person who values privacy" },
+    { many: "4 rule followers", one: "1 rebel" }
 ];
 
 async function startTrolleyQuest(interaction, userId, activeQuests) {
