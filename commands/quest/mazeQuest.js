@@ -44,11 +44,7 @@ async function startMazeQuest(interaction, userId, activeQuests) {
     // Get the message from the interaction response
     let message;
     try {
-        if (interaction.replied || interaction.deferred) {
-            message = await interaction.fetchReply();
-        } else {
-            message = interaction.message;
-        }
+        message = await interaction.fetchReply();
     } catch (error) {
         console.error('Error getting message for collector:', error);
         return;
@@ -155,11 +151,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
     // Get the message for the collector
     let message;
     try {
-        if (interaction.replied || interaction.deferred) {
-            message = await interaction.fetchReply();
-        } else {
-            message = interaction.message;
-        }
+        message = await interaction.fetchReply();
     } catch (error) {
         console.error('Error getting message for maze combat collector:', error);
         return;
@@ -208,11 +200,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
                 // Get the updated message for the new collector
                 let continueMessage;
                 try {
-                    if (i.replied || i.deferred) {
-                        continueMessage = await i.fetchReply();
-                    } else {
-                        continueMessage = i.message;
-                    }
+                    continueMessage = await i.fetchReply();
                 } catch (error) {
                     console.error('Error getting continue message:', error);
                     return;
