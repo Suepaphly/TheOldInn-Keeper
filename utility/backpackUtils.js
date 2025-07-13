@@ -1,10 +1,9 @@
-
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 
 async function getBackpackCount(userId) {
     const allItems = await db.all();
-    
+
     // Filter user's weapons and armor
     const userWeapons = allItems.filter(item => 
         item.id.startsWith("weapon_") && item.id.endsWith(`_${userId}`) && item.value > 0

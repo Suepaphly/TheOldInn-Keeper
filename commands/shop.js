@@ -50,7 +50,7 @@ module.exports.run = async (client, message, args) => {
                 },
                 {
                     name: "🛡️ Armor",
-                    value: `**Cloth** - 500 kopeks (+1 Defense)\n**Leather** - 1,000 kopeks (+2 Defense)\n**Chainmail** - 1,500 kopeks (+3 Defense)\n**Studded** - 3,000 kopeks (+5 Defense)\n**Plate** - 6,000 kopeks (+10 Defense)`,
+                    value: `**Cloth** - 500 kopeks (+1 Defense)\n**Leather** - 1,000 kopeks (+2 Defense)\n**Chainmail** - 1,500 kopeks (+3 Defense)\n**Studded** - 3,000 kopeks (+5 Defense)\n**Plate** - 6,000 kopeks (+10 Defense)\n**Dragonscale** - 12,000 kopeks (+20 Defense)`,
                     inline: true,
                 },
                 {
@@ -85,6 +85,7 @@ module.exports.run = async (client, message, args) => {
             chainmail: { cost: 1500, name: "Chainmail Armor", defense: 3 },
             studded: { cost: 3000, name: "Studded Armor", defense: 5 },
             plate: { cost: 6000, name: "Plate Armor", defense: 10 },
+            dragonscale: { cost: 12000, name: "Dragonscale Armor", defense: 20 },
         };
 
         const crystals = {
@@ -169,6 +170,7 @@ module.exports.run = async (client, message, args) => {
             chainmail: { cost: 1500, name: "Chainmail Armor", defense: 3 },
             studded: { cost: 3000, name: "Studded Armor", defense: 5 },
             plate: { cost: 6000, name: "Plate Armor", defense: 10 },
+            dragonscale: { cost: 12000, name: "Dragonscale Armor", defense: 20 },
         };
 
         const crystals = {

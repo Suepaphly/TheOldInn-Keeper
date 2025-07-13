@@ -1,4 +1,3 @@
-
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -69,7 +68,7 @@ class TiamatCombatSystem extends CombatSystem {
         let row;
         if (this.playerFrozen) {
             embed.addFields({ name: "❄️ Status", value: "You are frozen and must skip this turn!", inline: false });
-            
+
             row = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
@@ -136,14 +135,14 @@ class TiamatCombatSystem extends CombatSystem {
         // Tiamat attacks - randomly choose from all abilities (breath weapons + all 5 special moves)
         const abilities = ['breath', 'tax', 'death', 'melt', 'freeze', 'heal'];
         const chosenAbility = abilities[Math.floor(Math.random() * abilities.length)];
-        
+
         if (chosenAbility === 'breath') {
             // Breath weapon attack (8-15 damage - stronger than regular dragons)
             const breathDamage = Math.floor(Math.random() * 8) + 8; // 8-15 damage
             const finalBreathDamage = Math.max(1, breathDamage - this.combatData.playerArmor.defense);
             this.combatData.playerHealth -= finalBreathDamage;
             this.combatData.playerHealth = Math.max(0, this.combatData.playerHealth);
-            
+
             battleText += `\nTiamat's five heads unleash a devastating breath attack for ${finalBreathDamage} damage!`;
         } else {
             const specialResult = await this.executeSpecialMove(chosenAbility);
@@ -214,7 +213,7 @@ class TiamatCombatSystem extends CombatSystem {
 
     async getBackpackItems() {
         const items = [];
-        
+
         // Get all weapons
         const weapons = ['knife', 'sword', 'pistol', 'shotgun', 'rifle'];
         for (const weapon of weapons) {
@@ -237,12 +236,44 @@ class TiamatCombatSystem extends CombatSystem {
     }
 
     async handleVictory() {
-        return `🌟 **LEGENDARY VICTORY!** 🌟\n\nYou have achieved the impossible - slaying Tiamat, the Mother of Dragons! As her five heads collapse, the very fabric of reality trembles. You are now a legend among legends, having conquered the ultimate draconic threat!\n\n*The other dragons across all realms bow their heads in respect for your incredible feat.*`;
+        const kopeksReward = 100000;
+        const dragonscaleArmorReward = 6000;
+
+        await db.add(`money_${this.userId}`, kopeksReward);
+        await db.add(`money_${this.userId}`, dragonscaleArmorReward);
+
+        // Remove all crystals
+        const crystals = ['white', 'black', 'red', 'blue', 'green'];
+        for (const crystal of crystals) {
+            await db.set(`crystal_${crystal}_${this.userId}`, 0);
+        }
+
+        return `🌟 **LEGENDARY VICTORY!** 🌟\n\nYou have achieved the impossible - slaying Tiamat, the Mother of Dragons! As her five heads collapse, the very fabric of reality trembles. You are now a legend among legends, having conquered the ultimate draconic threat!\n\n*The other dragons across all realms bow their heads in respect for your incredible feat.*\n\nYou receive 100,000 kopeks and Dragonscale Armor (sells for 6,000 kopeks)! All crystals have been removed from your inventory.`;
     }
 
     async handleDefeat() {
         await db.set(`death_cooldown_${this.userId}`, Date.now());
         return `Tiamat, Mother of Dragons, has utterly defeated you! Your quest ends in legendary failure. The five-headed goddess reclaims her dominion. You are now dead for 24 hours.`;
+    }
+
+    async getBestArmor() {
+        const armors = [
+            { type: "dragonscale", name: "Dragonscale Armor", defense: 20 },
+            { type: "plate", name: "Plate Armor", defense: 10 },
+            { type: "studded", name: "Studded Armor", defense: 5 },
+            { type: "chainmail", name: "Chainmail Armor", defense: 3 },
+            { type: "leather", name: "Leather Armor", defense: 2 },
+            { type: "cloth", name: "Cloth Armor", defense: 1 }
+        ];
+
+        for (const armor of armors) {
+            const count = await db.get(`armor_${armor.type}_${this.userId}`) || 0;
+            if (count > 0) {
+                return armor;
+            }
+        }
+
+        return { type: "none", name: "No Armor", defense: 0 };
     }
 }
 
@@ -273,7 +304,7 @@ class DragonCombatSystem extends CombatSystem {
         let row;
         if (this.playerFrozen) {
             embed.addFields({ name: "❄️ Status", value: "You are frozen and must skip this turn!", inline: false });
-            
+
             row = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
@@ -339,7 +370,7 @@ class DragonCombatSystem extends CombatSystem {
 
         // Dragon attacks back - choose between breath weapon and special move
         const useSpecialMove = Math.random() < 0.30; // 30% chance for special move
-        
+
         if (useSpecialMove) {
             const specialResult = await this.executeSpecialMove();
             battleText += `\n${specialResult}`;
@@ -349,7 +380,7 @@ class DragonCombatSystem extends CombatSystem {
             const finalBreathDamage = Math.max(1, breathDamage - this.combatData.playerArmor.defense);
             this.combatData.playerHealth -= finalBreathDamage;
             this.combatData.playerHealth = Math.max(0, this.combatData.playerHealth);
-            
+
             battleText += `\nThe ${this.dragon.name} unleashes its breath weapon for ${finalBreathDamage} damage!`;
         }
 
@@ -417,7 +448,7 @@ class DragonCombatSystem extends CombatSystem {
 
     async getBackpackItems() {
         const items = [];
-        
+
         // Get all weapons
         const weapons = ['knife', 'sword', 'pistol', 'shotgun', 'rifle'];
         for (const weapon of weapons) {
@@ -441,14 +472,14 @@ class DragonCombatSystem extends CombatSystem {
 
     async handleVictory() {
         const dragon = this.dragon;
-        
+
         // Check if this is debug mode
         const { activeQuests } = require('../quest.js');
         const quest = activeQuests.get(this.userId);
         if (quest && quest.isDebug) {
             return `🔧 **DEBUG VICTORY!**\n\nYou have slain the mighty ${dragon.name}! In normal mode, a ${dragon.crystal} would materialize and fly into your backpack. This rare artifact would pulse with ancient power...\n\n*Debug mode - no actual rewards given.*`;
         }
-        
+
         // Check if player can carry the crystal
         const canAdd = await canAddToBackpack(this.userId, 1);
         if (!canAdd) {
@@ -487,7 +518,7 @@ async function startTiamatBattle(interaction, userId, activeQuests) {
 
     // Create Tiamat combat system
     const tiamatCombat = new TiamatCombatSystem(userId);
-    
+
     // Initialize combat with Tiamat stats
     const tiamatStats = {
         name: "Tiamat, Mother of Dragons",
@@ -509,7 +540,7 @@ async function startTiamatBattle(interaction, userId, activeQuests) {
 
     // Set up Tiamat combat collector
     const filter = (i) => i.user.id === userId;
-    
+
     let message;
     try {
         if (interaction.replied || interaction.deferred) {
@@ -521,7 +552,7 @@ async function startTiamatBattle(interaction, userId, activeQuests) {
         console.error('Error getting message for Tiamat combat collector:', error);
         return;
     }
-    
+
     const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
@@ -535,7 +566,7 @@ async function startDragonBattle(interaction, userId, location, activeQuests) {
 
     // Create dragon combat system
     const dragonCombat = new DragonCombatSystem(userId, location);
-    
+
     // Initialize combat with dragon stats
     const dragonStats = {
         name: dragonData[location].name,
@@ -557,7 +588,7 @@ async function startDragonBattle(interaction, userId, location, activeQuests) {
 
     // Set up dragon combat collector
     const filter = (i) => i.user.id === userId;
-    
+
     let message;
     try {
         if (interaction.replied || interaction.deferred) {
@@ -569,7 +600,7 @@ async function startDragonBattle(interaction, userId, location, activeQuests) {
         console.error('Error getting message for dragon combat collector:', error);
         return;
     }
-    
+
     const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
@@ -593,7 +624,7 @@ async function handleTiamatCombat(interaction, userId, collector, activeQuests) 
     if (interaction.customId === 'tiamat_skip_turn') {
         // Player skips turn due to freeze
         const combatResult = await tiamatCombat.processCombatRound();
-        
+
         if (combatResult && combatResult.result === 'continue') {
             const { embed, row } = tiamatCombat.createCombatEmbed(combatResult.battleText);
             await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
@@ -642,7 +673,7 @@ async function handleDragonCombat(interaction, userId, collector, activeQuests) 
     if (interaction.customId === 'dragon_skip_turn') {
         // Player skips turn due to freeze
         const combatResult = await dragonCombat.processCombatRound();
-        
+
         if (combatResult && combatResult.result === 'continue') {
             const { embed, row } = dragonCombat.createCombatEmbed(combatResult.battleText);
             await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });

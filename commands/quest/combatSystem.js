@@ -188,6 +188,7 @@ class CombatSystem {
 
     async getBestArmor() {
         const armors = [
+            { type: "dragonscale", name: "Dragonscale Armor", defense: 20 },
             { type: "plate", name: "Plate Armor", defense: 10 },
             { type: "studded", name: "Studded Armor", defense: 5 },
             { type: "chainmail", name: "Chainmail Armor", defense: 3 },
