@@ -379,7 +379,7 @@ async function handlePrankFailed(message, prankData, client) {
     if (droppedItems.length > 0) {
         embed.addFields({
             name: "💡 Tip",
-            value: `Use \`=shop sell [item]\` to make backpack space!`,
+            value: `Use \`=sell [item]\` to make backpack space!`,
             inline: false,
         });
     }

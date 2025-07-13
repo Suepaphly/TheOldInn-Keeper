@@ -186,7 +186,7 @@ async function runBattleRounds(message, battleData, players, currentPlayerIndex,
         const secondFinalDamage = Math.max(1, secondTotalDamage - otherPlayer.armor.defense);
 
         finalDamage = firstFinalDamage + secondFinalDamage;
-        
+
         const dualAttacks = [
             "activates **Guns Akimbo** and spins both pistols like a gunslinger, unleashing a devastating barrage",
             "triggers **Guns Akimbo** and draws both pistols in a blur of motion, bullets flying in perfect sync",
@@ -201,7 +201,7 @@ async function runBattleRounds(message, battleData, players, currentPlayerIndex,
         const weaponDamage = Math.floor(Math.random() * (currentPlayer.weapon.maxDamage - currentPlayer.weapon.minDamage + 1)) + currentPlayer.weapon.minDamage;
         const totalDamage = combatDamage + weaponDamage;
         finalDamage = Math.max(1, totalDamage - otherPlayer.armor.defense);
-        
+
         // Get weapon-specific attack descriptions
         const weaponAttacks = getWeaponAttackDescriptions(currentPlayer.weapon.type, currentPlayer.username, otherPlayer.username);
         const randomAttack = weaponAttacks[Math.floor(Math.random() * weaponAttacks.length)];
@@ -294,12 +294,12 @@ async function handleBattleEnd(message, battleData, client) {
     // Check for Ninja feat escape attempt
     const hasNinjaFeat = await db.get(`feat_ninja_${loser.id}`) || 0;
     let ninjaEscaped = false;
-    
+
     if (hasNinjaFeat) {
         const escapeChance = Math.random() * 100;
         if (escapeChance <= 80) { // 80% success rate
             ninjaEscaped = true;
-            
+
             const escapeEmbed = new Discord.EmbedBuilder()
                 .setTitle("💨 Ninja Escape!")
                 .setColor("#9932CC")
@@ -405,7 +405,7 @@ async function handleBattleEnd(message, battleData, client) {
     if (droppedItems.length > 0) {
         embed.addFields({
             name: "💡 Tip",
-            value: `Use \`=shop sell [item]\` to make backpack space for future battles!`,
+            value: `Use \`=sell [item]\` to make backpack space!`,
             inline: false
         });
     }
@@ -458,7 +458,7 @@ function getWeaponAttackDescriptions(weaponType, attackerName, targetName) {
             `${attackerName} channels their inner brawler with a powerful right hook`
         ]
     };
-    
+
     return attacks[weaponType] || attacks.none;
 }
 
@@ -474,15 +474,15 @@ async function getBestWeapon(userId) {
     // Check for dual pistols first (Guns Akimbo feat)
     const hasGunsAkimbo = await db.get(`feat_guns_akimbo_${userId}`) || false;
     const pistolCount = await db.get(`weapon_pistol_${userId}`) || 0;
-    
+
     if (hasGunsAkimbo && pistolCount >= 2) {
         // Check if dual pistols are the best weapon by comparing max potential damage
         const dualPistolMaxDamage = 5 * 2; // 5 max damage per pistol * 2 pistols
-        
+
         // Check if any better weapon exists
         const rifleCount = await db.get(`weapon_rifle_${userId}`) || 0;
         const shotgunCount = await db.get(`weapon_shotgun_${userId}`) || 0;
-        
+
         if (rifleCount === 0 && shotgunCount === 0) {
             return { 
                 type: "pistol", 
