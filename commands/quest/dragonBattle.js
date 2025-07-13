@@ -240,6 +240,13 @@ class DragonCombatSystem extends CombatSystem {
     async handleVictory() {
         const dragon = this.dragon;
         
+        // Check if this is debug mode
+        const { activeQuests } = require('../quest.js');
+        const quest = activeQuests.get(this.userId);
+        if (quest && quest.isDebug) {
+            return `🔧 **DEBUG VICTORY!**\n\nYou have slain the mighty ${dragon.name}! In normal mode, a ${dragon.crystal} would materialize and fly into your backpack. This rare artifact would pulse with ancient power...\n\n*Debug mode - no actual rewards given.*`;
+        }
+        
         // Check if player can carry the crystal
         const canAdd = await canAddToBackpack(this.userId, 1);
         if (!canAdd) {

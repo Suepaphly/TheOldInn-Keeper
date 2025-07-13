@@ -77,10 +77,10 @@ module.exports.run = async (client, message, args) => {
             const debugEmbed = new EmbedBuilder()
                 .setTitle("🔧 QUEST DEBUG COMMANDS")
                 .setColor("#FFA500")
-                .setDescription("**Owner-only debug commands for testing individual quest types**\n\n**Available Quest Names:**\n• `monster` - Combat quest with 2 monsters\n• `riddle` - Ancient riddle solving quest\n• `maze` - Hedge maze navigation quest\n• `trolley` - Moral dilemma trolley problem")
+                .setDescription("**Owner-only debug commands for testing individual quest types**\n\n**Available Quest Names:**\n• `monster` - Combat quest with 2 monsters\n• `riddle` - Ancient riddle solving quest\n• `maze` - Hedge maze navigation quest\n• `trolley` - Moral dilemma trolley problem\n• `dragon` - Choose and fight any boss dragon")
                 .addFields(
                     { name: "Usage", value: "`=quest debug <questname>`", inline: false },
-                    { name: "Quest Details", value: "🗡️ **monster** - Fight Goblin Scout → Orc Raider\n🧩 **riddle** - Solve 2 random riddles (death on failure)\n🌿 **maze** - Navigate 2-stage maze with traps/combat\n🚃 **trolley** - Face moral choices with vengeance risk", inline: false },
+                    { name: "Quest Details", value: "🗡️ **monster** - Fight Goblin Scout → Orc Raider\n🧩 **riddle** - Solve 2 random riddles (death on failure)\n🌿 **maze** - Navigate 2-stage maze with traps/combat\n🚃 **trolley** - Face moral choices with vengeance risk\n🐲 **dragon** - Select any dragon to fight immediately", inline: false },
                     { name: "Debug Features", value: "• Complete after 1 quest instead of 2\n• 30-minute timeout still applies\n• No real rewards given", inline: false }
                 );
 
@@ -88,8 +88,14 @@ module.exports.run = async (client, message, args) => {
         }
 
         const questType = args[1].toLowerCase();
-        if (!questTypes[questType]) {
-            return message.channel.send("❌ Invalid quest type! Available: monster, riddle, maze, trolley");
+        if (!questTypes[questType] && questType !== 'dragon') {
+            return message.channel.send("❌ Invalid quest type! Available: monster, riddle, maze, trolley, dragon");
+        }
+
+        // Handle dragon debug separately
+        if (questType === 'dragon') {
+            await startDragonDebugQuest(message, userId);
+            return;
         }
 
         // Start debug quest immediately
@@ -578,6 +584,163 @@ async function spawnBossDragon(interaction, userId, location, activeQuests) {
 // Function to check if user is on quest (for use in other commands)
 async function isOnQuest(userId) {
     return activeQuests.has(userId) || await db.get(`on_quest_${userId}`);
+}
+
+async function startDragonDebugQuest(message, userId) {
+    // Check if user is already on a quest
+    if (activeQuests.has(userId)) {
+        return message.channel.send("❌ You are already on a quest! Complete it first before starting another.");
+    }
+
+    // Check if user is dead
+    const deathTimer = await db.get(`death_cooldown_${userId}`);
+    if (deathTimer && Date.now() - deathTimer < 86400000) { // 24 hours
+        return message.channel.send("💀 You cannot go on quests while dead! Use `=revive` first.");
+    }
+
+    const embed = new EmbedBuilder()
+        .setTitle("🐲 DEBUG DRAGON SELECTION")
+        .setColor("#8B0000")
+        .setDescription("**Owner-only debug mode for testing dragon battles**\n\nChoose which ancient dragon you want to fight:")
+        .addFields(
+            { name: "🌾 White Dragon", value: "**Tax** - Steals 10% of your coins\n*Location: Plains*", inline: true },
+            { name: "🌲 Black Dragon", value: "**Death** - 10% chance to instantly kill\n*Location: Forest*", inline: true },
+            { name: "🔥 Red Dragon", value: "**Melt** - Destroys random backpack item\n*Location: Badlands*", inline: true },
+            { name: "❄️ Blue Dragon", value: "**Freeze** - Skip your next turn\n*Location: Wastelands*", inline: true },
+            { name: "🌿 Green Dragon", value: "**Heal** - Heals dragon for 2-8 health\n*Location: Highlands*", inline: true },
+            { name: "\u200B", value: "\u200B", inline: true }
+        )
+        .setFooter({ text: "🔧 Debug Mode - No real rewards will be given" });
+
+    const row1 = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('debug_dragon_plains')
+                .setLabel('🌾 White Dragon')
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId('debug_dragon_forest')
+                .setLabel('🌲 Black Dragon')
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId('debug_dragon_redlands')
+                .setLabel('🔥 Red Dragon')
+                .setStyle(ButtonStyle.Danger)
+        );
+
+    const row2 = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('debug_dragon_frostlands')
+                .setLabel('❄️ Blue Dragon')
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('debug_dragon_emeraldlands')
+                .setLabel('🌿 Green Dragon')
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId('debug_dragon_cancel')
+                .setLabel('❌ Cancel')
+                .setStyle(ButtonStyle.Secondary)
+        );
+
+    const dragonMessage = await message.channel.send({ 
+        embeds: [embed], 
+        components: [row1, row2] 
+    });
+
+    // Set up collector for dragon selection
+    const filter = (interaction) => {
+        return interaction.user.id === message.author.id;
+    };
+
+    const collector = dragonMessage.createMessageComponentCollector({
+        filter,
+        time: 60000 // 1 minute to choose
+    });
+
+    collector.on('collect', async (interaction) => {
+        if (interaction.customId === 'debug_dragon_cancel') {
+            await interaction.update({
+                embeds: [new EmbedBuilder()
+                    .setTitle("❌ Dragon Debug Cancelled")
+                    .setColor("#FF0000")
+                    .setDescription("Dragon debug mode cancelled.")],
+                components: []
+            });
+            collector.stop();
+            return;
+        }
+
+        // Extract dragon location from customId
+        const location = interaction.customId.replace('debug_dragon_', '');
+        const dragon = dragonData[location];
+
+        // Mark user as on debug quest
+        const questData = {
+            location: location,
+            startTime: Date.now(),
+            questsCompleted: 2, // Set to 2 so dragon spawns immediately
+            totalMonsterValue: 0,
+            currentQuest: 'dragon',
+            isDebug: true
+        };
+
+        activeQuests.set(userId, questData);
+        await db.set(`on_quest_${userId}`, true);
+
+        // Set 30 minute timeout
+        setTimeout(async () => {
+            if (activeQuests.has(userId)) {
+                activeQuests.delete(userId);
+                await db.delete(`on_quest_${userId}`);
+
+                const timeoutEmbed = new EmbedBuilder()
+                    .setTitle("⏰ Dragon Debug Timeout")
+                    .setColor("#FF0000")
+                    .setDescription("Your dragon debug quest has timed out after 30 minutes.");
+
+                try {
+                    await interaction.followUp({ embeds: [timeoutEmbed] });
+                } catch (err) {
+                    console.log("Failed to send timeout message:", err);
+                }
+            }
+        }, 1800000); // 30 minutes
+
+        // Show dragon intro
+        const introEmbed = new EmbedBuilder()
+            .setTitle(`🐲 DEBUG DRAGON BATTLE - ${dragon.name}`)
+            .setColor("#8B0000")
+            .setDescription(`**Debug Mode Activated**\n\nThe ground trembles as an **${dragon.name}** emerges from the depths!\n\n*"You dare challenge me in debug mode, mortal?"*\n\nPreparing for battle...`)
+            .addFields(
+                { name: "Dragon", value: dragon.name, inline: true },
+                { name: "Special Ability", value: `${dragon.specialMove} - ${dragon.specialDescription}`, inline: true },
+                { name: "Debug Reward", value: `${dragon.crystal} (debug - won't be kept)`, inline: true }
+            );
+
+        await interaction.update({ embeds: [introEmbed], components: [] });
+
+        // Start dragon battle after delay
+        setTimeout(async () => {
+            const { startDragonBattle } = require('./quest/dragonBattle.js');
+            await startDragonBattle(interaction, userId, location, activeQuests);
+        }, 3000);
+
+        collector.stop();
+    });
+
+    collector.on('end', (collected, reason) => {
+        if (reason === 'time' && !collected.size) {
+            dragonMessage.edit({
+                embeds: [new EmbedBuilder()
+                    .setTitle("⏰ Dragon Selection Timeout")
+                    .setColor("#FF0000")
+                    .setDescription("You took too long to choose a dragon.")],
+                components: []
+            });
+        }
+    });
 }
 
 async function startDebugQuest(message, userId, questType) {
