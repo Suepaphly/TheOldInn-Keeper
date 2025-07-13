@@ -56,6 +56,11 @@ module.exports.run = async (client, message, args) => {
         inline: true 
       },
       { 
+        name: "🗡️ Quests", 
+        value: "Adventure system with rewards", 
+        inline: true 
+      },
+      { 
         name: "💀 Dirty Deeds", 
         value: "Rob players, summon monsters", 
         inline: true 
@@ -196,6 +201,45 @@ module.exports.run = async (client, message, args) => {
       { name: "Admin Commands", value: "=addmoney, =removemoney, =removestuff, =resetcooldown, =startNewGame", inline: false }
     );
 
+  // Quest embed
+  const questEmbed = new EmbedBuilder()
+    .setTitle("🗡️ QUEST SYSTEM - ADVENTURE AWAITS")
+    .setColor("#9932CC")
+    .setDescription("Embark on dangerous quests to earn rewards and face legendary challenges!")
+    .addFields(
+      { 
+        name: "=quest", 
+        value: "Start a random quest adventure in various locations", 
+        inline: false 
+      },
+      { 
+        name: "🌍 Quest Locations", 
+        value: "• **Plains** - Rolling grasslands with hidden dangers\n• **Forest** - Dark woods filled with mysteries\n• **Redlands** - Volcanic terrain with fiery challenges\n• **Frostlands** - Frozen wastes that test your endurance\n• **Emeraldlands** - Lush jungles with ancient secrets", 
+        inline: false 
+      },
+      { 
+        name: "🎯 Quest Types", 
+        value: "• **Monster Hunts** - Battle various creatures for bounties\n• **Riddle Challenges** - Test your wit against ancient guardians\n• **Maze Navigation** - Navigate treacherous labyrinths\n• **Trolley Problems** - Make difficult moral choices", 
+        inline: false 
+      },
+      { 
+        name: "🐲 Dragon Encounters", 
+        value: "Completing quests may awaken ancient dragons! Each location has its own dragon guardian with unique abilities and rewards.", 
+        inline: false 
+      },
+      { 
+        name: "💎 Crystal Collection", 
+        value: "Defeating dragons grants powerful crystals. Collecting all five crystals from different locations triggers something extraordinary...", 
+        inline: false 
+      },
+      { 
+        name: "⚠️ Quest Rules", 
+        value: "• Only one quest at a time per player\n• Cannot start quests while dead\n• Combat skills affect quest success\n• Backpack space required for rewards", 
+        inline: false 
+      }
+    )
+    .setFooter({ text: "Adventure calls to those brave enough to answer! ⚔️" });
+
   // Dirty Deeds embed
   const dirtyDeedsEmbed = new EmbedBuilder()
     .setTitle("💀 DIRTY DEEDS - NEFARIOUS ACTIVITIES")
@@ -274,6 +318,14 @@ module.exports.run = async (client, message, args) => {
         .setLabel('📊 Status')
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
+        .setCustomId('quest')
+        .setLabel('🗡️ Quests')
+        .setStyle(ButtonStyle.Primary)
+    );
+
+  const row4 = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
         .setCustomId('dirtydeeds')
         .setLabel('💀 Dirty Deeds')
         .setStyle(ButtonStyle.Danger)
@@ -282,7 +334,7 @@ module.exports.run = async (client, message, args) => {
   // Send message with buttons
   const helpMessage = await message.reply({ 
     embeds: [mainEmbed], 
-    components: [row1, row2, row3]
+    components: [row1, row2, row3, row4]
   });
 
   // Create button collector
@@ -316,6 +368,9 @@ module.exports.run = async (client, message, args) => {
       case 'status':
         embed = statusEmbed;
         break;
+      case 'quest':
+        embed = questEmbed;
+        break;
       case 'dirtydeeds':
         embed = dirtyDeedsEmbed;
         break;
@@ -323,12 +378,12 @@ module.exports.run = async (client, message, args) => {
         embed = mainEmbed;
     }
 
-    await interaction.update({ embeds: [embed], components: [row1, row2, row3] });
+    await interaction.update({ embeds: [embed], components: [row1, row2, row3, row4] });
   });
 
   collector.on('end', () => {
     // Disable all buttons when collector ends
-    const disabledRows = [row1, row2, row3].map(row => {
+    const disabledRows = [row1, row2, row3, row4].map(row => {
       const newRow = new ActionRowBuilder();
       row.components.forEach(button => {
         newRow.addComponents(ButtonBuilder.from(button).setDisabled(true));

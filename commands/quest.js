@@ -626,7 +626,7 @@ async function spawnTiamat(interaction, userId, activeQuests) {
         .setColor("#8B0000")
         .setDescription(`The earth SHAKES as **TIAMAT**, the five-headed dragon goddess, descends from the heavens! She has come to reclaim the crystals you possess!\n\n*"Foolish mortal, you have collected what is rightfully mine! Prepare to face my wrath!"*`)
         .addFields(
-            { name: "Reward", value: "The right to keep the crystals (if victorious)", inline: false }
+            { name: "Reward", value: "Forge the crystals into dragonscale armor (if victorious)", inline: false }
         );
 
     await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
