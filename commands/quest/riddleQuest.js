@@ -160,8 +160,9 @@ async function startSphinxCombat(interaction, userId, collector, activeQuests) {
         name: "Ancient Sphinx",
         health: 50,
         maxHealth: 50,
-        attack: [1, 20],
-        attackName: "bite"
+        damage: 10,
+        defense: 2,
+        value: 0
     };
 
     // Create combat instance
