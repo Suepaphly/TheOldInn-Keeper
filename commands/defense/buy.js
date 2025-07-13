@@ -1,18 +1,5 @@
 
-<old_str>const { QuickDB } = require("quick.db");
-const db = new QuickDB();
-const ptt = require("../../utility/protectTheTavern.js");
-
-module.exports.run = async (client, message, args) => {
-    // Redirect to the new =protect command
-    message.channel.send("⚠️ The `=buy` command has been replaced with `=protect`! Please use `=protect` instead for all town defense purchases.\n\nExample: `=protect` for the interactive menu, or `=protect 5 rampart town_guard` for direct purchases.");
-}
-
-module.exports.help = {
-    name: "buy",
-    aliases: ["b"]
-}</old_str>
-<new_str>const { QuickDB } = require("quick.db");
+const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
 const {
@@ -173,4 +160,4 @@ module.exports.run = async (client, message, args) => {
 module.exports.help = {
     name: "buy",
     aliases: ["b"]
-}</new_str>
+};
