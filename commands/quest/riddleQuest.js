@@ -44,6 +44,106 @@ const riddles = [
         question: "The more you take away from me, the bigger I become. What am I?",
         answer: "hole",
         alternatives: ["a hole"]
+    },
+    {
+        question: "What can travel around the world while staying in a corner?",
+        answer: "stamp",
+        alternatives: ["a stamp", "postage stamp"]
+    },
+    {
+        question: "I have branches, but no fruit, trunk, or leaves. What am I?",
+        answer: "bank",
+        alternatives: ["a bank"]
+    },
+    {
+        question: "What breaks but never falls, and what falls but never breaks?",
+        answer: "day and night",
+        alternatives: ["dawn and dusk", "day breaks and night falls"]
+    },
+    {
+        question: "I'm tall when I'm young, and short when I'm old. What am I?",
+        answer: "candle",
+        alternatives: ["a candle"]
+    },
+    {
+        question: "What has one eye but cannot see?",
+        answer: "needle",
+        alternatives: ["a needle"]
+    },
+    {
+        question: "What runs but never walks, has a mouth but never talks, has a bed but never sleeps?",
+        answer: "river",
+        alternatives: ["a river"]
+    },
+    {
+        question: "I am always hungry and will die if not fed, but whatever I touch will soon turn red. What am I?",
+        answer: "fire",
+        alternatives: []
+    },
+    {
+        question: "What has hands but cannot clap?",
+        answer: "clock",
+        alternatives: ["a clock"]
+    },
+    {
+        question: "I am light as a feather, yet the strongest person can't hold me for much longer than a minute. What am I?",
+        answer: "breath",
+        alternatives: ["your breath"]
+    },
+    {
+        question: "What has a neck but no head?",
+        answer: "bottle",
+        alternatives: ["a bottle"]
+    },
+    {
+        question: "I can be cracked, I can be made, I can be told, I can be played. What am I?",
+        answer: "joke",
+        alternatives: ["a joke"]
+    },
+    {
+        question: "What goes up but never comes down?",
+        answer: "age",
+        alternatives: ["your age"]
+    },
+    {
+        question: "I have teeth but cannot bite. What am I?",
+        answer: "comb",
+        alternatives: ["a comb", "zipper", "a zipper", "gear", "a gear"]
+    },
+    {
+        question: "What can you catch but not throw?",
+        answer: "cold",
+        alternatives: ["a cold", "flu", "the flu"]
+    },
+    {
+        question: "I'm found in socks, scarves, and mittens; and often in the paws of playful kittens. What am I?",
+        answer: "yarn",
+        alternatives: ["wool"]
+    },
+    {
+        question: "What has a bottom at the top?",
+        answer: "legs",
+        alternatives: ["your legs", "leg"]
+    },
+    {
+        question: "I am taken from a mine and shut up in a wooden case, from which I am never released, yet I am used by almost everyone. What am I?",
+        answer: "pencil lead",
+        alternatives: ["lead", "graphite"]
+    },
+    {
+        question: "What comes once in a minute, twice in a moment, but never in a thousand years?",
+        answer: "m",
+        alternatives: ["the letter m"]
+    },
+    {
+        question: "Forward I am heavy, but backward I am not. What am I?",
+        answer: "ton",
+        alternatives: ["the word ton"]
+    },
+    {
+        question: "What building has the most stories?",
+        answer: "library",
+        alternatives: ["a library"]
     }
 ];
 
