@@ -93,7 +93,7 @@ async function presentRiddle(interaction, userId, activeQuests, riddleNumber) {
                 const { completeQuest } = require('../quest.js');
                 await completeQuest(interaction, userId, activeQuests, "🧩 You have solved both ancient riddles! The sphinx nods approvingly and vanishes.");
             } else {
-                // Move to next riddle
+                // Move to next riddle - update the same message
                 const successEmbed = new EmbedBuilder()
                     .setTitle("✅ Riddle Solved!")
                     .setColor("#00FF00")
@@ -102,17 +102,10 @@ async function presentRiddle(interaction, userId, activeQuests, riddleNumber) {
                         { name: "Progress", value: `${quest.data.riddlesCompleted}/2 riddles solved`, inline: false }
                     );
 
-                const successMessage = await interaction.followUp({ embeds: [successEmbed] });
+                await CombatSystem.updateInteractionSafely(interaction, { embeds: [successEmbed], components: [] });
 
                 setTimeout(async () => {
-                    await presentRiddle({ 
-                        update: async (options) => await successMessage.edit(options),
-                        editReply: async (options) => await successMessage.edit(options),
-                        followUp: async (options) => await interaction.followUp(options),
-                        channel: interaction.channel,
-                        replied: true,
-                        deferred: false
-                    }, userId, activeQuests, 2);
+                    await presentRiddle(interaction, userId, activeQuests, 2);
                 }, 3000);
             }
         } else {
