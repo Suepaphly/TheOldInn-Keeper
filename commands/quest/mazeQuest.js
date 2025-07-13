@@ -143,7 +143,14 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
     const { embed, row } = combat.createCombatEmbed("A massive vine beast blocks your path!");
 
-    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+    // Use editReply instead of update since the interaction was already responded to
+    try {
+        await interaction.editReply({ embeds: [embed], components: [row] });
+    } catch (error) {
+        console.error('Error editing reply in maze combat:', error);
+        // Fallback to followUp if editReply fails
+        await interaction.followUp({ embeds: [embed], components: [row] });
+    }
 
     // Set up maze combat collector
     const filter = (i) => i.user.id === userId;
@@ -183,7 +190,12 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
                             .setStyle(ButtonStyle.Primary)
                     );
 
-                await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
+                try {
+                    await i.update({ embeds: [embed], components: [continueRow] });
+                } catch (error) {
+                    console.error('Error updating interaction in maze combat victory:', error);
+                    await i.editReply({ embeds: [embed], components: [continueRow] });
+                }
 
                 // Set up continue collector with proper cleanup
                 const continueFilter = (ci) => ci.user.id === userId;
@@ -221,7 +233,12 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
                                     .setStyle(ButtonStyle.Secondary)
                             );
 
-                        await CombatSystem.updateInteractionSafely(ci, { embeds: [stage2Embed], components: [stage2Row] });
+                        try {
+                            await ci.update({ embeds: [stage2Embed], components: [stage2Row] });
+                        } catch (error) {
+                            console.error('Error updating interaction in stage 2:', error);
+                            await ci.editReply({ embeds: [stage2Embed], components: [stage2Row] });
+                        }
                         
                         // Restart the parent collector for stage 2 choices
                         const newFilter = (ni) => ni.user.id === userId;
@@ -239,7 +256,12 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
             } else {
                 // Combat continues
                 const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
-                await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [row] });
+                try {
+                    await i.update({ embeds: [embed], components: [row] });
+                } catch (error) {
+                    console.error('Error updating interaction in continuing combat:', error);
+                    await i.editReply({ embeds: [embed], components: [row] });
+                }
             }
         }
     });
