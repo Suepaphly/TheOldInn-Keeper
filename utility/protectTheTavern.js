@@ -319,16 +319,8 @@ async function endBattle(channel) {
         }
         // Note: Monster retreat is handled in the battle loop at turn 10
         
-        // Clear freeze effects (troops are no longer dismissed)
-        
-        // Ensure freeze effects are cleared
-        await db.delete("freeze_used_this_combat");
-        await db.delete("monsters_frozen_this_turn");
-        const allEntries = await db.all();
-        const freezeEntries = allEntries.filter(entry => entry.id.startsWith("user_freeze_used_"));
-        for (const entry of freezeEntries) {
-            await db.delete(entry.id);
-        }
+        // Comprehensive garbage collection for battle cleanup
+        await performBattleGarbageCollection(channel);
         
         if (channel) channel.send("Battle concluded. Preparing for next conflict...");
     } catch (error) {
@@ -1091,6 +1083,156 @@ function initializeMonsterSpawning() {
     }
 }
 
+// Comprehensive garbage collection for battle cleanup
+async function performBattleGarbageCollection(channel) {
+    try {
+        console.log("Starting battle garbage collection...");
+        
+        const allEntries = await db.all();
+        let deletedCount = 0;
+        
+        // 1. Clear all freeze-related effects
+        const freezeRelated = allEntries.filter(entry => 
+            entry.id === "freeze_used_this_combat" ||
+            entry.id === "monsters_frozen_this_turn" ||
+            entry.id.startsWith("user_freeze_used_")
+        );
+        for (const entry of freezeRelated) {
+            await db.delete(entry.id);
+            deletedCount++;
+        }
+        
+        // 2. Clear all turn attack tracking
+        const turnAttackEntries = allEntries.filter(entry => 
+            entry.id.startsWith("turn_attack_")
+        );
+        for (const entry of turnAttackEntries) {
+            await db.delete(entry.id);
+            deletedCount++;
+        }
+        
+        // 3. Clear monster damage tracking
+        const monsterDamageEntries = allEntries.filter(entry => 
+            entry.id.startsWith("monster_damage_")
+        );
+        for (const entry of monsterDamageEntries) {
+            await db.delete(entry.id);
+            deletedCount++;
+        }
+        
+        // 4. Clear stray monster summoner entries (if monsters are gone)
+        const monsters = await db.get("Monsters") || {};
+        const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
+        
+        if (totalMonsters === 0) {
+            const summonerEntries = allEntries.filter(entry => 
+                entry.id.startsWith("monster_summoner_")
+            );
+            for (const entry of summonerEntries) {
+                await db.delete(entry.id);
+                deletedCount++;
+            }
+        }
+        
+        // 5. Clean up empty troop/trap objects with zero values
+        const locationCleanup = ["rampart", "wall", "castle"];
+        for (const location of locationCleanup) {
+            const troops = await db.get(`Troops_${location}`) || {};
+            const traps = await db.get(`Traps_${location}`) || {};
+            
+            // Clean troops - remove zero counts and fix total
+            let actualTroopTotal = 0;
+            let troopsChanged = false;
+            for (const troopType of troopArray) {
+                if (troops[troopType] <= 0 && troops[troopType] !== undefined) {
+                    delete troops[troopType];
+                    troopsChanged = true;
+                } else if (troops[troopType] > 0) {
+                    actualTroopTotal += troops[troopType];
+                }
+            }
+            
+            // Fix troop total if it doesn't match
+            if (troops.total !== actualTroopTotal) {
+                troops.total = actualTroopTotal;
+                troopsChanged = true;
+            }
+            
+            if (troopsChanged) {
+                await db.set(`Troops_${location}`, troops);
+            }
+            
+            // Clean traps - remove zero counts and fix total
+            let actualTrapTotal = 0;
+            let trapsChanged = false;
+            for (const trapType of trapArray) {
+                if (traps[trapType] <= 0 && traps[trapType] !== undefined) {
+                    delete traps[trapType];
+                    trapsChanged = true;
+                } else if (traps[trapType] > 0) {
+                    actualTrapTotal += traps[trapType];
+                }
+            }
+            
+            // Fix trap total if it doesn't match
+            if (traps.total !== actualTrapTotal) {
+                traps.total = actualTrapTotal;
+                trapsChanged = true;
+            }
+            
+            if (trapsChanged) {
+                await db.set(`Traps_${location}`, traps);
+            }
+        }
+        
+        // 6. Clean up monster object - remove zero counts
+        let monstersChanged = false;
+        for (const monsterType of monsterArray) {
+            if (monsters[monsterType] <= 0 && monsters[monsterType] !== undefined) {
+                delete monsters[monsterType];
+                monstersChanged = true;
+            }
+        }
+        
+        if (monstersChanged) {
+            await db.set("Monsters", monsters);
+        }
+        
+        // 7. Clean up orphaned player tracking data for users who no longer have troops/traps
+        const playerTrackingEntries = allEntries.filter(entry => 
+            entry.id.startsWith("player_troops_") || entry.id.startsWith("player_traps_")
+        );
+        
+        for (const entry of playerTrackingEntries) {
+            if (entry.value <= 0) {
+                await db.delete(entry.id);
+                deletedCount++;
+            }
+        }
+        
+        // 8. Clean up any legacy "currentMonsters" entries (old system)
+        const legacyEntries = allEntries.filter(entry => 
+            entry.id === "currentMonsters" || 
+            entry.id === "currentMonsterHealth" ||
+            entry.id.startsWith("monster_health_") ||
+            entry.id.startsWith("battle_")
+        );
+        for (const entry of legacyEntries) {
+            await db.delete(entry.id);
+            deletedCount++;
+        }
+        
+        console.log(`Battle garbage collection completed. Deleted ${deletedCount} stray entries.`);
+        
+        if (channel && deletedCount > 0) {
+            channel.send(`🧹 Cleaned up ${deletedCount} stray database entries.`);
+        }
+        
+    } catch (error) {
+        console.error("Error during battle garbage collection:", error);
+    }
+}
+
 module.exports = {
     troopArray,
     troopCostArray,
@@ -1120,6 +1262,7 @@ module.exports = {
     endBattle,
     endTroopContract,
     handleBankStealing,
+    performBattleGarbageCollection,
     get lockArena() { return lockArena; },
     get currentBattleTurn() { return currentBattleTurn; },
     initializeScheduler,

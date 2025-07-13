@@ -1,4 +1,3 @@
-
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 
@@ -119,3 +118,58 @@ module.exports = {
     startCooldownCleanup,
     COOLDOWN_DURATIONS
 };
+const cron = require('node-cron');
+
+cron.schedule('*/15 * * * *', async () => {
+    try {
+        console.log('🧹 Running cooldown cleanup...');
+
+        const allEntries = await db.all();
+        let cleanedCount = 0;
+        const now = Date.now();
+
+        // Clean expired cooldowns (older than 24 hours)
+        const expiredEntries = allEntries.filter(entry => {
+            if (entry.id.includes('_cooldown_') || 
+                entry.id.startsWith('death_cooldown_') ||
+                entry.id.startsWith('prank_cooldown_')) {
+
+                const age = now - (entry.value || 0);
+                return age > 24 * 60 * 60 * 1000; // 24 hours
+            }
+            return false;
+        });
+
+        for (const entry of expiredEntries) {
+            await db.delete(entry.id);
+            cleanedCount++;
+        }
+
+        // Additional garbage collection for battle-related stray entries
+        const battleStrayEntries = allEntries.filter(entry => {
+            return entry.id.startsWith("turn_attack_") ||
+                   entry.id.startsWith("monster_damage_") ||
+                   entry.id.startsWith("user_freeze_used_") ||
+                   entry.id === "freeze_used_this_combat" ||
+                   entry.id === "monsters_frozen_this_turn" ||
+                   entry.id === "currentMonsters" ||
+                   entry.id === "currentMonsterHealth" ||
+                   entry.id.startsWith("monster_health_") ||
+                   entry.id.startsWith("battle_") ||
+                   (entry.id.startsWith("player_troops_") && entry.value <= 0) ||
+                   (entry.id.startsWith("player_traps_") && entry.value <= 0);
+        });
+
+        for (const entry of battleStrayEntries) {
+            await db.delete(entry.id);
+            cleanedCount++;
+        }
+
+        if (cleanedCount > 0) {
+            console.log(`🧹 Cleaned up ${cleanedCount} expired entries (cooldowns + battle debris)`);
+        }
+
+    } catch (error) {
+        console.error('Error during cooldown cleanup:', error);
+    }
+});
