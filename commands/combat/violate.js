@@ -1,7 +1,10 @@
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
-const { canAddToBackpack, getBackpackFullMessage } = require("../../utility/backpackUtils.js");
+const {
+    canAddToBackpack,
+    getBackpackFullMessage,
+} = require("../../utility/backpackUtils.js");
 
 // Store active pranks
 const activePranks = new Map();
@@ -348,10 +351,10 @@ async function handlePrankFailed(message, prankData, client) {
 
     let justiceText = `💰 Kopeks Stolen: ${pranksterMoney.toLocaleString()}`;
     if (transferredItems.length > 0) {
-        justiceText += `\n🎒 Items Taken: ${transferredItems.join(', ')}`;
+        justiceText += `\n🎒 Items Taken: ${transferredItems.join(", ")}`;
     }
     if (droppedItems.length > 0) {
-        justiceText += `\n💔 Items Lost (backpack full): ${droppedItems.join(', ')}`;
+        justiceText += `\n💔 Items Lost (backpack full): ${droppedItems.join(", ")}`;
     }
 
     const embed = new Discord.EmbedBuilder()
@@ -377,7 +380,7 @@ async function handlePrankFailed(message, prankData, client) {
         embed.addFields({
             name: "💡 Tip",
             value: `Use \`=shop sell [item]\` to make backpack space!`,
-            inline: false
+            inline: false,
         });
     }
 
@@ -424,5 +427,5 @@ async function getBestArmor(userId) {
 
 module.exports.help = {
     name: "violate",
-    aliases: ["prank", "humiliate", "grape"],
+    aliases: ["prank", "humiliate"],
 };
