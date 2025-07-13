@@ -31,11 +31,11 @@ async function getBackpackCount(userId) {
 
 async function canAddToBackpack(userId, itemCount = 1) {
     const currentCount = await getBackpackCount(userId);
-    return currentCount + itemCount <= 5;
+    return currentCount + itemCount <= 10;
 }
 
 function getBackpackFullMessage() {
-    return "🎒 Your backpack is full! You can only carry 5 items. Use `=shop sell [item]` to make space.";
+    return "🎒 Your backpack is full! You can only carry 10 items. Use `=shop sell [item]` to make space.";
 }
 
 module.exports = {

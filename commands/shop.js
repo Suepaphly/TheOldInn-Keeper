@@ -16,12 +16,12 @@ async function canAddToBackpack(userId) {
         totalItems += armorCounts[armor];
     }
 
-    return totalItems < 5;
+    return totalItems < 10;
 }
 
 // Utility function to get the backpack full message
 function getBackpackFullMessage() {
-    return `🎒 Your backpack is full! You can only carry 5 items. Please sell some items using \`=sell\` before acquiring more.`;
+    return `🎒 Your backpack is full! You can only carry 10 items. Please sell some items using \`=sell\` before acquiring more.`;
 }
 
 module.exports.run = async (client, message, args) => {

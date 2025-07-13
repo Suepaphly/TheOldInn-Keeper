@@ -86,7 +86,7 @@ module.exports.run = async (client, message, args) => {
     const totalItems = await getBackpackCount(user.id);
 
     const embed = new Discord.EmbedBuilder()
-        .setTitle(`🎒 ${user.username}'s Backpack (${totalItems}/5)`)
+        .setTitle(`🎒 ${user.username}'s Backpack (${totalItems}/10)`)
         .setColor("#8B4513")
         .addFields(
             {
