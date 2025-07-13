@@ -59,7 +59,8 @@ module.exports.run = async (client, message, args) => {
     healer: ['feat_healer', 'Healer', 3000, 'Reduces revive cost by 50% (rounded up)'],
     tactician: ['feat_tactician', 'Tactician', 2500, 'Reduces troop cost by 50% (rounded up)'],
     mechanist: ['feat_mechanist', 'Mechanist', 2500, 'Reduces trap cost by 50% (rounded up)'],
-    ninja: ['feat_ninja', 'Ninja', 2500, 'Escape PvP combat defeat with 80% success rate (no death penalty)']
+    ninja: ['feat_ninja', 'Ninja', 2500, 'Escape PvP combat defeat with 80% success rate (no death penalty)'],
+    investigator: ['feat_investigator', 'Investigator', 2500, 'Allows using =snoop on other players once per hour']
   };
 
   if (!item) {

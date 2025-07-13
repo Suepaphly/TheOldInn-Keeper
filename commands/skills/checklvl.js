@@ -34,7 +34,12 @@ if (filteredData.length === 0) {
 if (featData.length > 0) {
     content += "\n**=== FEATS ===**\n";
     const featNames = {
-        'feat_akimbo': 'Guns Akimbo'
+        'feat_akimbo': 'Guns Akimbo',
+        'feat_healer': 'Healer',
+        'feat_tactician': 'Tactician',
+        'feat_mechanist': 'Mechanist',
+        'feat_ninja': 'Ninja',
+        'feat_investigator': 'Investigator'
     };
     
     for (let i = 0; i < featData.length; i++) {
