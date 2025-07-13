@@ -219,6 +219,18 @@ async function startVengeanceCombat(interaction, userId, parentCollector, active
 
                     await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
                     collector.stop();
+                    
+                    // Set up new collector for the continue button since parent collector was stopped
+                    const continueFilter = (continueI) => continueI.user.id === userId;
+                    const continueCollector = i.message.createMessageComponentCollector({ filter: continueFilter, time: 1800000 });
+                    
+                    continueCollector.on('collect', async (continueI) => {
+                        if (continueI.customId === 'trolley_vengeance_continue') {
+                            const { completeQuest } = require('../quest.js');
+                            await completeQuest(continueI, userId, activeQuests);
+                            continueCollector.stop();
+                        }
+                    });
                 } else if (combatResult.result === 'defeat') {
                     const { endQuest } = require('../quest.js');
                     await endQuest(i, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
