@@ -35,10 +35,11 @@ module.exports.run = async (client, message, args) => {
     let killedMonster = "";
     let hitMonster = "";
     
-    const monsterArray = ["goblin", "mephit", "broodling", "ogre", "automaton"];
-    const monsterHealthArray = [1, 5, 10, 25, 50];
+    // Use the same arrays as protectTheTavern.js
+    const monsterArray = ptt.monsterArray;
+    const monsterHealthArray = ptt.monsterHealthArray;
     
-    // Find the first available monster to attack
+    // Find the first available monster to attack (starting with weakest)
     for (let i = 0; i < monsterArray.length; i++) {
         const monsterType = monsterArray[i];
         const monsterCount = monsters[monsterType] || 0;
@@ -103,7 +104,7 @@ module.exports.run = async (client, message, args) => {
         }
         
         // Calculate and award the reward (one-tenth of summoning cost)
-        const monsterCostArray = [50, 200, 500, 2000, 10000]; // From protectTheTavern.js
+        const monsterCostArray = ptt.monsterCostArray;
         const monsterIndex = monsterArray.indexOf(killedMonster);
         const reward = Math.floor(monsterCostArray[monsterIndex] / 10);
         
@@ -126,8 +127,17 @@ module.exports.run = async (client, message, args) => {
         if (hitMonster) {
             const currentDamage = await db.get(`monster_damage_${hitMonster}`) || 0;
             const maxHealth = monsterHealthArray[monsterArray.indexOf(hitMonster)];
+            
+            // Get updated monster count for display
+            const updatedMonsters = await db.get("Monsters") || {};
+            const remainingMonsters = Object.values(updatedMonsters).reduce((sum, count) => sum + count, 0);
+            
             message.channel.send(`⚔️ ${member} hits a ${hitMonster} for ${damageDealt} damage! (${currentDamage}/${maxHealth} damage) ${remainingMonsters} monsters remaining.`);
         } else {
+            // Get updated monster count for display
+            const updatedMonsters = await db.get("Monsters") || {};
+            const remainingMonsters = Object.values(updatedMonsters).reduce((sum, count) => sum + count, 0);
+            
             message.channel.send(`⚔️ ${member} attacks but misses! ${remainingMonsters} monsters remaining.`);
         }
     }
