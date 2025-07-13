@@ -205,7 +205,7 @@ async function updateChestDisplay(interaction, questData) {
         const guessEmojis = entry.guess.map(colorId => 
             colors.find(c => c.id === colorId).emoji
         ).join(' ');
-        const feedbackStr = entry.feedback.join(' '); ');
+        const feedbackStr = entry.feedback.join(' ');
         return `**${index + 1}.** ${guessEmojis} → ${feedbackStr}`;
     }).join('\n') || 'No attempts yet';
 
