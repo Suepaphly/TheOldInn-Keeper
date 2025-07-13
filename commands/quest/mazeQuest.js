@@ -101,13 +101,22 @@ async function handleMazeChoice(interaction, userId, collector, activeQuests) {
 
             await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
         } else if (result === 2) {
-            // Trap - lose money
-            const loss = Math.floor(Math.random() * 500) + 200;
-            const currentMoney = await db.get(`money_${userId}`) || 0;
-            if (currentMoney >= loss) {
-                await db.sub(`money_${userId}`, loss);
+            // Trap - check for white crystal protection
+            const { hasCrystal } = require('../../utility/crystalUtils.js');
+            const hasWhiteCrystal = await hasCrystal(userId, 'white');
+            
+            if (hasWhiteCrystal) {
+                // White crystal protects from trap damage
+                await endQuest(interaction, userId, false, `You triggered a trap! Spikes shoot from the ground, but your White Crystal glows and deflects all damage. You escape unharmed. ⚪`, activeQuests);
+            } else {
+                // No protection - lose money
+                const loss = Math.floor(Math.random() * 500) + 200;
+                const currentMoney = await db.get(`money_${userId}`) || 0;
+                if (currentMoney >= loss) {
+                    await db.sub(`money_${userId}`, loss);
+                }
+                await endQuest(interaction, userId, false, `You triggered a trap! Spikes shoot from the ground, and you lose ${loss} kopeks before escaping.`, activeQuests);
             }
-            await endQuest(interaction, userId, false, `You triggered a trap! Spikes shoot from the ground, and you lose ${loss} kopeks before escaping.`, activeQuests);
             collector.stop();
         } else {
             // Combat - fight a vine beast
@@ -126,13 +135,8 @@ async function handleMazeChoice(interaction, userId, collector, activeQuests) {
             const hasWhiteCrystal = await hasCrystal(userId, 'white');
             
             if (hasWhiteCrystal) {
-                // White crystal protects from death, only lose money
-                const loss = Math.floor(Math.random() * 500) + 200;
-                const currentMoney = await db.get(`money_${userId}`) || 0;
-                if (currentMoney >= loss) {
-                    await db.sub(`money_${userId}`, loss);
-                }
-                await endQuest(interaction, userId, false, `You chose poorly, but your White Crystal protects you from death! You lose ${loss} kopeks and escape the maze. ⚪`, activeQuests);
+                // White crystal protects from death and money loss
+                await endQuest(interaction, userId, false, `You chose poorly, but your White Crystal protects you from the deadly trap! You escape the maze completely unharmed. ⚪`, activeQuests);
             } else {
                 await db.set(`death_cooldown_${userId}`, Date.now());
                 await endQuest(interaction, userId, false, `You chose poorly. The maze's deadly trap claims your life. You are now dead for 24 hours.`, activeQuests);
