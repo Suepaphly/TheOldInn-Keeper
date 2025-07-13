@@ -121,9 +121,23 @@ async function startBattle(channel) {
                 break;
             }
             
-            // Show turn number every turn
+            // Show turn number and defense status every turn
             if (channel) {
-                channel.send(`--- **Turn ${turn}/10** --- (${totalMonstersLeft} monsters remaining)`);
+                const ramparts = await db.get("rampart") || 0;
+                const walls = await db.get("wall") || 0;
+                const castle = await db.get("castle") || 0;
+                
+                // Calculate total troops
+                const rampartTroops = await db.get("Troops_rampart") || {};
+                const wallTroops = await db.get("Troops_wall") || {};
+                const castleTroops = await db.get("Troops_castle") || {};
+                
+                const totalRampartTroops = Object.values(rampartTroops).reduce((sum, count) => sum + (count || 0), 0);
+                const totalWallTroops = Object.values(wallTroops).reduce((sum, count) => sum + (count || 0), 0);
+                const totalCastleTroops = Object.values(castleTroops).reduce((sum, count) => sum + (count || 0), 0);
+                const totalTroops = totalRampartTroops + totalWallTroops + totalCastleTroops;
+                
+                channel.send(`--- **Turn ${turn}/10** ---\n🏰 **Defenses:** ${ramparts} ramparts, ${walls} walls, ${castle} castle\n⚔️ **Troops:** ${totalTroops} defenders\n👹 **Enemies:** ${totalMonstersLeft} monsters`);
             }
             
             const battleResult = await attackTurn(channel);
@@ -217,10 +231,40 @@ async function attackTurn(channel) {
             await applyTroopDamageToMonsters(troopDamage, channel);
         }
 
-        // Check if castle is destroyed
+        // Check if all defenses are destroyed (walls, troops, and traps)
+        const ramparts = await db.get("rampart") || 0;
+        const walls = await db.get("wall") || 0;
         const castle = await db.get("castle") || 0;
-        if (castle <= 0) {
-            if (channel) channel.send("💀 Castle destroyed! Monsters have won!");
+        
+        // Check total troops across all locations
+        const rampartTroops = await db.get("Troops_rampart") || {};
+        const wallTroops = await db.get("Troops_wall") || {};
+        const castleTroops = await db.get("Troops_castle") || {};
+        
+        const totalRampartTroops = Object.values(rampartTroops).reduce((sum, count) => sum + (count || 0), 0);
+        const totalWallTroops = Object.values(wallTroops).reduce((sum, count) => sum + (count || 0), 0);
+        const totalCastleTroops = Object.values(castleTroops).reduce((sum, count) => sum + (count || 0), 0);
+        const totalTroops = totalRampartTroops + totalWallTroops + totalCastleTroops;
+        
+        // Check total traps across all locations
+        const rampartTraps = await db.get("Traps_rampart") || {};
+        const wallTraps = await db.get("Traps_wall") || {};
+        const castleTraps = await db.get("Traps_castle") || {};
+        
+        const totalRampartTraps = Object.values(rampartTraps).reduce((sum, count) => sum + (count || 0), 0);
+        const totalWallTraps = Object.values(wallTraps).reduce((sum, count) => sum + (count || 0), 0);
+        const totalCastleTraps = Object.values(castleTraps).reduce((sum, count) => sum + (count || 0), 0);
+        const totalTraps = totalRampartTraps + totalWallTraps + totalCastleTraps;
+        
+        // Town is defeated if all walls AND all troops AND all traps are destroyed
+        if (ramparts <= 0 && walls <= 0 && castle <= 0 && totalTroops <= 0 && totalTraps <= 0) {
+            if (channel) channel.send("💀 **TOTAL DEFEAT!** All walls, troops, and traps have been destroyed! Monsters have completely conquered the town!");
+            return { continue: false, victory: false }; // End battle - monsters win
+        }
+        
+        // Also end if just castle is destroyed and no other defenses remain
+        if (castle <= 0 && totalTroops <= 0 && totalTraps <= 0) {
+            if (channel) channel.send("💀 **CASTLE FALLEN!** The castle has been destroyed and no defenders remain! Monsters have won!");
             return { continue: false, victory: false }; // End battle - monsters win
         }
 
@@ -233,12 +277,36 @@ async function attackTurn(channel) {
 
 async function endBattle(channel) {
     try {
+        const ramparts = await db.get("rampart") || 0;
+        const walls = await db.get("wall") || 0;
         const castle = await db.get("castle") || 0;
         const monsters = await db.get("Monsters") || {};
         const totalMonsters = Object.values(monsters).reduce((sum, count) => sum + count, 0);
         
-        if (castle <= 0) {
-            if (channel) channel.send("💀 **DEFEAT!** The monsters have breached the castle and conquered the town!");
+        // Check if town was completely defeated
+        const rampartTroops = await db.get("Troops_rampart") || {};
+        const wallTroops = await db.get("Troops_wall") || {};
+        const castleTroops = await db.get("Troops_castle") || {};
+        
+        const totalRampartTroops = Object.values(rampartTroops).reduce((sum, count) => sum + (count || 0), 0);
+        const totalWallTroops = Object.values(wallTroops).reduce((sum, count) => sum + (count || 0), 0);
+        const totalCastleTroops = Object.values(castleTroops).reduce((sum, count) => sum + (count || 0), 0);
+        const totalTroops = totalRampartTroops + totalWallTroops + totalCastleTroops;
+        
+        const rampartTraps = await db.get("Traps_rampart") || {};
+        const wallTraps = await db.get("Traps_wall") || {};
+        const castleTraps = await db.get("Traps_castle") || {};
+        
+        const totalRampartTraps = Object.values(rampartTraps).reduce((sum, count) => sum + (count || 0), 0);
+        const totalWallTraps = Object.values(wallTraps).reduce((sum, count) => sum + (count || 0), 0);
+        const totalCastleTraps = Object.values(castleTraps).reduce((sum, count) => sum + (count || 0), 0);
+        const totalTraps = totalRampartTraps + totalWallTraps + totalCastleTraps;
+        
+        const isCompletelyDefeated = (ramparts <= 0 && walls <= 0 && castle <= 0 && totalTroops <= 0 && totalTraps <= 0) ||
+                                   (castle <= 0 && totalTroops <= 0 && totalTraps <= 0);
+        
+        if (isCompletelyDefeated) {
+            if (channel) channel.send("💀 **COMPLETE DEFEAT!** The monsters have destroyed all defenses and conquered the town!");
             
             // Handle bank stealing
             await handleBankStealing(channel);
@@ -629,16 +697,23 @@ async function applyDamageToDefenses(damage, channel) {
         let damageReport = [];
         let trapDamage = 0;
         
-        // Damage ramparts first
-        const ramparts = await db.get("rampart") || 0;
-        if (remainingDamage > 0 && ramparts > 0) {
-            const rampartDamage = Math.min(remainingDamage, ramparts);
-            await db.sub("rampart", rampartDamage);
-            remainingDamage -= rampartDamage;
-            damageReport.push(`🛡️ Ramparts: -${rampartDamage} HP`);
+        // Calculate total wall health (each wall type has health based on count * health per unit)
+        const rampartCount = await db.get("rampart") || 0;
+        const wallCount = await db.get("wall") || 0;
+        const castleCount = await db.get("castle") || 0;
+        
+        // Damage ramparts first (1 HP per rampart unit)
+        if (remainingDamage > 0 && rampartCount > 0) {
+            const rampartHealth = rampartCount * wallHealthArray[0]; // 1 HP per rampart
+            const rampartDamage = Math.min(remainingDamage, rampartHealth);
+            const rampartsDestroyed = Math.min(rampartDamage, rampartCount);
             
-            // Fire rampart traps when breached
-            if (rampartDamage > 0) {
+            if (rampartsDestroyed > 0) {
+                await db.sub("rampart", rampartsDestroyed);
+                remainingDamage -= rampartDamage;
+                damageReport.push(`🛡️ Ramparts: -${rampartsDestroyed} units (${rampartDamage} damage)`);
+                
+                // Fire rampart traps when breached
                 const rampartTraps = await db.get("Traps_rampart") || {};
                 let rampartTrapDamage = 0;
                 for (let i = 0; i < trapArray.length; i++) {
@@ -654,20 +729,24 @@ async function applyDamageToDefenses(damage, channel) {
         }
         
         // If ramparts are destroyed, damage troops at rampart location
-        if (ramparts <= 0 && remainingDamage > 0) {
+        const updatedRamparts = await db.get("rampart") || 0;
+        if (updatedRamparts <= 0 && remainingDamage > 0) {
             remainingDamage = await applyDamageToTroops("rampart", remainingDamage, channel);
         }
         
-        // Then damage walls
-        const walls = await db.get("wall") || 0;
-        if (remainingDamage > 0 && walls > 0) {
-            const wallDamage = Math.min(remainingDamage, walls);
-            await db.sub("wall", wallDamage);
-            remainingDamage -= wallDamage;
-            damageReport.push(`🧱 Walls: -${wallDamage} HP`);
+        // Then damage walls (10 HP per wall unit)
+        const currentWallCount = await db.get("wall") || 0;
+        if (remainingDamage > 0 && currentWallCount > 0) {
+            const wallHealth = currentWallCount * wallHealthArray[1]; // 10 HP per wall
+            const wallDamage = Math.min(remainingDamage, wallHealth);
+            const wallsDestroyed = Math.min(Math.floor(wallDamage / wallHealthArray[1]), currentWallCount);
             
-            // Fire wall traps when breached
-            if (wallDamage > 0) {
+            if (wallsDestroyed > 0) {
+                await db.sub("wall", wallsDestroyed);
+                remainingDamage -= wallsDestroyed * wallHealthArray[1];
+                damageReport.push(`🧱 Walls: -${wallsDestroyed} units (${wallsDestroyed * wallHealthArray[1]} damage)`);
+                
+                // Fire wall traps when breached
                 const wallTraps = await db.get("Traps_wall") || {};
                 let wallTrapDamage = 0;
                 for (let i = 0; i < trapArray.length; i++) {
@@ -683,20 +762,24 @@ async function applyDamageToDefenses(damage, channel) {
         }
         
         // If walls are destroyed, damage troops at wall location
-        if (walls <= 0 && remainingDamage > 0) {
+        const updatedWalls = await db.get("wall") || 0;
+        if (updatedWalls <= 0 && remainingDamage > 0) {
             remainingDamage = await applyDamageToTroops("wall", remainingDamage, channel);
         }
         
-        // Finally damage castle
-        const castle = await db.get("castle") || 0;
-        if (remainingDamage > 0 && castle > 0) {
-            const castleDamage = Math.min(remainingDamage, castle);
-            await db.sub("castle", castleDamage);
-            remainingDamage -= castleDamage;
-            damageReport.push(`🏰 Castle: -${castleDamage} HP`);
+        // Finally damage castle (100 HP per castle unit)
+        const currentCastleCount = await db.get("castle") || 0;
+        if (remainingDamage > 0 && currentCastleCount > 0) {
+            const castleHealth = currentCastleCount * wallHealthArray[2]; // 100 HP per castle
+            const castleDamage = Math.min(remainingDamage, castleHealth);
+            const castlesDestroyed = Math.min(Math.floor(castleDamage / wallHealthArray[2]), currentCastleCount);
             
-            // Fire castle traps when breached
-            if (castleDamage > 0) {
+            if (castlesDestroyed > 0) {
+                await db.sub("castle", castlesDestroyed);
+                remainingDamage -= castlesDestroyed * wallHealthArray[2];
+                damageReport.push(`🏰 Castle: -${castlesDestroyed} units (${castlesDestroyed * wallHealthArray[2]} damage)`);
+                
+                // Fire castle traps when breached
                 const castleTraps = await db.get("Traps_castle") || {};
                 let castleTrapDamage = 0;
                 for (let i = 0; i < trapArray.length; i++) {
@@ -712,7 +795,8 @@ async function applyDamageToDefenses(damage, channel) {
         }
         
         // If castle is destroyed, damage troops at castle location
-        if (castle <= 0 && remainingDamage > 0) {
+        const finalCastleCount = await db.get("castle") || 0;
+        if (finalCastleCount <= 0 && remainingDamage > 0) {
             remainingDamage = await applyDamageToTroops("castle", remainingDamage, channel);
         }
         
@@ -767,18 +851,25 @@ async function applyDamageToTroops(location, damage, channel) {
         let totalKilled = 0;
         let killReport = [];
         
-        // Apply damage to troops (starting with weakest)
+        // Apply damage to troops (starting with weakest) - each troop has specific HP
         for (let i = 0; i < troopArray.length && remainingDamage > 0; i++) {
             const troopType = troopArray[i];
             const troopCount = troops[troopType] || 0;
             if (troopCount > 0) {
-                const troopsKilled = Math.min(Math.floor(remainingDamage / troopHealthArray[i]), troopCount);
+                const troopHP = troopHealthArray[i];
+                const troopsKilled = Math.min(Math.floor(remainingDamage / troopHP), troopCount);
                 if (troopsKilled > 0) {
                     await db.sub(`Troops_${location}.${troopType}`, troopsKilled);
-                    await db.sub(`Troops_${location}.total`, troopsKilled);
-                    remainingDamage -= troopsKilled * troopHealthArray[i];
+                    
+                    // Update total troop count
+                    const currentTotal = troops.total || 0;
+                    const newTotal = Math.max(0, currentTotal - troopsKilled);
+                    await db.set(`Troops_${location}.total`, newTotal);
+                    
+                    const damageUsed = troopsKilled * troopHP;
+                    remainingDamage -= damageUsed;
                     totalKilled += troopsKilled;
-                    killReport.push(`${troopsKilled} ${troopType}(s)`);
+                    killReport.push(`${troopsKilled} ${troopType}(s) (${damageUsed} damage)`);
                 }
             }
         }
