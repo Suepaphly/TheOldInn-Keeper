@@ -24,6 +24,24 @@ const locations = {
         description: "Twisted trees whisper ancient secrets",
         second: "🕳️ Underground Caves",
         secondDescription: "Deep tunnels echo with mysterious sounds"
+    },
+    redlands: {
+        name: "🔥 Crimson Badlands",
+        description: "Scorched earth burns beneath a blood-red sky",
+        second: "🌋 Volcanic Peaks",
+        secondDescription: "Molten lava flows down jagged mountain slopes"
+    },
+    frostlands: {
+        name: "❄️ Frozen Wastelands",
+        description: "Endless ice fields stretch under crystal skies",
+        second: "🏔️ Glacial Caverns",
+        secondDescription: "Ancient ice formations gleam in ethereal light"
+    },
+    emeraldlands: {
+        name: "🌿 Verdant Highlands",
+        description: "Lush green valleys teem with vibrant life",
+        second: "🌳 Primordial Grove",
+        secondDescription: "Ancient trees hum with primal magical energy"
     }
 };
 
@@ -96,21 +114,41 @@ module.exports.run = async (client, message, args) => {
         .setColor("#FFD700")
         .setDescription("Select a location to explore. You must complete **TWO quests** to earn the 250 kopek reward!\n\n⚠️ Once started, you cannot engage in combat, gambling, or economic activities until completed!")
         .addFields(
-            { name: locations.plains.name, value: `${locations.plains.description}\n*Leads to: ${locations.plains.second}*`, inline: false },
-            { name: locations.forest.name, value: `${locations.forest.description}\n*Leads to: ${locations.forest.second}*`, inline: false }
+            { name: locations.plains.name, value: `${locations.plains.description}\n*Leads to: ${locations.plains.second}*`, inline: true },
+            { name: locations.forest.name, value: `${locations.forest.description}\n*Leads to: ${locations.forest.second}*`, inline: true },
+            { name: locations.redlands.name, value: `${locations.redlands.description}\n*Leads to: ${locations.redlands.second}*`, inline: true },
+            { name: locations.frostlands.name, value: `${locations.frostlands.description}\n*Leads to: ${locations.frostlands.second}*`, inline: true },
+            { name: locations.emeraldlands.name, value: `${locations.emeraldlands.description}\n*Leads to: ${locations.emeraldlands.second}*`, inline: true },
+            { name: "\u200B", value: "\u200B", inline: true }
         )
         .setFooter({ text: "⏰ You have 30 minutes to complete once started!" });
 
     // Create buttons
-    const row = new ActionRowBuilder()
+    const row1 = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
                 .setCustomId('location_plains')
-                .setLabel('🌾 Wide Open Plains')
+                .setLabel('🌾 Plains')
                 .setStyle(ButtonStyle.Primary),
             new ButtonBuilder()
                 .setCustomId('location_forest')
-                .setLabel('🌲 Dark Forest')
+                .setLabel('🌲 Forest')
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId('location_redlands')
+                .setLabel('🔥 Badlands')
+                .setStyle(ButtonStyle.Danger)
+        );
+
+    const row2 = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('location_frostlands')
+                .setLabel('❄️ Wastelands')
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('location_emeraldlands')
+                .setLabel('🌿 Highlands')
                 .setStyle(ButtonStyle.Success),
             new ButtonBuilder()
                 .setCustomId('quest_cancel')
@@ -120,7 +158,7 @@ module.exports.run = async (client, message, args) => {
 
     const questMessage = await message.channel.send({ 
         embeds: [embed], 
-        components: [row] 
+        components: [row1, row2] 
     });
 
     // Set up collector
