@@ -147,17 +147,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
     // Set up maze combat collector
     const filter = (i) => i.user.id === userId;
-
-    // Get the message for the collector
-    let message;
-    try {
-        message = await interaction.fetchReply();
-    } catch (error) {
-        console.error('Error getting message for maze combat collector:', error);
-        return;
-    }
-
-    const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
+    const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
         if (i.customId === 'maze_run') {
@@ -197,15 +187,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
                 // Set up continue collector with proper cleanup
                 const continueFilter = (ci) => ci.user.id === userId;
-                let continueMessage;
-                try {
-                    continueMessage = await i.fetchReply();
-                } catch (error) {
-                    console.error('Error getting continue message:', error);
-                    return;
-                }
-
-                const continueCollector = continueMessage.createMessageComponentCollector({ filter: continueFilter, time: 1800000 });
+                const continueCollector = i.message.createMessageComponentCollector({ filter: continueFilter, time: 1800000 });
 
                 continueCollector.on('collect', async (ci) => {
                     if (ci.customId === 'maze_continue_after_combat') {
@@ -243,15 +225,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
                         
                         // Restart the parent collector for stage 2 choices
                         const newFilter = (ni) => ni.user.id === userId;
-                        let newMessage;
-                        try {
-                            newMessage = await ci.fetchReply();
-                        } catch (error) {
-                            console.error('Error getting new message:', error);
-                            return;
-                        }
-                        
-                        const newCollector = newMessage.createMessageComponentCollector({ filter: newFilter, time: 1800000 });
+                        const newCollector = ci.message.createMessageComponentCollector({ filter: newFilter, time: 1800000 });
                         newCollector.on('collect', async (ni) => {
                             await handleMazeChoice(ni, userId, newCollector, activeQuests);
                         });
