@@ -19,8 +19,7 @@ const COOLDOWN_DURATIONS = {
     tiamat: 86400000,      // 24 hours (boss cooldown)
     steal: 3600000,        // 1 hour
     gambling: 3600000,     // 1 hour (gambling sessions)
-    quest: 86400000,       // 24 hours (quest data)
-    inactive: 7776000000   // 90 days (inactive player data)
+    quest: 86400000        // 24 hours (quest data)
 };
 
 async function cleanupExpiredCooldowns() {
@@ -204,7 +203,7 @@ cron.schedule('*/15 * * * *', async () => {
             cleanedCount++;
         }
         
-        // Empty item cleanup - remove items with 0 or negative quantities
+        // Empty item cleanup - remove items with 0 or negative quantities (but preserve player data structure)
         const emptyItemEntries = allEntries.filter(entry => {
             return (entry.id.startsWith("weapon_") ||
                    entry.id.startsWith("armor_") ||
@@ -217,28 +216,8 @@ cron.schedule('*/15 * * * *', async () => {
             cleanedCount++;
         }
         
-        // Inactive player cleanup - remove data for players inactive for 90+ days
-        const ninetyDaysAgo = now - (90 * 24 * 60 * 60 * 1000);
-        const lastSeenEntries = allEntries.filter(entry => 
-            entry.id.startsWith("last_seen_") && entry.value < ninetyDaysAgo
-        );
-        
-        for (const lastSeenEntry of lastSeenEntries) {
-            const userId = lastSeenEntry.id.replace("last_seen_", "");
-            
-            // Clean all data for this inactive user
-            const userDataEntries = allEntries.filter(entry => 
-                entry.id.endsWith(`_${userId}`) || 
-                entry.id === `money_${userId}` ||
-                entry.id === `bank_${userId}` ||
-                entry.id.startsWith(`${userId}_`)
-            );
-            
-            for (const userEntry of userDataEntries) {
-                await db.delete(userEntry.id);
-                cleanedCount++;
-            }
-        }
+        // NOTE: Player skills, feats, items, wallet, and bank balances are NEVER cleaned up
+        // Only temporary/stray data gets removed to preserve all player progression
         
         // PvP tracking cleanup - remove old attack/battle tracking
         const pvpTrackingEntries = allEntries.filter(entry => {

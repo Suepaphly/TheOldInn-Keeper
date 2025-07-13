@@ -66,14 +66,10 @@ client.on("ready", async () => {
   }
 });
 
-const db = require('quick.db');
-
 client.on("messageCreate", async message => {
-    if(message.author.bot) return;
-    if(!message.content.startsWith(prefix)) return;
-
-    // Track last seen for garbage collection
-    await db.set(`last_seen_${message.author.id}`, Date.now());
+  if (message.author.bot) return;
+  if (message.channel.type === "dm") return;
+  if (!message.content.startsWith(prefix)) return;
 
   let args = message.content.slice(prefix.length).trim().split(/ +/g);
   let cmd = args.shift().toLowerCase();
