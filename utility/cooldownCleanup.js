@@ -17,7 +17,10 @@ const COOLDOWN_DURATIONS = {
     death: 86400000,       // 24 hours
     green_crystal_revive: 86400000, // 24 hours
     tiamat: 86400000,      // 24 hours (boss cooldown)
-    steal: 3600000         // 1 hour
+    steal: 3600000,        // 1 hour
+    gambling: 3600000,     // 1 hour (gambling sessions)
+    quest: 86400000,       // 24 hours (quest data)
+    inactive: 7776000000   // 90 days (inactive player data)
 };
 
 async function cleanupExpiredCooldowns() {
@@ -159,8 +162,94 @@ cron.schedule('*/15 * * * *', async () => {
                    (entry.id.startsWith("player_troops_") && entry.value <= 0) ||
                    (entry.id.startsWith("player_traps_") && entry.value <= 0);
         });
+        
+        // Quest system garbage collection
+        const questStrayEntries = allEntries.filter(entry => {
+            return entry.id.startsWith("quest_progress_") ||
+                   entry.id.startsWith("quest_state_") ||
+                   entry.id.startsWith("quest_data_") ||
+                   entry.id.startsWith("maze_") ||
+                   entry.id.startsWith("chest_") ||
+                   entry.id.startsWith("mystery_") ||
+                   entry.id.startsWith("riddle_") ||
+                   entry.id.startsWith("trolley_") ||
+                   entry.id.startsWith("dragon_") ||
+                   entry.id.startsWith("combat_") ||
+                   entry.id.startsWith("monster_quest_");
+        });
 
         for (const entry of battleStrayEntries) {
+            await db.delete(entry.id);
+            cleanedCount++;
+        }
+        
+        for (const entry of questStrayEntries) {
+            await db.delete(entry.id);
+            cleanedCount++;
+        }
+        
+        // Gambling session garbage collection (sessions older than 1 hour)
+        const gamblingStrayEntries = allEntries.filter(entry => {
+            const age = now - (entry.value || 0);
+            return (entry.id.startsWith("blackjack_") ||
+                   entry.id.startsWith("poker_") ||
+                   entry.id.startsWith("roulette_") ||
+                   entry.id.startsWith("slots_") ||
+                   entry.id.startsWith("craps_")) && 
+                   age > 3600000; // 1 hour
+        });
+        
+        for (const entry of gamblingStrayEntries) {
+            await db.delete(entry.id);
+            cleanedCount++;
+        }
+        
+        // Empty item cleanup - remove items with 0 or negative quantities
+        const emptyItemEntries = allEntries.filter(entry => {
+            return (entry.id.startsWith("weapon_") ||
+                   entry.id.startsWith("armor_") ||
+                   entry.id.startsWith("crystal_")) &&
+                   entry.value <= 0;
+        });
+        
+        for (const entry of emptyItemEntries) {
+            await db.delete(entry.id);
+            cleanedCount++;
+        }
+        
+        // Inactive player cleanup - remove data for players inactive for 90+ days
+        const ninetyDaysAgo = now - (90 * 24 * 60 * 60 * 1000);
+        const lastSeenEntries = allEntries.filter(entry => 
+            entry.id.startsWith("last_seen_") && entry.value < ninetyDaysAgo
+        );
+        
+        for (const lastSeenEntry of lastSeenEntries) {
+            const userId = lastSeenEntry.id.replace("last_seen_", "");
+            
+            // Clean all data for this inactive user
+            const userDataEntries = allEntries.filter(entry => 
+                entry.id.endsWith(`_${userId}`) || 
+                entry.id === `money_${userId}` ||
+                entry.id === `bank_${userId}` ||
+                entry.id.startsWith(`${userId}_`)
+            );
+            
+            for (const userEntry of userDataEntries) {
+                await db.delete(userEntry.id);
+                cleanedCount++;
+            }
+        }
+        
+        // PvP tracking cleanup - remove old attack/battle tracking
+        const pvpTrackingEntries = allEntries.filter(entry => {
+            return entry.id.startsWith("in_battle_") ||
+                   entry.id.startsWith("battle_turn_") ||
+                   entry.id.startsWith("last_attack_") ||
+                   entry.id.startsWith("combat_state_") ||
+                   entry.id.includes("_vs_");
+        });
+        
+        for (const entry of pvpTrackingEntries) {
             await db.delete(entry.id);
             cleanedCount++;
         }
