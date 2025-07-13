@@ -82,6 +82,71 @@ const mysteryScenarios = [
             suspect: "Midnight Buyer"
         },
         explanation: "The midnight buyer poisoned Margaret's coffee with chemicals from the artifact cleaning solution after she attempted to blackmail him. The motive was blackmail - Margaret threatened to expose his illegal art collection unless he paid her millions."
+    },
+    {
+        title: "The Wedding Day Murder",
+        description: "Billionaire bride Sophia Hartwell was found dead in her bridal suite just hours before her wedding ceremony. She was discovered in her wedding dress, slumped over her vanity table with her makeup half-finished. A champagne flute sat nearby, still fizzing with expensive vintage champagne. The door was locked from the inside, but the balcony doors were wide open despite the cold morning air. Three people had master keys to the bridal suite: her maid of honor who had discovered Sophia was having an affair with her fiancé, her wedding planner who had been embezzling money from the event budget for months, and her stepmother who stood to inherit everything if Sophia died before the marriage was finalized. Fresh rose petals were scattered around the room, and a handwritten suicide note was conspicuously placed on the bedside table.",
+        weapons: ["Poison", "Defenestration", "Suffocation"],
+        motives: ["Betrayal", "Embezzlement", "Inheritance"],
+        suspects: ["Maid of Honor", "Wedding Planner", "Stepmother"],
+        solution: {
+            weapon: "Poison",
+            motive: "Inheritance",
+            suspect: "Stepmother"
+        },
+        explanation: "The stepmother poisoned Sophia's champagne with cyanide to secure her inheritance before the wedding could legally transfer Sophia's wealth to her new husband. The suicide note was forged to cover the murder."
+    },
+    {
+        title: "The Gaming Tournament Tragedy",
+        description: "Professional esports champion Kyle 'Phoenix' Martinez was found dead at his gaming station during the finals of a million-dollar tournament. He was slumped over his mechanical keyboard, his expensive gaming headset still around his neck. The tournament stream showed him suddenly collapsing mid-game, shocking viewers worldwide. His energy drink can was knocked over, spilling its contents across his RGB setup. Three people had backstage access during the tournament: his longtime rival who had been accused of using performance-enhancing drugs and blamed Kyle for the investigation, his team manager who had discovered Kyle was planning to switch to a competing organization, and his girlfriend who had recently learned Kyle was selling their private photos online for extra income. The gaming chair's electrical components showed signs of tampering, and several pill capsules were scattered under the desk.",
+        weapons: ["Electrocution", "Poison", "Strangulation"],
+        motives: ["Competitive Rivalry", "Business Betrayal", "Personal Revenge"],
+        suspects: ["Gaming Rival", "Team Manager", "Girlfriend"],
+        solution: {
+            weapon: "Electrocution",
+            motive: "Business Betrayal",
+            suspect: "Team Manager"
+        },
+        explanation: "The team manager electrocuted Kyle by tampering with his gaming chair's electrical components after discovering Kyle's plan to defect to a rival organization. The manager couldn't afford to lose his star player and the associated sponsorship deals."
+    },
+    {
+        title: "The Cruise Ship Mystery",
+        description: "Luxury cruise director Amanda Reeves was found dead in her private cabin during a stormy night at sea. She was discovered face-down in her bathtub, wearing her evening gown from the captain's dinner. The cabin's porthole was open, letting in the sound of crashing waves and cold ocean air. Water from the bathroom had flooded into the main cabin, ruining several important documents on her desk. Three crew members had access to her cabin: the ship's security chief who had been investigating Amanda for smuggling operations, the head chef who Amanda had been threatening to fire after discovering he was serving expired food to passengers, and the cruise ship's doctor who had been having a secret affair with Amanda while she blackmailed him about his fraudulent medical credentials. A bottle of expensive perfume was shattered on the bathroom floor, and the cabin's safe was found open and empty.",
+        weapons: ["Drowning", "Poison", "Blunt Object"],
+        motives: ["Criminal Investigation", "Job Security", "Blackmail"],
+        suspects: ["Security Chief", "Head Chef", "Ship's Doctor"],
+        solution: {
+            weapon: "Drowning",
+            motive: "Blackmail",
+            suspect: "Ship's Doctor"
+        },
+        explanation: "The ship's doctor drowned Amanda in her bathtub after she threatened to expose his fake medical credentials to the authorities. He staged the scene to look like an accident during the storm, opening the porthole to suggest she fell while trying to close it."
+    },
+    {
+        title: "The Music Festival Fatality",
+        description: "Rising pop star Luna Blackthorne was found dead in her backstage trailer during the final night of a massive music festival. She was discovered wearing her stage costume, sitting in front of her makeup mirror with her microphone cord wrapped around her neck. The trailer's air conditioning was running at maximum, making the small space freezing cold despite the summer heat outside. Her backup dancers reported hearing strange sounds from the trailer just before her scheduled performance. Three people had keys to her trailer: her ambitious backup singer who had been secretly recording Luna's new songs to steal and release as her own, her tour manager who had been skimming money from merchandise sales and was about to be exposed by Luna's accountant, and her ex-boyfriend who had been stalking her since their messy breakup and recently violated a restraining order. A syringe was found hidden in the makeup kit, and several threatening fan letters were scattered across the floor.",
+        weapons: ["Strangulation", "Injection", "Suffocation"],
+        motives: ["Musical Theft", "Embezzlement", "Stalking"],
+        suspects: ["Backup Singer", "Tour Manager", "Ex-Boyfriend"],
+        solution: {
+            weapon: "Injection",
+            motive: "Musical Theft",
+            suspect: "Backup Singer"
+        },
+        explanation: "The backup singer injected Luna with a lethal dose of insulin, then staged the scene with the microphone cord to misdirect the investigation. The motive was musical theft - she planned to steal Luna's unreleased songs and launch her own career using the material."
+    },
+    {
+        title: "The Space Observatory Incident",
+        description: "Renowned astrophysicist Dr. Elena Cosmos was found dead in the main telescope chamber of the remote mountain observatory. She was discovered floating in the telescope's cooling liquid tank, her lab coat still buttoned and her research notes scattered around the chamber floor. The massive telescope was pointed directly at a newly discovered comet that Dr. Cosmos had been studying obsessively for months. The observatory's climate control system had malfunctioned, causing extreme temperature fluctuations throughout the facility. Three people were at the observatory that night: her research partner who had discovered that Dr. Cosmos was planning to publish their joint research under her name only, the facility's maintenance engineer who had been selling telescope time to unauthorized parties and feared Dr. Cosmos would report him, and her graduate student who had learned that Dr. Cosmos was falsifying data to support her controversial theories about extraterrestrial life. A bottle of liquid nitrogen was missing from the storage room, and the computer systems showed signs of recent data deletion.",
+        weapons: ["Freezing", "Drowning", "Poisoning"],
+        motives: ["Academic Theft", "Illegal Operations", "Scientific Fraud"],
+        suspects: ["Research Partner", "Maintenance Engineer", "Graduate Student"],
+        solution: {
+            weapon: "Freezing",
+            motive: "Scientific Fraud",
+            suspect: "Graduate Student"
+        },
+        explanation: "The graduate student killed Dr. Cosmos by trapping her in the supercooled telescope chamber after discovering her data falsification would destroy both their careers. The student couldn't bear to see years of legitimate research tainted by Dr. Cosmos's fraudulent claims about alien contact."
     }
 ];
 
