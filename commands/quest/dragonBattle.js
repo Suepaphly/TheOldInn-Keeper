@@ -782,8 +782,7 @@ async function handleTiamatCombat(interaction, userId, collector, activeQuests) 
 
 async function handleDragonCombat(interaction, userId, collector, activeQuests) {
     const { endQuest, completeQuest } = require('../quest.js');
-</previous_generation>
-const quest = activeQuests.get(userId);
+    const quest = activeQuests.get(userId);
     if (!quest || !quest.data.combat) return;
 
     const dragonCombat = quest.data.combat;
