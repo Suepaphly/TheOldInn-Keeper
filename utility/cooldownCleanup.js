@@ -233,6 +233,81 @@ cron.schedule('*/15 * * * *', async () => {
             cleanedCount++;
         }
 
+        // Violate/prank tracking cleanup - old prank battle data
+        const prankTrackingEntries = allEntries.filter(entry => {
+            return entry.id.startsWith("prank_battle_") ||
+                   entry.id.startsWith("violate_session_") ||
+                   entry.id.startsWith("prank_state_");
+        });
+        
+        for (const entry of prankTrackingEntries) {
+            await db.delete(entry.id);
+            cleanedCount++;
+        }
+
+        // Debug/testing entries cleanup 
+        const debugEntries = allEntries.filter(entry => {
+            return entry.id.startsWith("debug_") ||
+                   entry.id.startsWith("test_") ||
+                   entry.id.startsWith("temp_") ||
+                   entry.id.includes("_debug") ||
+                   entry.id.includes("_test");
+        });
+        
+        for (const entry of debugEntries) {
+            await db.delete(entry.id);
+            cleanedCount++;
+        }
+
+        // Shop transaction logs cleanup (if any temporary shop data exists)
+        const shopTempEntries = allEntries.filter(entry => {
+            return entry.id.startsWith("shop_cart_") ||
+                   entry.id.startsWith("shop_session_") ||
+                   entry.id.startsWith("transaction_temp_");
+        });
+        
+        for (const entry of shopTempEntries) {
+            await db.delete(entry.id);
+            cleanedCount++;
+        }
+
+        // UI state/session cleanup 
+        const uiStateEntries = allEntries.filter(entry => {
+            return entry.id.startsWith("ui_state_") ||
+                   entry.id.startsWith("menu_state_") ||
+                   entry.id.startsWith("dialog_") ||
+                   entry.id.startsWith("interaction_");
+        });
+        
+        for (const entry of uiStateEntries) {
+            await db.delete(entry.id);
+            cleanedCount++;
+        }
+
+        // Message/chat temporary data cleanup
+        const messageDataEntries = allEntries.filter(entry => {
+            return entry.id.startsWith("msg_") ||
+                   entry.id.startsWith("embed_") ||
+                   entry.id.startsWith("reply_");
+        });
+        
+        for (const entry of messageDataEntries) {
+            await db.delete(entry.id);
+            cleanedCount++;
+        }
+
+        // Old feature flags or config overrides cleanup
+        const configTempEntries = allEntries.filter(entry => {
+            return entry.id.startsWith("feature_flag_") ||
+                   entry.id.startsWith("config_override_") ||
+                   entry.id.startsWith("setting_temp_");
+        });
+        
+        for (const entry of configTempEntries) {
+            await db.delete(entry.id);
+            cleanedCount++;
+        }
+
         if (cleanedCount > 0) {
             console.log(`🧹 Cleaned up ${cleanedCount} expired entries (cooldowns + battle debris)`);
         }
