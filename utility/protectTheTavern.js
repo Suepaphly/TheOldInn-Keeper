@@ -326,6 +326,13 @@ async function buyTrap(type, number, location, player, message) {
         // Ensure number is parsed as integer
         number = parseInt(number);
         
+        // Check for Mechanist feat (50% cost reduction, rounded up)
+        const hasMechanistFeat = await db.get(`feat_mechanist_${player.id}`) || 0;
+        let trapCost = trapCostArray[typeIndex] * number;
+        if (hasMechanistFeat) {
+            trapCost = Math.ceil(trapCost * 0.5); // 50% reduction, rounded up
+        }
+        
         // Calculate player's current traps at this location
         var playerTraps = await db.get(`player_traps_${player.id}_${wallArray[locIndex]}`) || 0;
         
@@ -335,14 +342,19 @@ async function buyTrap(type, number, location, player, message) {
 
         if (trapsAfterPurchase > maxTrapsForPlayer) {
             message.channel.send(`${player.username} you can only have ${maxTrapsForPlayer} traps at ${wallArray[locIndex]} (1 per 5 walls). You currently have ${playerTraps}.`);
-        } else if (wBal < trapCostArray[typeIndex] * number) {
+        } else if (wBal < trapCost) {
             message.channel.send(`${player.username} doesn't have enough kopeks to buy ${number} units of ${trapArray[typeIndex]}.`);
         } else {
             await db.add(`Traps_${wallArray[locIndex]}.total`, number);
             await db.add(`Traps_${wallArray[locIndex]}.${trapArray[typeIndex]}`, number);
             await db.add(`player_traps_${player.id}_${wallArray[locIndex]}`, number);
-            await db.sub(`money_${player.id}`, trapCostArray[typeIndex] * number);
-            message.channel.send(`${player.username} just bought ${number} units of ${trapArray[typeIndex]}. (${trapsAfterPurchase}/${maxTrapsForPlayer} traps at ${wallArray[locIndex]})`);
+            await db.sub(`money_${player.id}`, trapCost);
+            
+            let purchaseMessage = `${player.username} just bought ${number} units of ${trapArray[typeIndex]}. (${trapsAfterPurchase}/${maxTrapsForPlayer} traps at ${wallArray[locIndex]})`;
+            if (hasMechanistFeat) {
+                purchaseMessage += ` 🔧 **Mechanist feat** reduced the cost by 50%!`;
+            }
+            message.channel.send(purchaseMessage);
         }
     } catch (error) {
         console.error('Error buying trap:', error);
