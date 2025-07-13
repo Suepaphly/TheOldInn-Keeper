@@ -7,6 +7,7 @@ const { startMonsterQuest } = require('./quest/monsterQuest.js');
 const { startRiddleQuest } = require('./quest/riddleQuest.js');
 const { startMazeQuest } = require('./quest/mazeQuest.js');
 const { startTrolleyQuest } = require('./quest/trolleyQuest.js');
+const { CombatSystem } = require('./quest/combatSystem.js');
 
 // Active quests storage
 const activeQuests = new Map();
