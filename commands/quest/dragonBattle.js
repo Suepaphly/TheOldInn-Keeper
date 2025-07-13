@@ -44,6 +44,208 @@ const dragonData = {
     }
 };
 
+class TiamatCombatSystem extends CombatSystem {
+    constructor(userId) {
+        super(userId, 'tiamat');
+        this.playerFrozen = false;
+    }
+
+    createCombatEmbed(battleText = "") {
+        if (!this.combatData) throw new Error("Tiamat combat not initialized");
+
+        const embed = new EmbedBuilder()
+            .setTitle(`🌟 ULTIMATE BOSS - TIAMAT, MOTHER OF DRAGONS`)
+            .setColor("#4B0082")
+            .setDescription(battleText || "The five-headed dragon goddess prepares her devastating assault!")
+            .addFields(
+                { name: "Your Health", value: `${this.combatData.playerHealth}/${this.combatData.playerMaxHealth} HP`, inline: true },
+                { name: "Your Weapon", value: this.combatData.playerWeapon.name, inline: true },
+                { name: "Your Armor", value: this.combatData.playerArmor.name, inline: true },
+                { name: "Tiamat's Health", value: `${this.combatData.enemyHealth}/${this.combatData.enemyMaxHealth} HP`, inline: true },
+                { name: "Dragon Heads", value: "⚪ White ⚫ Black 🔴 Red 🔵 Blue 🟢 Green", inline: true },
+                { name: "Abilities", value: "Tax, Death, Melt, Freeze, Heal + Breath Weapons", inline: true }
+            );
+
+        let row;
+        if (this.playerFrozen) {
+            embed.addFields({ name: "❄️ Status", value: "You are frozen and must skip this turn!", inline: false });
+            
+            row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('tiamat_skip_turn')
+                        .setLabel('❄️ Skip Turn (Frozen)')
+                        .setStyle(ButtonStyle.Secondary)
+                );
+        } else {
+            row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('tiamat_attack')
+                        .setLabel('⚔️ Attack')
+                        .setStyle(ButtonStyle.Danger),
+                    new ButtonBuilder()
+                        .setCustomId('tiamat_run')
+                        .setLabel('🏃 Run Away')
+                        .setStyle(ButtonStyle.Secondary)
+                );
+        }
+
+        return { embed, row };
+    }
+
+    async processCombatRound() {
+        if (!this.combatData || !this.combatData.isActive) return null;
+
+        this.combatData.round++;
+
+        // If player is frozen, unfreeze them for next turn
+        if (this.playerFrozen) {
+            this.playerFrozen = false;
+            return {
+                result: 'continue',
+                battleText: "You shake off the frost and can act again!",
+                combatData: this.combatData
+            };
+        }
+
+        // Player attacks first (same as base combat system)
+        const playerCombatDamage = this.combatData.combatLevel + 1;
+        const playerWeaponDamage = Math.floor(Math.random() * 
+            (this.combatData.playerWeapon.maxDamage - this.combatData.playerWeapon.minDamage + 1)) + 
+            this.combatData.playerWeapon.minDamage;
+        const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
+        const playerFinalDamage = Math.max(1, playerTotalDamage - this.combatData.enemyDefense);
+
+        // Apply damage to Tiamat
+        this.combatData.enemyHealth -= playerFinalDamage;
+        this.combatData.enemyHealth = Math.max(0, this.combatData.enemyHealth);
+
+        let battleText = `You strike Tiamat for ${playerFinalDamage} damage!`;
+
+        // Check if Tiamat is defeated
+        if (this.combatData.enemyHealth <= 0) {
+            this.combatData.isActive = false;
+            return {
+                result: 'victory',
+                battleText: battleText,
+                combatData: this.combatData
+            };
+        }
+
+        // Tiamat attacks - randomly choose from all abilities (breath weapons + all 5 special moves)
+        const abilities = ['breath', 'tax', 'death', 'melt', 'freeze', 'heal'];
+        const chosenAbility = abilities[Math.floor(Math.random() * abilities.length)];
+        
+        if (chosenAbility === 'breath') {
+            // Breath weapon attack (8-15 damage - stronger than regular dragons)
+            const breathDamage = Math.floor(Math.random() * 8) + 8; // 8-15 damage
+            const finalBreathDamage = Math.max(1, breathDamage - this.combatData.playerArmor.defense);
+            this.combatData.playerHealth -= finalBreathDamage;
+            this.combatData.playerHealth = Math.max(0, this.combatData.playerHealth);
+            
+            battleText += `\nTiamat's five heads unleash a devastating breath attack for ${finalBreathDamage} damage!`;
+        } else {
+            const specialResult = await this.executeSpecialMove(chosenAbility);
+            battleText += `\n${specialResult}`;
+        }
+
+        // Check if player died
+        if (this.combatData.playerHealth <= 0) {
+            this.combatData.isActive = false;
+            return {
+                result: 'defeat',
+                battleText: battleText,
+                combatData: this.combatData
+            };
+        }
+
+        // Combat continues
+        return {
+            result: 'continue',
+            battleText: battleText,
+            combatData: this.combatData
+        };
+    }
+
+    async executeSpecialMove(ability) {
+        switch (ability) {
+            case 'tax': // White head - Tax
+                const currentMoney = await db.get(`money_${this.userId}`) || 0;
+                const stolen = Math.floor(currentMoney * 0.1);
+                if (stolen > 0) {
+                    await db.sub(`money_${this.userId}`, stolen);
+                    return `Tiamat's white head casts Tax! It steals ${stolen} kopeks from your wallet!`;
+                } else {
+                    return `Tiamat's white head casts Tax, but you have no money to steal!`;
+                }
+
+            case 'death': // Black head - Death
+                if (Math.random() < 0.1) { // 10% chance
+                    this.combatData.playerHealth = 0;
+                    return `Tiamat's black head casts Death! You feel your life force drain away instantly!`;
+                } else {
+                    return `Tiamat's black head casts Death, but you resist its dark magic!`;
+                }
+
+            case 'melt': // Red head - Melt
+                const items = await this.getBackpackItems();
+                if (items.length > 0) {
+                    const randomItem = items[Math.floor(Math.random() * items.length)];
+                    await db.sub(randomItem.key, 1);
+                    return `Tiamat's red head casts Melt! Your ${randomItem.name} is destroyed by the intense heat!`;
+                } else {
+                    return `Tiamat's red head casts Melt, but you have no items to destroy!`;
+                }
+
+            case 'freeze': // Blue head - Freeze
+                this.playerFrozen = true;
+                return `Tiamat's blue head casts Freeze! You are encased in ice and will skip your next turn!`;
+
+            case 'heal': // Green head - Heal
+                const healAmount = Math.floor(Math.random() * 7) + 2; // 2-8 healing
+                this.combatData.enemyHealth = Math.min(this.combatData.enemyMaxHealth, this.combatData.enemyHealth + healAmount);
+                return `Tiamat's green head casts Heal! She recovers ${healAmount} health!`;
+
+            default:
+                return `Tiamat uses an unknown special move!`;
+        }
+    }
+
+    async getBackpackItems() {
+        const items = [];
+        
+        // Get all weapons
+        const weapons = ['knife', 'sword', 'pistol', 'shotgun', 'rifle'];
+        for (const weapon of weapons) {
+            const count = await db.get(`weapon_${weapon}_${this.userId}`) || 0;
+            if (count > 0) {
+                items.push({ key: `weapon_${weapon}_${this.userId}`, name: weapon, type: 'weapon' });
+            }
+        }
+
+        // Get all armor
+        const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate'];
+        for (const armor of armors) {
+            const count = await db.get(`armor_${armor}_${this.userId}`) || 0;
+            if (count > 0) {
+                items.push({ key: `armor_${armor}_${this.userId}`, name: `${armor} armor`, type: 'armor' });
+            }
+        }
+
+        return items;
+    }
+
+    async handleVictory() {
+        return `🌟 **LEGENDARY VICTORY!** 🌟\n\nYou have achieved the impossible - slaying Tiamat, the Mother of Dragons! As her five heads collapse, the very fabric of reality trembles. You are now a legend among legends, having conquered the ultimate draconic threat!\n\n*The other dragons across all realms bow their heads in respect for your incredible feat.*`;
+    }
+
+    async handleDefeat() {
+        await db.set(`death_cooldown_${this.userId}`, Date.now());
+        return `Tiamat, Mother of Dragons, has utterly defeated you! Your quest ends in legendary failure. The five-headed goddess reclaims her dominion. You are now dead for 24 hours.`;
+    }
+}
+
 class DragonCombatSystem extends CombatSystem {
     constructor(userId, location) {
         super(userId, 'dragon');
@@ -136,7 +338,7 @@ class DragonCombatSystem extends CombatSystem {
         }
 
         // Dragon attacks back - choose between breath weapon and special move
-        const useSpecialMove = Math.random() < 0.3; // 30% chance for special move
+        const useSpecialMove = Math.random() < 0.30; // 30% chance for special move
         
         if (useSpecialMove) {
             const specialResult = await this.executeSpecialMove();
@@ -266,6 +468,67 @@ class DragonCombatSystem extends CombatSystem {
     }
 }
 
+async function startTiamatBattle(interaction, userId, activeQuests) {
+    // Create a new quest for Tiamat battle
+    const questData = {
+        location: 'tiamat_realm',
+        startTime: Date.now(),
+        questsCompleted: 0,
+        totalMonsterValue: 0,
+        currentQuest: 'tiamat',
+        isDebug: false
+    };
+
+    activeQuests.set(userId, questData);
+    await db.set(`on_quest_${userId}`, true);
+
+    const quest = activeQuests.get(userId);
+    const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
+
+    // Create Tiamat combat system
+    const tiamatCombat = new TiamatCombatSystem(userId);
+    
+    // Initialize combat with Tiamat stats
+    const tiamatStats = {
+        name: "Tiamat, Mother of Dragons",
+        health: 100,
+        maxHealth: 100,
+        damage: 10, // Base damage for breath attacks
+        defense: 3,
+        value: 0
+    };
+
+    await tiamatCombat.initializeCombat({}, tiamatStats);
+
+    // Store combat instance in quest data
+    quest.data = quest.data || {};
+    quest.data.combat = tiamatCombat;
+
+    const { embed, row } = tiamatCombat.createCombatEmbed("The Mother of Dragons spreads her mighty wings and prepares to unleash devastation!");
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+
+    // Set up Tiamat combat collector
+    const filter = (i) => i.user.id === userId;
+    
+    let message;
+    try {
+        if (interaction.replied || interaction.deferred) {
+            message = await interaction.fetchReply();
+        } else {
+            message = interaction.message;
+        }
+    } catch (error) {
+        console.error('Error getting message for Tiamat combat collector:', error);
+        return;
+    }
+    
+    const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
+
+    collector.on('collect', async (i) => {
+        await handleTiamatCombat(i, userId, collector, activeQuests);
+    });
+}
+
 async function startDragonBattle(interaction, userId, location, activeQuests) {
     const quest = activeQuests.get(userId);
     const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
@@ -312,6 +575,55 @@ async function startDragonBattle(interaction, userId, location, activeQuests) {
     collector.on('collect', async (i) => {
         await handleDragonCombat(i, userId, collector, activeQuests);
     });
+}
+
+async function handleTiamatCombat(interaction, userId, collector, activeQuests) {
+    const { endQuest, completeQuest } = require('../quest.js');
+    const quest = activeQuests.get(userId);
+    if (!quest || !quest.data.combat) return;
+
+    const tiamatCombat = quest.data.combat;
+
+    if (interaction.customId === 'tiamat_run') {
+        await endQuest(interaction, userId, false, "You fled from Tiamat! Your quest ends in cowardly retreat from the Mother of Dragons.", activeQuests);
+        collector.stop();
+        return;
+    }
+
+    if (interaction.customId === 'tiamat_skip_turn') {
+        // Player skips turn due to freeze
+        const combatResult = await tiamatCombat.processCombatRound();
+        
+        if (combatResult && combatResult.result === 'continue') {
+            const { embed, row } = tiamatCombat.createCombatEmbed(combatResult.battleText);
+            await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+        }
+        return;
+    }
+
+    if (interaction.customId === 'tiamat_attack') {
+        try {
+            const combatResult = await tiamatCombat.processCombatRound();
+
+            if (combatResult.result === 'victory') {
+                const victoryMessage = await tiamatCombat.handleVictory();
+                await completeQuest(interaction, userId, activeQuests, victoryMessage);
+                collector.stop();
+            } else if (combatResult.result === 'defeat') {
+                const defeatMessage = await tiamatCombat.handleDefeat();
+                await endQuest(interaction, userId, false, defeatMessage, activeQuests);
+                collector.stop();
+            } else {
+                // Combat continues
+                const { embed, row } = tiamatCombat.createCombatEmbed(combatResult.battleText);
+                await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+            }
+        } catch (error) {
+            console.error('Error in Tiamat combat:', error);
+            await endQuest(interaction, userId, false, "An error occurred during the battle with Tiamat. Your quest ends.", activeQuests);
+            collector.stop();
+        }
+    }
 }
 
 async function handleDragonCombat(interaction, userId, collector, activeQuests) {
@@ -365,5 +677,7 @@ async function handleDragonCombat(interaction, userId, collector, activeQuests) 
 
 module.exports = {
     startDragonBattle,
-    DragonCombatSystem
+    startTiamatBattle,
+    DragonCombatSystem,
+    TiamatCombatSystem
 };

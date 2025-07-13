@@ -291,7 +291,7 @@ async function startLocationQuest(interaction, location, userId) {
 
         // Set up collector for start button
         const filter = (i) => i.user.id === userId;
-        
+
         // Get the message for the collector
         let message;
         try {
@@ -304,7 +304,7 @@ async function startLocationQuest(interaction, location, userId) {
             console.error('Error getting message for second quest collector:', error);
             return;
         }
-        
+
         const startCollector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
         startCollector.on('collect', async (i) => {
@@ -355,7 +355,18 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
 
     // Check for boss dragon spawn (50% chance after first quest of the day)
     const shouldSpawnDragon = dailyQuests >= 1 && Math.random() < 0.5;
-    
+
+    // Check if user has all 5 crystals for Tiamat encounter
+    const { getCrystals } = require('../utility/crystalUtils.js');
+    const crystals = await getCrystals(userId);
+    const hasAllCrystals = crystals.white > 0 && crystals.black > 0 && crystals.red > 0 && crystals.blue > 0 && crystals.green > 0;
+
+    if (hasAllCrystals && quest.questsCompleted >= 2) {
+        // Spawn Tiamat instead of completing normally
+        await spawnTiamat(interaction, userId, activeQuests);
+        return;
+    }
+
     if (shouldSpawnDragon && quest.questsCompleted >= 2) {
         // Spawn boss dragon instead of completing normally
         await spawnBossDragon(interaction, userId, quest.location, activeQuests);
@@ -442,7 +453,7 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
 
             // Set up collector for start button
             const filter = (i) => i.user.id === userId;
-            
+
             // Get the message for the collector
             let message;
             try {
@@ -455,7 +466,7 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
                 console.error('Error getting message for second quest collector:', error);
                 return;
             }
-            
+
             const startCollector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
             startCollector.on('collect', async (i) => {
@@ -562,7 +573,7 @@ const dragonData = {
 async function spawnBossDragon(interaction, userId, location, activeQuests) {
     const dragon = dragonData[location];
     const { startDragonBattle } = require('./quest/dragonBattle.js');
-    
+
     const embed = new EmbedBuilder()
         .setTitle("🐲 BOSS DRAGON APPEARS!")
         .setColor("#8B0000")
@@ -578,6 +589,25 @@ async function spawnBossDragon(interaction, userId, location, activeQuests) {
     // Start dragon battle after a delay
     setTimeout(async () => {
         await startDragonBattle(interaction, userId, location, activeQuests);
+    }, 3000);
+}
+
+async function spawnTiamat(interaction, userId, activeQuests) {
+    const { startTiamatBattle } = require('./quest/tiamatBattle.js'); // Ensure this file exists
+
+    const embed = new EmbedBuilder()
+        .setTitle("🐲 TIAMAT, MOTHER OF DRAGONS, APPEARS!")
+        .setColor("#8B0000")
+        .setDescription(`The earth SHAKES as **TIAMAT**, the five-headed dragon goddess, descends from the heavens! She has come to reclaim the crystals you possess!\n\n*"Foolish mortal, you have collected what is rightfully mine! Prepare to face my wrath!"*`)
+        .addFields(
+            { name: "Reward", value: "The right to keep the crystals (if victorious)", inline: false }
+        );
+
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
+
+    // Start Tiamat battle after a delay
+    setTimeout(async () => {
+        await startTiamatBattle(interaction, userId, activeQuests);
     }, 3000);
 }
 
@@ -784,7 +814,7 @@ async function startDebugQuest(message, userId, questType) {
             { name: "Quest Type", value: questType, inline: false }
         );
 
-    const debugMessage = await message.channel.send({ embeds: [embed] });
+    const debugMessage = awaitmessage.channel.send({ embeds: [embed] });
 
     // Start the specific quest after delay
     setTimeout(() => {
@@ -849,3 +879,22 @@ module.exports.endQuest = endQuest;
 module.exports.completeQuest = completeQuest;
 module.exports.activeQuests = activeQuests;
 module.exports.enabled = true;
+
+async function spawnTiamat(interaction, userId, activeQuests) {
+    const { startTiamatBattle } = require('./quest/tiamatBattle.js'); // Ensure this file exists
+
+    const embed = new EmbedBuilder()
+        .setTitle("🐲 TIAMAT, MOTHER OF DRAGONS, APPEARS!")
+        .setColor("#8B0000")
+        .setDescription(`The earth SHAKES as **TIAMAT**, the five-headed dragon goddess, descends from the heavens! She has come to reclaim the crystals you possess!\n\n*"Foolish mortal, you have collected what is rightfully mine! Prepare to face my wrath!"*`)
+        .addFields(
+            { name: "Reward", value: "The right to keep the crystals (if victorious)", inline: false }
+        );
+
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
+
+    // Start Tiamat battle after a delay
+    setTimeout(async () => {
+        await startTiamatBattle(interaction, userId, activeQuests);
+    }, 3000);
+}
