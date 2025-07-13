@@ -130,6 +130,14 @@ async function handleMazeChoice(interaction, userId, collector, activeQuests) {
 }
 
 async function startMazeCombat(interaction, userId, parentCollector, activeQuests) {
+    console.log('🔧 [MAZE DEBUG] Starting maze combat');
+    console.log('🔧 [MAZE DEBUG] Interaction state:', {
+        replied: interaction.replied,
+        deferred: interaction.deferred,
+        customId: interaction.customId,
+        hasMessage: !!interaction.message
+    });
+
     const quest = activeQuests.get(userId);
     const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
     const enemyData = COMBAT_PRESETS.vineBeast(combatLevel);
@@ -143,12 +151,36 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
     const { embed, row } = combat.createCombatEmbed("A massive vine beast blocks your path!");
 
+    console.log('🔧 [MAZE DEBUG] About to update interaction for combat start');
+    
     // Use the same safe update method as other quests
-    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+    try {
+        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+        console.log('🔧 [MAZE DEBUG] Combat embed updated successfully');
+    } catch (error) {
+        console.error('🔧 [MAZE DEBUG] Failed to update combat embed:', error);
+        throw error;
+    }
 
     // Set up maze combat collector
     const filter = (i) => i.user.id === userId;
-    const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+    
+    console.log('🔧 [MAZE DEBUG] Setting up combat collector');
+    let message;
+    try {
+        if (interaction.replied || interaction.deferred) {
+            message = await interaction.fetchReply();
+            console.log('🔧 [MAZE DEBUG] Got message from fetchReply');
+        } else {
+            message = interaction.message;
+            console.log('🔧 [MAZE DEBUG] Using interaction.message');
+        }
+    } catch (error) {
+        console.error('🔧 [MAZE DEBUG] Error getting message for collector:', error);
+        return;
+    }
+    
+    const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
         if (i.customId === 'maze_run') {
@@ -160,7 +192,15 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
         }
 
         if (i.customId === 'maze_attack') {
+                console.log('🔧 [MAZE DEBUG] Processing maze attack');
+                console.log('🔧 [MAZE DEBUG] Attack interaction state:', {
+                    replied: i.replied,
+                    deferred: i.deferred,
+                    customId: i.customId
+                });
+
                 const combatResult = await quest.data.combat.processCombatRound();
+                console.log('🔧 [MAZE DEBUG] Combat result:', combatResult.result);
 
                 if (combatResult.result === 'victory') {
                     // Victory - continue maze quest (back to stage 1)
@@ -253,8 +293,21 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
                     await endQuest(i, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
                 } else {
                     // Combat continues
+                    console.log('🔧 [MAZE DEBUG] Combat continues, updating embed');
+                    console.log('🔧 [MAZE DEBUG] Continue interaction state:', {
+                        replied: i.replied,
+                        deferred: i.deferred
+                    });
+                    
                     const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
-                    await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [row] });
+                    
+                    try {
+                        await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [row] });
+                        console.log('🔧 [MAZE DEBUG] Combat continue embed updated successfully');
+                    } catch (error) {
+                        console.error('🔧 [MAZE DEBUG] Failed to update combat continue embed:', error);
+                        throw error;
+                    }
                 }
             }
     });
