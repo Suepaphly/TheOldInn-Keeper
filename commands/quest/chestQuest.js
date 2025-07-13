@@ -137,8 +137,8 @@ async function handleGuessSubmission(interaction, questData, userId, activeQuest
 
     // Check if player won
     if (feedback.every(f => f === '✅')) {
-        // Success! Check for mimic (100% chance for testing)
-        const isMimic = Math.random() < 1.00;
+        // Success! Check for mimic (25% chance)
+        const isMimic = Math.random() < 0.25;
         
         if (isMimic) {
             // Store the reward for after mimic defeat
