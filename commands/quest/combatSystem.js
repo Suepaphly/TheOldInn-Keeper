@@ -212,56 +212,34 @@ class CombatSystem {
 
     // Static method for updating interactions safely
     static async updateInteractionSafely(interaction, options) {
-        console.log('🔧 [COMBAT DEBUG] updateInteractionSafely called');
-        console.log('🔧 [COMBAT DEBUG] Interaction state:', {
-            replied: interaction.replied,
-            deferred: interaction.deferred,
-            customId: interaction.customId,
-            hasChannel: !!interaction.channel
-        });
-
         try {
             if (interaction.replied || interaction.deferred) {
-                console.log('🔧 [COMBAT DEBUG] Using editReply');
                 return await interaction.editReply(options);
             } else {
-                console.log('🔧 [COMBAT DEBUG] Using update');
                 return await interaction.update(options);
             }
         } catch (error) {
-            console.error('🔧 [COMBAT DEBUG] Primary method failed:', error.message, 'Code:', error.code);
-            
             if (error.code === 10062 || error.code === 'InteractionNotReplied') {
-                console.log('🔧 [COMBAT DEBUG] Attempting fallback methods');
                 try {
                     // Try to defer first, then edit
                     if (!interaction.replied && !interaction.deferred) {
-                        console.log('🔧 [COMBAT DEBUG] Trying deferUpdate');
                         await interaction.deferUpdate();
-                        console.log('🔧 [COMBAT DEBUG] deferUpdate successful, now editReply');
                         return await interaction.editReply(options);
                     } else {
-                        console.log('🔧 [COMBAT DEBUG] Trying followUp');
                         return await interaction.followUp(options);
                     }
                 } catch (fallbackError) {
-                    console.error('🔧 [COMBAT DEBUG] All interaction methods failed:', { 
-                        originalError: error.message, 
-                        fallbackError: fallbackError.message 
-                    });
                     // Last resort - try to send a new message to the channel if possible
                     if (interaction.channel) {
                         try {
-                            console.log('🔧 [COMBAT DEBUG] Final fallback: sending to channel');
                             return await interaction.channel.send(options);
                         } catch (channelError) {
-                            console.error('🔧 [COMBAT DEBUG] Channel send also failed:', channelError.message);
+                            console.error('All interaction methods failed:', channelError.message);
                         }
                     }
                     throw fallbackError;
                 }
             } else {
-                console.error('🔧 [COMBAT DEBUG] Unexpected error:', error);
                 throw error;
             }
         }

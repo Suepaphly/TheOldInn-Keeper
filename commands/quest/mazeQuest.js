@@ -130,14 +130,6 @@ async function handleMazeChoice(interaction, userId, collector, activeQuests) {
 }
 
 async function startMazeCombat(interaction, userId, parentCollector, activeQuests) {
-    console.log('🔧 [MAZE DEBUG] Starting maze combat');
-    console.log('🔧 [MAZE DEBUG] Interaction state:', {
-        replied: interaction.replied,
-        deferred: interaction.deferred,
-        customId: interaction.customId,
-        hasMessage: !!interaction.message
-    });
-
     const quest = activeQuests.get(userId);
     const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
     const enemyData = COMBAT_PRESETS.vineBeast(combatLevel);
@@ -150,33 +142,20 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
     quest.data.combat = combat;
 
     const { embed, row } = combat.createCombatEmbed("A massive vine beast blocks your path!");
-
-    console.log('🔧 [MAZE DEBUG] About to update interaction for combat start');
-    
-    // Use the same safe update method as other quests
-    try {
-        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
-        console.log('🔧 [MAZE DEBUG] Combat embed updated successfully');
-    } catch (error) {
-        console.error('🔧 [MAZE DEBUG] Failed to update combat embed:', error);
-        throw error;
-    }
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     // Set up maze combat collector
     const filter = (i) => i.user.id === userId;
     
-    console.log('🔧 [MAZE DEBUG] Setting up combat collector');
     let message;
     try {
         if (interaction.replied || interaction.deferred) {
             message = await interaction.fetchReply();
-            console.log('🔧 [MAZE DEBUG] Got message from fetchReply');
         } else {
             message = interaction.message;
-            console.log('🔧 [MAZE DEBUG] Using interaction.message');
         }
     } catch (error) {
-        console.error('🔧 [MAZE DEBUG] Error getting message for collector:', error);
+        console.error('Error getting message for collector:', error);
         return;
     }
     
@@ -192,18 +171,10 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
         }
 
         if (i.customId === 'maze_attack') {
-            console.log('🔧 [MAZE DEBUG] Processing maze attack');
-            console.log('🔧 [MAZE DEBUG] Attack interaction state:', {
-                replied: i.replied,
-                deferred: i.deferred,
-                customId: i.customId
-            });
-
             const combatResult = await quest.data.combat.processCombatRound();
-            console.log('🔧 [MAZE DEBUG] Combat result:', combatResult.result);
 
             if (combatResult.result === 'victory') {
-                // Victory - continue maze quest (back to stage 1)
+                // Victory - continue maze quest
                 quest.data.stage = 2;
                 quest.data.mazeCombat = false;
                 collector.stop();
@@ -226,60 +197,50 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
                 await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
 
-                // Set up continue collector with proper cleanup
+                // Set up continue collector
                 const continueFilter = (ci) => ci.user.id === userId;
                 const continueCollector = i.message.createMessageComponentCollector({ filter: continueFilter, time: 1800000 });
 
                 continueCollector.on('collect', async (ci) => {
-                    try {
-                        if (ci.customId === 'maze_continue_after_combat') {
-                            continueCollector.stop();
-                            
-                            // Show stage 2 paths
-                            const stage2Embed = new EmbedBuilder()
-                                .setTitle("🌿 HEDGE MAZE - Stage 2/2")
-                                .setColor("#228B22")
-                                .setDescription("After defeating the beast, you advance deeper into the maze.\n\n⚠️ **FINAL STAGE** - Choose very carefully:")
-                                .addFields(
-                                    { name: "🚪 Path 1", value: "A golden archway beckoning", inline: true },
-                                    { name: "🚪 Path 2", value: "A dark tunnel with echoes", inline: true },
-                                    { name: "🚪 Path 3", value: "A bright exit with sunlight", inline: true },
-                                    { name: "💀 DANGER", value: "Wrong choice here means death!", inline: false }
-                                );
+                    if (ci.customId === 'maze_continue_after_combat') {
+                        continueCollector.stop();
+                        
+                        // Show stage 2 paths
+                        const stage2Embed = new EmbedBuilder()
+                            .setTitle("🌿 HEDGE MAZE - Stage 2/2")
+                            .setColor("#228B22")
+                            .setDescription("After defeating the beast, you advance deeper into the maze.\n\n⚠️ **FINAL STAGE** - Choose very carefully:")
+                            .addFields(
+                                { name: "🚪 Path 1", value: "A golden archway beckoning", inline: true },
+                                { name: "🚪 Path 2", value: "A dark tunnel with echoes", inline: true },
+                                { name: "🚪 Path 3", value: "A bright exit with sunlight", inline: true },
+                                { name: "💀 DANGER", value: "Wrong choice here means death!", inline: false }
+                            );
 
-                            const stage2Row = new ActionRowBuilder()
-                                .addComponents(
-                                    new ButtonBuilder()
-                                        .setCustomId('maze_1')
-                                        .setLabel('🚪 Path 1')
-                                        .setStyle(ButtonStyle.Secondary),
-                                    new ButtonBuilder()
-                                        .setCustomId('maze_2')
-                                        .setLabel('🚪 Path 2')
-                                        .setStyle(ButtonStyle.Secondary),
-                                    new ButtonBuilder()
-                                        .setCustomId('maze_3')
-                                        .setLabel('🚪 Path 3')
-                                        .setStyle(ButtonStyle.Secondary)
-                                );
+                        const stage2Row = new ActionRowBuilder()
+                            .addComponents(
+                                new ButtonBuilder()
+                                    .setCustomId('maze_1')
+                                    .setLabel('🚪 Path 1')
+                                    .setStyle(ButtonStyle.Secondary),
+                                new ButtonBuilder()
+                                    .setCustomId('maze_2')
+                                    .setLabel('🚪 Path 2')
+                                    .setStyle(ButtonStyle.Secondary),
+                                new ButtonBuilder()
+                                    .setCustomId('maze_3')
+                                    .setLabel('🚪 Path 3')
+                                    .setStyle(ButtonStyle.Secondary)
+                            );
 
-                            await CombatSystem.updateInteractionSafely(ci, { embeds: [stage2Embed], components: [stage2Row] });
-                            
-                            // Restart the parent collector for stage 2 choices
-                            const newFilter = (ni) => ni.user.id === userId;
-                            const newCollector = ci.message.createMessageComponentCollector({ filter: newFilter, time: 1800000 });
-                            newCollector.on('collect', async (ni) => {
-                                await handleMazeChoice(ni, userId, newCollector, activeQuests);
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Error in continue collector:', error);
-                        // Fallback - try to send to channel
-                        try {
-                            await ci.channel.send("An error occurred. Please restart your quest.");
-                        } catch (channelError) {
-                            console.error('Channel send failed:', channelError);
-                        }
+                        await CombatSystem.updateInteractionSafely(ci, { embeds: [stage2Embed], components: [stage2Row] });
+                        
+                        // Restart the parent collector for stage 2 choices
+                        const newFilter = (ni) => ni.user.id === userId;
+                        const newCollector = ci.message.createMessageComponentCollector({ filter: newFilter, time: 1800000 });
+                        newCollector.on('collect', async (ni) => {
+                            await handleMazeChoice(ni, userId, newCollector, activeQuests);
+                        });
                     }
                 });
             } else if (combatResult.result === 'defeat') {
@@ -288,11 +249,9 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
                 parentCollector.stop();
                 await endQuest(i, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
             } else {
-                // Combat continues - just update the embed, don't start new combat
-                console.log('🔧 [MAZE DEBUG] Combat continues, updating embed');
+                // Combat continues - just update the embed like monster quest does
                 const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
                 await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [row] });
-                console.log('🔧 [MAZE DEBUG] Combat continue embed updated successfully');
             }
         }
     });
