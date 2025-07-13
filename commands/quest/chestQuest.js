@@ -446,7 +446,7 @@ async function removeRandomBackpackItem(userId) {
 
     // Select random item and remove one
     const randomItem = userItems[Math.floor(Math.random() * userItems.length)];
-    await db.subtract(randomItem.key, 1);
+    await db.sub(randomItem.key, 1);
 
     // Return friendly name
     const friendlyNames = {
