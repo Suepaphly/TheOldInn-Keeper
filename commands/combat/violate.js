@@ -384,6 +384,12 @@ async function handlePrankFailed(message, prankData, client) {
         });
     }
 
+    message.channel.send({ embeds: [embed] });
+
+    // Set draw cooldown
+    await db.set(`prank_cooldown_${prankData.prankster.id}_${prankData.target.id}`, Date.now());
+}
+
 async function getBestWeapon(userId) {
     const weapons = [
         { type: "rifle", name: "Rifle", minDamage: 6, maxDamage: 12 },
