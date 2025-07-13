@@ -98,12 +98,41 @@ class TiamatCombatSystem extends CombatSystem {
 
         this.combatData.round++;
 
-        // If player is frozen, unfreeze them for next turn
+        // If player is frozen, unfreeze them for next turn but Tiamat gets free attack
         if (this.playerFrozen) {
             this.playerFrozen = false;
+
+            // Tiamat gets a free attack
+            const abilities = ['breath', 'tax', 'death', 'melt', 'freeze', 'heal'];
+            const chosenAbility = abilities[Math.floor(Math.random() * abilities.length)];
+            let battleText = "You shake off the frost and can act again!\n";
+
+            if (chosenAbility === 'breath') {
+                // Breath weapon attack (8-15 damage - stronger than regular dragons)
+                const breathDamage = Math.floor(Math.random() * 8) + 8; // 8-15 damage
+                const finalBreathDamage = Math.max(1, breathDamage - this.combatData.playerArmor.defense);
+                this.combatData.playerHealth -= finalBreathDamage;
+                this.combatData.playerHealth = Math.max(0, this.combatData.playerHealth);
+
+                battleText += `Tiamat takes advantage of your recovery and unleashes a devastating breath attack for ${finalBreathDamage} damage!`;
+            } else {
+                const specialResult = await this.executeSpecialMove(chosenAbility);
+                battleText += `Tiamat seizes the opportunity! ${specialResult}`;
+            }
+
+            // Check if player died from the free attack
+            if (this.combatData.playerHealth <= 0) {
+                this.combatData.isActive = false;
+                return {
+                    result: 'defeat',
+                    battleText: battleText,
+                    combatData: this.combatData
+                };
+            }
+
             return {
                 result: 'continue',
-                battleText: "You shake off the frost and can act again!",
+                battleText: battleText,
                 combatData: this.combatData
             };
         }
@@ -334,12 +363,40 @@ class DragonCombatSystem extends CombatSystem {
 
         this.combatData.round++;
 
-        // If player is frozen, unfreeze them for next turn
+        // If player is frozen, unfreeze them for next turn but dragon gets free attack
         if (this.playerFrozen) {
             this.playerFrozen = false;
+
+            // Dragon gets a free attack
+            const useSpecialMove = Math.random() < 0.30; // 30% chance for special move
+            let battleText = "You shake off the frost and can act again!\n";
+
+            if (useSpecialMove) {
+                const specialResult = await this.executeSpecialMove();
+                battleText += specialResult;
+            } else {
+                // Breath weapon attack (6-12 damage)
+                const breathDamage = Math.floor(Math.random() * 7) + 6; // 6-12 damage
+                const finalBreathDamage = Math.max(1, breathDamage - this.combatData.playerArmor.defense);
+                this.combatData.playerHealth -= finalBreathDamage;
+                this.combatData.playerHealth = Math.max(0, this.combatData.playerHealth);
+
+                battleText += `The ${this.dragon.name} takes advantage of your recovery and unleashes its breath weapon for ${finalBreathDamage} damage!`;
+            }
+
+            // Check if player died from the free attack
+            if (this.combatData.playerHealth <= 0) {
+                this.combatData.isActive = false;
+                return {
+                    result: 'defeat',
+                    battleText: battleText,
+                    combatData: this.combatData
+                };
+            }
+
             return {
                 result: 'continue',
-                battleText: "You shake off the frost and can act again!",
+                battleText: battleText,
                 combatData: this.combatData
             };
         }
@@ -433,8 +490,12 @@ class DragonCombatSystem extends CombatSystem {
                 }
 
             case 'frostlands': // Blue Dragon - Freeze
-                this.playerFrozen = true;
-                return `The Blue Dragon casts Freeze! You are encased in ice and will skip your next turn!`;
+                if (Math.random() < 0.7) { // 70% chance to freeze
+                    this.playerFrozen = true;
+                    return `The Blue Dragon casts Freeze! You are encased in ice and will skip your next turn!`;
+                } else {
+                    return `The Blue Dragon attempts to freeze you, but you resist the icy magic!`;
+                }
 
             case 'emeraldlands': // Green Dragon - Heal
                 const healAmount = Math.floor(Math.random() * 7) + 2; // 2-8 healing
@@ -489,7 +550,11 @@ class DragonCombatSystem extends CombatSystem {
         // Award the crystal
         const crystalKey = `crystal_${dragon.color}_${this.userId}`;
         await db.add(crystalKey, 1);
-
+        const { completeQuest } = require('../quest.js');
+        const activeQuest = activeQuests.get(this.userId);
+        if (this.dragon.name === "Spinx") {
+             completeQuest(null, this.userId, activeQuests, "You have defeated the spinx");
+        }
         return `You have slain the mighty ${dragon.name}! As it falls, a ${dragon.crystal} materializes and flies into your backpack. This rare artifact pulses with ancient power...`;
     }
 
@@ -712,3 +777,4 @@ module.exports = {
     DragonCombatSystem,
     TiamatCombatSystem
 };
+</```python

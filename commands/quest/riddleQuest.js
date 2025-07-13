@@ -205,38 +205,10 @@ async function startSphinxCombat(interaction, userId, collector, activeQuests) {
                 const combatResult = await quest.data.combat.processCombatRound();
 
                 if (combatResult.result === 'victory') {
-                    // Victory - continue with riddles
-                    const embed = new EmbedBuilder()
-                        .setTitle("🧩 SPHINX DEFEATED!")
-                        .setColor("#00FF00")
-                        .setDescription(`${combatResult.battleText}\n\nYou have defeated the sphinx! Now you may continue with the riddles.`)
-                        .addFields(
-                            { name: "Progress", value: "Sphinx defeated - continuing with riddles", inline: false }
-                        );
-
-                    const continueRow = new ActionRowBuilder()
-                        .addComponents(
-                            new ButtonBuilder()
-                                .setCustomId('sphinx_continue_riddles')
-                                .setLabel('➡️ Continue with Riddles')
-                                .setStyle(ButtonStyle.Primary)
-                        );
-
-                    await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
+                    // Victory - complete the quest successfully
+                    const { completeQuest } = require('../quest.js');
+                    await completeQuest(i, userId, activeQuests, `${combatResult.battleText}\n\nYou have defeated the ancient sphinx! The guardian of riddles falls before your might. Your quest ends in glorious victory!`);
                     combatCollector.stop();
-
-                    // Set up new collector for the continue button
-                    const continueFilter = (continueI) => continueI.user.id === userId;
-                    const continueCollector = i.message.createMessageComponentCollector({ filter: continueFilter, time: 1800000 });
-
-                    continueCollector.on('collect', async (continueI) => {
-                        if (continueI.customId === 'sphinx_continue_riddles') {
-                            quest.data.sphinxCombat = false;
-                            // Continue with the riddle quest
-                            await presentRiddle(continueI, userId, activeQuests, quest.data.currentRiddle);
-                            continueCollector.stop();
-                        }
-                    });
                 } else if (combatResult.result === 'defeat') {
                     const { endQuest } = require('../quest.js');
                     await endQuest(i, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
