@@ -1,3 +1,4 @@
+
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -39,85 +40,98 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
 
     // Set up combat collector
     const filter = (i) => i.user.id === userId;
-    const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+    
+    // Get the message for the collector
+    let message;
+    try {
+        if (interaction.replied || interaction.deferred) {
+            message = await interaction.fetchReply();
+        } else {
+            message = interaction.message;
+        }
+    } catch (error) {
+        console.error('Error getting message for monster combat collector:', error);
+        return;
+    }
+
+    const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
-        if (i.customId === 'monster_run') {
-            const { endQuest } = require('../quest.js');
-            await endQuest(i, userId, false, "You fled from combat! Your quest ends in cowardly retreat.", activeQuests);
-            collector.stop();
-            return;
-        }
-
-        if (i.customId === 'monster_attack') {
-            await handleMonsterCombat(i, userId, collector, activeQuests);
-        }
+        await handleMonsterCombat(i, userId, collector, activeQuests);
     });
 }
 
 async function handleMonsterCombat(interaction, userId, collector, activeQuests) {
+    const { endQuest, completeQuest } = require('../quest.js');
     const quest = activeQuests.get(userId);
     if (!quest || !quest.data.combat) return;
 
-    const combatResult = await quest.data.combat.processCombatRound();
+    if (interaction.customId === 'monster_run') {
+        await endQuest(interaction, userId, false, "You fled from combat! Your quest ends in cowardly retreat.", activeQuests);
+        collector.stop();
+        return;
+    }
 
-    if (combatResult.result === 'victory') {
-        // Add monster value to total
-        quest.data.totalMonsterValue += quest.data.currentEnemyValue;
+    if (interaction.customId === 'monster_attack') {
+        try {
+            const combatResult = await quest.data.combat.processCombatRound();
 
-        // Check if all monsters defeated
-        if (quest.data.currentRound >= quest.data.maxRounds) {
-            // All monsters defeated - complete quest
-            const { completeQuest } = require('../quest.js');
-            const questData = activeQuests.get(userId);
-            if (questData) {
-                questData.totalMonsterValue = quest.data.totalMonsterValue;
-            }
-            await completeQuest(interaction, userId, activeQuests);
-            collector.stop();
-        } else {
-            // Move to next monster
-            quest.data.currentRound++;
+            if (combatResult.result === 'victory') {
+                // Add monster value to quest total
+                quest.totalMonsterValue += quest.data.currentEnemyValue;
 
-            const embed = new EmbedBuilder()
-                .setTitle("⚔️ MONSTER DEFEATED!")
-                .setColor("#00FF00")
-                .setDescription(`${combatResult.battleText}\n\n**Enemy defeated!** You prepare for the next challenge...`)
-                .addFields(
-                    { name: "Progress", value: `${quest.data.currentRound - 1}/${quest.data.maxRounds} monsters defeated`, inline: false }
-                );
+                // Check if there are more monsters
+                if (quest.data.currentRound < quest.data.maxRounds) {
+                    // Move to next monster
+                    quest.data.currentRound++;
+                    
+                    const embed = new EmbedBuilder()
+                        .setTitle("⚔️ MONSTER DEFEATED!")
+                        .setColor("#00FF00")
+                        .setDescription(`${combatResult.battleText}\n\nThe monster falls! But wait... you hear more enemies approaching...`)
+                        .addFields(
+                            { name: "Progress", value: `${quest.data.currentRound - 1}/${quest.data.maxRounds} monsters defeated`, inline: false }
+                        );
 
-            const row = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('monster_next')
-                        .setLabel('➡️ Face Next Monster')
-                        .setStyle(ButtonStyle.Primary)
-                );
+                    const continueRow = new ActionRowBuilder()
+                        .addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('monster_continue')
+                                .setLabel('⚔️ Face Next Monster')
+                                .setStyle(ButtonStyle.Primary)
+                        );
 
-            await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
-
-            // Set up next monster collector
-            const nextFilter = (i) => i.user.id === userId;
-            const nextCollector = interaction.message.createMessageComponentCollector({ filter: nextFilter, time: 1800000 });
-
-            nextCollector.on('collect', async (i) => {
-                if (i.customId === 'monster_next') {
-                    await startMonsterCombat(i, userId, activeQuests, quest.data.currentRound);
-                    nextCollector.stop();
+                    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [continueRow] });
+                    collector.stop();
+                    
+                    // Set up new collector for continue button
+                    const continueFilter = (continueI) => continueI.user.id === userId;
+                    const continueCollector = interaction.message.createMessageComponentCollector({ filter: continueFilter, time: 1800000 });
+                    
+                    continueCollector.on('collect', async (continueI) => {
+                        if (continueI.customId === 'monster_continue') {
+                            await startMonsterCombat(continueI, userId, activeQuests, quest.data.currentRound);
+                            continueCollector.stop();
+                        }
+                    });
+                } else {
+                    // All monsters defeated, complete quest
+                    await completeQuest(interaction, userId, activeQuests, `${combatResult.battleText}\n\nAll monsters defeated! You have survived the ambush!`);
+                    collector.stop();
                 }
-            });
-
+            } else if (combatResult.result === 'defeat') {
+                await endQuest(interaction, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
+                collector.stop();
+            } else {
+                // Combat continues
+                const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
+                await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+            }
+        } catch (error) {
+            console.error('Error in monster combat:', error);
+            await endQuest(interaction, userId, false, "An error occurred during combat. Your quest ends.", activeQuests);
             collector.stop();
         }
-    } else if (combatResult.result === 'defeat') {
-        const { endQuest } = require('../quest.js');
-        await endQuest(interaction, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
-        collector.stop();
-    } else {
-        // Combat continues
-        const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
-        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
     }
 }
 
