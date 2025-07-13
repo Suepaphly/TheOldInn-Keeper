@@ -81,11 +81,11 @@ class CombatSystem {
         this.combatData.round++;
 
         // Player attacks first
-        const playerCombatDamage = this.combatData.combatLevel + 1;
+        const playerBaseDamage = this.combatData.combatLevel + 1;
         const playerWeaponDamage = Math.floor(Math.random() * 
             (this.combatData.playerWeapon.maxDamage - this.combatData.playerWeapon.minDamage + 1)) + 
             this.combatData.playerWeapon.minDamage;
-        const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
+        const playerTotalDamage = playerBaseDamage + playerWeaponDamage;
         const playerFinalDamage = Math.max(1, playerTotalDamage - this.combatData.enemyDefense);
 
         // Apply damage to enemy
@@ -249,35 +249,35 @@ class CombatSystem {
 
 // Combat presets for different enemy types
 const COMBAT_PRESETS = {
-    goblinScout: (combatLevel) => ({
+    goblinScout: (combatLevel = 0) => ({
         name: "Goblin Scout",
-        health: Math.floor((5 + (combatLevel * 2)) * 0.8) + 5,
-        damage: Math.floor((1 + combatLevel) * 0.7) + 2,
-        defense: Math.floor(combatLevel * 0.5),
+        health: 8 + (combatLevel * 2),
+        damage: 3 + Math.floor(combatLevel * 0.6),
+        defense: Math.floor(combatLevel * 0.4),
         value: 25
     }),
 
-    orcRaider: (combatLevel) => ({
+    orcRaider: (combatLevel = 0) => ({
         name: "Orc Raider",
-        health: Math.floor((5 + (combatLevel * 2)) * 1.2) + 5,
-        damage: Math.floor((1 + combatLevel) * 1.0) + 2,
-        defense: Math.floor(combatLevel * 0.8),
+        health: 12 + (combatLevel * 3),
+        damage: 4 + Math.floor(combatLevel * 0.8),
+        defense: Math.floor(combatLevel * 0.6),
         value: 40
     }),
 
-    vineBeast: (combatLevel) => ({
+    vineBeast: (combatLevel = 0) => ({
         name: "Vine Beast",
         health: 15 + (combatLevel * 3),
-        damage: 3 + combatLevel,
+        damage: 3 + Math.floor(combatLevel * 0.7),
         defense: Math.floor(combatLevel * 0.5),
         value: 0
     }),
 
-    vengeanceEnemy: () => ({
+    vengeanceEnemy: (combatLevel = 0) => ({
         name: "Vengeful Relative",
-        health: 7,
-        damage: 4,
-        defense: 0,
+        health: 7 + (combatLevel * 2),
+        damage: 4 + Math.floor(combatLevel * 0.5),
+        defense: Math.floor(combatLevel * 0.3),
         value: 0
     })
 };

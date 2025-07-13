@@ -153,7 +153,8 @@ async function startVengeanceCombat(interaction, userId, parentCollector, active
     parentCollector.stop();
     
     const quest = activeQuests.get(userId);
-    const enemyData = COMBAT_PRESETS.vengeanceEnemy();
+    const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
+    const enemyData = COMBAT_PRESETS.vengeanceEnemy(combatLevel);
 
     // Create combat instance
     const combat = CombatSystem.create(userId, 'vengeance');
