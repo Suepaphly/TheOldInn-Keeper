@@ -16,14 +16,6 @@ const colors = [
 async function startChestQuest(interaction, userId, activeQuests) {
     const { completeQuest, endQuest } = require('../quest.js');
 
-    // Check for mimic (100% chance for testing)
-    const isMimic = Math.random() < 1.00;
-    
-    if (isMimic) {
-        await startMimicEncounter(interaction, userId, activeQuests);
-        return;
-    }
-
     // Generate a random 4-color code
     const secretCode = [];
     for (let i = 0; i < 4; i++) {
@@ -145,7 +137,18 @@ async function handleGuessSubmission(interaction, questData, userId, activeQuest
 
     // Check if player won
     if (feedback.every(f => f === '✅')) {
-        // Success! Generate reward
+        // Success! Check for mimic (100% chance for testing)
+        const isMimic = Math.random() < 1.00;
+        
+        if (isMimic) {
+            // Store the reward for after mimic defeat
+            interaction.chestReward = Math.floor(Math.random() * 401) + 100; // 100-500 kopeks
+            await startMimicEncounter(interaction, userId, activeQuests);
+            collector.stop();
+            return;
+        }
+
+        // No mimic - normal chest reward
         const reward = Math.floor(Math.random() * 401) + 100; // 100-500 kopeks
         await db.add(`money_${userId}`, reward);
 
@@ -376,8 +379,8 @@ async function handleMimicCombat(interaction, userId, combat, collector, activeQ
         }
 
         if (combatResult.result === 'victory') {
-            // Mimic defeated - give normal chest reward
-            const reward = Math.floor(Math.random() * 401) + 100; // 100-500 kopeks
+            // Mimic defeated - give the chest reward that was earned by solving the puzzle
+            const reward = interaction.chestReward || Math.floor(Math.random() * 401) + 100; // 100-500 kopeks
             await db.add(`money_${userId}`, reward);
 
             const successMessage = `🎉 **MIMIC DEFEATED!** 🎉\n\nYou've slain the chest mimic! As it dissolves, it reveals the original chest contents: **${reward} kopeks**!\n\n⚔️ Your combat prowess has earned you a well-deserved reward!`;
