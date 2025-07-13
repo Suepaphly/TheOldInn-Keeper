@@ -596,6 +596,21 @@ async function spawnBossDragon(interaction, userId, location, activeQuests) {
 async function spawnTiamat(interaction, userId, activeQuests) {
     const { startTiamatBattle } = require('./quest/tiamatBattle.js'); // Ensure this file exists
 
+    // Check if Tiamat is on cooldown
+    const tiamatCooldown = await db.get(`tiamat_cooldown_${userId}`);
+    if (tiamatCooldown && Date.now() < tiamatCooldown) {
+        const timeRemaining = tiamatCooldown - Date.now();
+        const hoursRemaining = Math.ceil(timeRemaining / (60 * 60 * 1000));
+
+        const embed = new EmbedBuilder()
+            .setTitle("⏰ Tiamat is Recovering")
+            .setColor("#FF6600")
+            .setDescription(`Tiamat, Mother of Dragons, is still recovering from your previous battle. She can only be challenged once per day.\n\nTime remaining: ${hoursRemaining} hours`);
+
+        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
+        return;
+    }
+
     const embed = new EmbedBuilder()
         .setTitle("🐲 TIAMAT, MOTHER OF DRAGONS, APPEARS!")
         .setColor("#8B0000")
@@ -880,22 +895,3 @@ module.exports.endQuest = endQuest;
 module.exports.completeQuest = completeQuest;
 module.exports.activeQuests = activeQuests;
 module.exports.enabled = true;
-
-async function spawnTiamat(interaction, userId, activeQuests) {
-    const { startTiamatBattle } = require('./quest/tiamatBattle.js'); // Ensure this file exists
-
-    const embed = new EmbedBuilder()
-        .setTitle("🐲 TIAMAT, MOTHER OF DRAGONS, APPEARS!")
-        .setColor("#8B0000")
-        .setDescription(`The earth SHAKES as **TIAMAT**, the five-headed dragon goddess, descends from the heavens! She has come to reclaim the crystals you possess!\n\n*"Foolish mortal, you have collected what is rightfully mine! Prepare to face my wrath!"*`)
-        .addFields(
-            { name: "Reward", value: "The right to keep the crystals (if victorious)", inline: false }
-        );
-
-    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
-
-    // Start Tiamat battle after a delay
-    setTimeout(async () => {
-        await startTiamatBattle(interaction, userId, activeQuests);
-    }, 3000);
-}

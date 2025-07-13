@@ -277,7 +277,11 @@ class TiamatCombatSystem extends CombatSystem {
             await db.set(`crystal_${crystal}_${this.userId}`, 0);
         }
 
-        return `🌟 **LEGENDARY VICTORY!** 🌟\n\nYou have achieved the impossible - slaying Tiamat, the Mother of Dragons! As her five heads collapse, the very fabric of reality trembles. You are now a legend among legends, having conquered the ultimate draconic threat!\n\n*The other dragons across all realms bow their heads in respect for your incredible feat.*\n\nYou receive 100,000 kopeks and Dragonscale Armor (sells for 6,000 kopeks)! All crystals have been removed from your inventory.`;
+        // Set Tiamat daily cooldown (24 hours from now)
+        const tomorrow = Date.now() + (24 * 60 * 60 * 1000);
+        await db.set(`tiamat_cooldown_${this.userId}`, tomorrow);
+
+        return `🌟 **LEGENDARY VICTORY!** 🌟\n\nYou have achieved the impossible - slaying Tiamat, the Mother of Dragons! As her five heads collapse, the very fabric of reality trembles. You are now a legend among legends, having conquered the ultimate draconic threat!\n\n*The other dragons across all realms bow their heads in respect for your incredible feat.*\n\nYou receive 100,000 kopeks and Dragonscale Armor (sells for 6,000 kopeks)! All crystals have been removed from your inventory.\n\n⏰ Tiamat can only be defeated once per day. You must wait 24 hours before facing her again.`;
     }
 
     async handleDefeat() {
@@ -565,6 +569,21 @@ class DragonCombatSystem extends CombatSystem {
 }
 
 async function startTiamatBattle(interaction, userId, activeQuests) {
+    // Check if Tiamat is on cooldown
+    const tiamatCooldown = await db.get(`tiamat_cooldown_${userId}`);
+    if (tiamatCooldown && Date.now() < tiamatCooldown) {
+        const timeRemaining = tiamatCooldown - Date.now();
+        const hoursRemaining = Math.ceil(timeRemaining / (60 * 60 * 1000));
+        
+        const embed = new EmbedBuilder()
+            .setTitle("⏰ Tiamat is Recovering")
+            .setColor("#FF6600")
+            .setDescription(`Tiamat, Mother of Dragons, is still recovering from your previous battle. She can only be challenged once per day.\n\nTime remaining: ${hoursRemaining} hours`);
+        
+        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
+        return;
+    }
+
     // Create a new quest for Tiamat battle
     const questData = {
         location: 'tiamat_realm',
