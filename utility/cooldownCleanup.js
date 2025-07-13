@@ -15,7 +15,9 @@ const COOLDOWN_DURATIONS = {
     work: 18000000,        // 5 hours
     rob: 3600000,          // 1 hour
     deposit: 21600000,     // 6 hours
-    death: 86400000        // 24 hours
+    death: 86400000,       // 24 hours
+    green_crystal_revive: 86400000, // 24 hours
+    tiamat: 86400000       // 24 hours (boss cooldown)
 };
 
 async function cleanupExpiredCooldowns() {
@@ -30,6 +32,9 @@ async function cleanupExpiredCooldowns() {
                 item.id.includes("_cooldown_") ||
                 item.id.includes("snoop_cooldown_") ||
                 item.id.includes("prank_cooldown_") ||
+                item.id.includes("attack_cooldown_") ||
+                item.id.includes("green_crystal_revive_") ||
+                item.id.includes("tiamat_cooldown_") ||
                 item.id.includes("daily_") ||
                 item.id.includes("fish_") ||
                 item.id.includes("craft_") ||
@@ -51,6 +56,12 @@ async function cleanupExpiredCooldowns() {
                 cooldownDuration = COOLDOWN_DURATIONS.snoop;
             } else if (entry.id.includes("prank_cooldown_")) {
                 cooldownDuration = COOLDOWN_DURATIONS.prank;
+            } else if (entry.id.includes("attack_cooldown_")) {
+                cooldownDuration = COOLDOWN_DURATIONS.attack;
+            } else if (entry.id.includes("green_crystal_revive_")) {
+                cooldownDuration = COOLDOWN_DURATIONS.green_crystal_revive;
+            } else if (entry.id.includes("tiamat_cooldown_")) {
+                cooldownDuration = COOLDOWN_DURATIONS.tiamat;
             } else if (entry.id.includes("death_cooldown_")) {
                 cooldownDuration = COOLDOWN_DURATIONS.death;
             } else if (entry.id.includes("daily_")) {
