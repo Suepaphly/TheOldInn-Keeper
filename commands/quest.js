@@ -43,6 +43,13 @@ const locations = {
         description: "Lush green valleys teem with vibrant life",
         second: "🌳 Primordial Grove",
         secondDescription: "Ancient trees hum with primal magical energy"
+    },
+    tiamat_realm: {
+        name: "🐲 Tiamat's Realm",
+        description: "The domain of the Mother of Dragons",
+        second: "🐲 Tiamat's Realm",
+        secondDescription: "The domain of the Mother of Dragons",
+        hidden: true // This location won't appear in selection menu
     }
 };
 
@@ -115,17 +122,19 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send("💀 You cannot go on quests while dead! Use `=revive` first.");
     }
 
-    // Create location selection embed
+    // Create location selection embed - filter out hidden locations
+    const visibleLocations = Object.entries(locations).filter(([key, location]) => !location.hidden);
+    
     const embed = new EmbedBuilder()
         .setTitle("🗺️ CHOOSE YOUR DESTINATION")
         .setColor("#FFD700")
         .setDescription("Select a location to explore. You must complete **TWO quests** to earn the 250 kopek reward!\n\n⚠️ Once started, you cannot engage in combat, gambling, or economic activities until completed!")
         .addFields(
-            { name: locations.plains.name, value: `${locations.plains.description}\n*Leads to: ${locations.plains.second}*`, inline: true },
-            { name: locations.forest.name, value: `${locations.forest.description}\n*Leads to: ${locations.forest.second}*`, inline: true },
-            { name: locations.redlands.name, value: `${locations.redlands.description}\n*Leads to: ${locations.redlands.second}*`, inline: true },
-            { name: locations.frostlands.name, value: `${locations.frostlands.description}\n*Leads to: ${locations.frostlands.second}*`, inline: true },
-            { name: locations.emeraldlands.name, value: `${locations.emeraldlands.description}\n*Leads to: ${locations.emeraldlands.second}*`, inline: true },
+            ...visibleLocations.map(([key, location]) => ({
+                name: location.name,
+                value: `${location.description}\n*Leads to: ${location.second}*`,
+                inline: true
+            })),
             { name: "\u200B", value: "\u200B", inline: true }
         )
         .setFooter({ text: "⏰ You have 30 minutes to complete once started!" });
