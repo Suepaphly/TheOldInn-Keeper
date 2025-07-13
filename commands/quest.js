@@ -594,7 +594,7 @@ async function spawnBossDragon(interaction, userId, location, activeQuests) {
 }
 
 async function spawnTiamat(interaction, userId, activeQuests) {
-    const { startTiamatBattle } = require('./quest/tiamatBattle.js'); // Ensure this file exists
+    const { startTiamatBattle } = require('./quest/dragonBattle.js'); // Use dragonBattle.js which contains Tiamat code
 
     // Check if Tiamat is on cooldown
     const tiamatCooldown = await db.get(`tiamat_cooldown_${userId}`);
