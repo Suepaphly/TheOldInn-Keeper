@@ -161,11 +161,25 @@ async function startVengeanceCombat(interaction, userId, parentCollector, active
 
     const { embed, row } = combat.createCombatEmbed("A grief-stricken relative seeks revenge!");
 
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     // Set up vengeance combat collector
     const filter = (i) => i.user.id === userId;
-    const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+    
+    // Get the message for the collector
+    let message;
+    try {
+        if (interaction.replied || interaction.deferred) {
+            message = await interaction.fetchReply();
+        } else {
+            message = interaction.message;
+        }
+    } catch (error) {
+        console.error('Error getting message for vengeance combat collector:', error);
+        return;
+    }
+    
+    const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
         if (i.customId === 'vengeance_run') {
