@@ -851,7 +851,7 @@ async function startDebugQuest(message, userId, questType) {
             { name: "Quest Type", value: questType, inline: false }
         );
 
-    const debugMessage = awaitmessage.channel.send({ embeds: [embed] });
+    const debugMessage = await message.channel.send({ embeds: [embed] });
 
     // Start the specific quest after delay
     setTimeout(() => {
