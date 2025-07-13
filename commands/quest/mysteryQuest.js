@@ -498,20 +498,22 @@ async function revealSolution(interaction, userId, activeQuests, collector) {
         .setColor(isSuccess ? "#00FF00" : "#FF0000")
         .setDescription(resultText);
 
-    const continueRow = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('mystery_continue')
-                .setLabel('➡️ Continue Quest')
-                .setStyle(ButtonStyle.Primary)
-        );
+    if (isSuccess) {
+        const continueRow = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('mystery_continue')
+                    .setLabel('➡️ Continue Quest')
+                    .setStyle(ButtonStyle.Primary)
+            );
 
-    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [continueRow] });
-
-    // If failed completely (0/3), end quest
-    if (totalCorrect === 0) {
+        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [continueRow] });
+    } else {
+        // Failed to solve the mystery - end quest in failure
+        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
+        
         const { endQuest } = require('../quest.js');
-        await endQuest(interaction, userId, false, "Your detective skills failed completely. The case remains unsolved and your quest ends in failure.", activeQuests);
+        await endQuest(interaction, userId, false, "Your detective skills failed to solve the case. The mystery remains unsolved and your quest ends in failure.", activeQuests);
         collector.stop();
     }
 }
