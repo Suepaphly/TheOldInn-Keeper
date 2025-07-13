@@ -1,4 +1,3 @@
-
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -12,7 +11,7 @@ class CombatSystem {
 
     async initializeCombat(playerData, enemyData) {
         const combatLevel = await db.get(`combatlevel_${this.userId}`) || 0;
-        
+
         this.combatData = {
             // Player stats
             playerHealth: playerData.health || (5 + (combatLevel * 2)),
@@ -20,7 +19,7 @@ class CombatSystem {
             playerWeapon: playerData.weapon || await this.getBestWeapon(),
             playerArmor: playerData.armor || await this.getBestArmor(),
             combatLevel: combatLevel,
-            
+
             // Enemy stats
             enemyName: enemyData.name || "Unknown Enemy",
             enemyHealth: enemyData.health,
@@ -28,7 +27,7 @@ class CombatSystem {
             enemyDamage: enemyData.damage,
             enemyDefense: enemyData.defense || 0,
             enemyValue: enemyData.value || 0,
-            
+
             // Combat state
             round: 0,
             isActive: true
@@ -48,7 +47,7 @@ class CombatSystem {
         };
 
         const title = titles[this.combatType] || titles.default;
-        
+
         const embed = new EmbedBuilder()
             .setTitle(title)
             .setColor("#FF0000")

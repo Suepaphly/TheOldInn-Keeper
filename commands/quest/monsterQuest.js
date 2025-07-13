@@ -1,4 +1,6 @@
-
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();
 const { CombatSystem, COMBAT_PRESETS } = require('./combatSystem.js');
 
 async function startMonsterQuest(interaction, userId, activeQuests) {
@@ -19,20 +21,20 @@ async function startMonsterQuest(interaction, userId, activeQuests) {
 async function startMonsterCombat(interaction, userId, activeQuests, round) {
     const quest = activeQuests.get(userId);
     const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
-    
+
     const monsterType = quest.data.monsters[round - 1];
     const enemyData = COMBAT_PRESETS[monsterType](combatLevel);
-    
+
     // Create combat instance
     const combat = CombatSystem.create(userId, 'monster');
     await combat.initializeCombat({}, enemyData);
-    
+
     // Store combat instance in quest data
     quest.data.combat = combat;
     quest.data.currentEnemyValue = enemyData.value;
 
     const { embed, row } = combat.createCombatEmbed(`You are ambushed by a **${enemyData.name}**! (${round}/2)`);
-    
+
     await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     // Set up combat collector
@@ -58,11 +60,11 @@ async function handleMonsterCombat(interaction, userId, collector, activeQuests)
     if (!quest || !quest.data.combat) return;
 
     const combatResult = await quest.data.combat.processCombatRound();
-    
+
     if (combatResult.result === 'victory') {
         // Add monster value to total
         quest.data.totalMonsterValue += quest.data.currentEnemyValue;
-        
+
         // Check if all monsters defeated
         if (quest.data.currentRound >= quest.data.maxRounds) {
             // All monsters defeated - complete quest
@@ -76,7 +78,7 @@ async function handleMonsterCombat(interaction, userId, collector, activeQuests)
         } else {
             // Move to next monster
             quest.data.currentRound++;
-            
+
             const embed = new EmbedBuilder()
                 .setTitle("⚔️ MONSTER DEFEATED!")
                 .setColor("#00FF00")
@@ -94,18 +96,18 @@ async function handleMonsterCombat(interaction, userId, collector, activeQuests)
                 );
 
             await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
-            
+
             // Set up next monster collector
             const nextFilter = (i) => i.user.id === userId;
             const nextCollector = interaction.message.createMessageComponentCollector({ filter: nextFilter, time: 1800000 });
-            
+
             nextCollector.on('collect', async (i) => {
                 if (i.customId === 'monster_next') {
                     await startMonsterCombat(i, userId, activeQuests, quest.data.currentRound);
                     nextCollector.stop();
                 }
             });
-            
+
             collector.stop();
         }
     } else if (combatResult.result === 'defeat') {
@@ -118,47 +120,6 @@ async function handleMonsterCombat(interaction, userId, collector, activeQuests)
         await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
     }
 }
-
-async function handleMonsterCombat(interaction, userId, collector, activeQuests) {
-    const { handleCombatRound } = require('../../utility/combatUtils.js');
-    const quest = activeQuests.get(userId);
-    if (!quest) return;
-
-    // Setup combat data for current monster
-    const currentMonster = quest.data.monsters[quest.data.round - 1];
-    
-    if (!currentMonster) {
-        console.error(`No monster found for round ${quest.data.round}. Available monsters:`, quest.data.monsters);
-        const { endQuest } = require('../quest.js');
-        await endQuest(interaction, userId, false, "An error occurred - no monster found for this round!", activeQuests);
-        collector.stop();
-        return;
-    }
-
-    const monsterStats = getMonsterStats(currentMonster, quest.data.combatLevel);
-
-    // Create combat data object for combat utils
-    const combatData = {
-        playerHealth: quest.data.playerHealth,
-        playerMaxHealth: quest.data.playerMaxHealth,
-        playerWeapon: quest.data.playerWeapon,
-        playerArmor: quest.data.playerArmor,
-        combatLevel: quest.data.combatLevel,
-        monsterHealth: quest.data.currentMonsterHealth,
-        monsterMaxHealth: quest.data.currentMonsterMaxHealth,
-        monsterDamage: monsterStats.damage,
-        monsterDefense: monsterStats.defense,
-        monsterName: currentMonster,
-        monsterValue: monsterStats.value,
-        round: quest.data.round,
-        monsters: quest.data.monsters
-    };
-
-    await handleCombatRound(interaction, userId, combatData, 'monster', collector, null, activeQuests);
-}
-
-const { QuickDB } = require("quick.db");
-const db = new QuickDB();
 
 module.exports = {
     startMonsterQuest
