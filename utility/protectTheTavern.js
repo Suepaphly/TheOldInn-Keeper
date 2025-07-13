@@ -184,49 +184,7 @@ async function attackTurn(channel) {
             return { continue: false, victory: true }; // End battle - town wins
         }
 
-        // Calculate town damage for each wall layer
-        let townDamage = await calculateTownDamage();
-        
-        // Add castle troops damage if castle still stands
-        const castleHP = await db.get("castle") || 0;
-        if (castleHP > 0) {
-            const castleTroops = await db.get("Troops_castle") || {};
-            let castleDamage = 0;
-            for (let i = 0; i < troopArray.length; i++) {
-                const troopType = troopArray[i];
-                const troopCount = castleTroops[troopType] || 0;
-                castleDamage += troopCount * troopDmgArray[i];
-            }
-            
-            if (castleDamage > 0 && channel) {
-                channel.send(`🏰 **Castle troops sally forth!** Dealing ${castleDamage} additional damage!`);
-            }
-            townDamage += castleDamage;
-        }
-        
-        // Apply town damage to monsters (starting with weakest)
-        let remainingDamage = townDamage;
-        let totalKilled = 0;
-        let killReport = [];
-        for (let i = 0; i < monsterArray.length && remainingDamage > 0; i++) {
-            const monsterType = monsterArray[i];
-            const monsterCount = monsters[monsterType];
-            if (monsterCount > 0) {
-                const monstersKilled = Math.min(Math.floor(remainingDamage / monsterHealthArray[i]), monsterCount);
-                if (monstersKilled > 0) {
-                    await db.sub(`Monsters.${monsterType}`, monstersKilled);
-                    remainingDamage -= monstersKilled * monsterHealthArray[i];
-                    totalKilled += monstersKilled;
-                    killReport.push(`${monstersKilled} ${monsterType}(s)`);
-                }
-            }
-        }
-
-        if (channel && totalKilled > 0) {
-            channel.send(`⚔️ **Town defenses strike!** Killed: ${killReport.join(", ")} (${townDamage} total damage dealt)`);
-        }
-
-        // Calculate monster damage (check for freeze effect first)
+        // PHASE 1: Monster attacks
         let monsterDamage = 0;
         const monstersFrozen = await db.get("monsters_frozen_this_turn") || false;
         
@@ -242,10 +200,22 @@ async function attackTurn(channel) {
                 const monsterCount = (await db.get(`Monsters.${monsterType}`)) || 0;
                 monsterDamage += monsterCount * monsterDmgArray[i];
             }
+            
+            if (monsterDamage > 0) {
+                // Apply monster damage to defenses
+                await applyDamageToDefenses(monsterDamage, channel);
+            }
         }
 
-        // Apply monster damage to walls (starting with ramparts)
-        await applyDamageToWalls(monsterDamage, channel);
+        // PHASE 2: Player defend actions (already handled in defend.js during turn)
+        
+        // PHASE 3: Traps fire (already handled in applyDamageToDefenses)
+        
+        // PHASE 4: Troops attack monsters
+        let troopDamage = await calculateActiveTroopDamage(channel);
+        if (troopDamage > 0) {
+            await applyTroopDamageToMonsters(troopDamage, channel);
+        }
 
         // Check if castle is destroyed
         const castle = await db.get("castle") || 0;
@@ -281,8 +251,7 @@ async function endBattle(channel) {
         }
         // Note: Monster retreat is handled in the battle loop at turn 10
         
-        // Clear any remaining troop contracts and freeze effects
-        await endTroopContract();
+        // Clear freeze effects (troops are no longer dismissed)
         
         // Ensure freeze effects are cleared
         await db.delete("freeze_used_this_combat");
@@ -611,17 +580,9 @@ async function calculateTownDamage() {
     try {
         let totalDamage = 0;
         
-        // Calculate damage from each wall layer
+        // Calculate damage from traps only (troops are handled separately now)
         for (const wall of wallArray) {
-            const troops = await db.get(`Troops_${wall}`) || {};
             const traps = await db.get(`Traps_${wall}`) || {};
-            
-            // Add troop damage
-            for (let i = 0; i < troopArray.length; i++) {
-                const troopType = troopArray[i];
-                const troopCount = troops[troopType] || 0;
-                totalDamage += troopCount * troopDmgArray[i];
-            }
             
             // Add trap damage
             for (let i = 0; i < trapArray.length; i++) {
@@ -638,7 +599,7 @@ async function calculateTownDamage() {
     }
 }
 
-async function applyDamageToWalls(damage, channel) {
+async function applyDamageToDefenses(damage, channel) {
     try {
         let remainingDamage = damage;
         let damageReport = [];
@@ -668,6 +629,11 @@ async function applyDamageToWalls(damage, channel) {
             }
         }
         
+        // If ramparts are destroyed, damage troops at rampart location
+        if (ramparts <= 0 && remainingDamage > 0) {
+            remainingDamage = await applyDamageToTroops("rampart", remainingDamage, channel);
+        }
+        
         // Then damage walls
         const walls = await db.get("wall") || 0;
         if (remainingDamage > 0 && walls > 0) {
@@ -690,6 +656,11 @@ async function applyDamageToWalls(damage, channel) {
                     if (channel) channel.send(`💣 **Wall traps activate!** Dealing ${wallTrapDamage} damage to attackers!`);
                 }
             }
+        }
+        
+        // If walls are destroyed, damage troops at wall location
+        if (walls <= 0 && remainingDamage > 0) {
+            remainingDamage = await applyDamageToTroops("wall", remainingDamage, channel);
         }
         
         // Finally damage castle
@@ -716,6 +687,11 @@ async function applyDamageToWalls(damage, channel) {
             }
         }
         
+        // If castle is destroyed, damage troops at castle location
+        if (castle <= 0 && remainingDamage > 0) {
+            remainingDamage = await applyDamageToTroops("castle", remainingDamage, channel);
+        }
+        
         if (channel && damageReport.length > 0) {
             channel.send(`💥 **Damage Report:** ${damageReport.join(", ")}`);
         }
@@ -726,7 +702,7 @@ async function applyDamageToWalls(damage, channel) {
         }
         
     } catch (error) {
-        console.error("Error applying damage to walls:", error);
+        console.error("Error applying damage to defenses:", error);
     }
 }
 
@@ -757,6 +733,136 @@ async function applyTrapDamageToMonsters(trapDamage, channel) {
         }
     } catch (error) {
         console.error("Error applying trap damage to monsters:", error);
+    }
+}
+
+async function applyDamageToTroops(location, damage, channel) {
+    try {
+        const troops = await db.get(`Troops_${location}`) || {};
+        let remainingDamage = damage;
+        let totalKilled = 0;
+        let killReport = [];
+        
+        // Apply damage to troops (starting with weakest)
+        for (let i = 0; i < troopArray.length && remainingDamage > 0; i++) {
+            const troopType = troopArray[i];
+            const troopCount = troops[troopType] || 0;
+            if (troopCount > 0) {
+                const troopsKilled = Math.min(Math.floor(remainingDamage / troopHealthArray[i]), troopCount);
+                if (troopsKilled > 0) {
+                    await db.sub(`Troops_${location}.${troopType}`, troopsKilled);
+                    await db.sub(`Troops_${location}.total`, troopsKilled);
+                    remainingDamage -= troopsKilled * troopHealthArray[i];
+                    totalKilled += troopsKilled;
+                    killReport.push(`${troopsKilled} ${troopType}(s)`);
+                }
+            }
+        }
+        
+        if (channel && totalKilled > 0) {
+            channel.send(`⚔️ **${location.charAt(0).toUpperCase() + location.slice(1)} troops slain:** ${killReport.join(", ")}`);
+        }
+        
+        return remainingDamage;
+    } catch (error) {
+        console.error("Error applying damage to troops:", error);
+        return damage;
+    }
+}
+
+async function calculateActiveTroopDamage(channel) {
+    try {
+        let totalDamage = 0;
+        let attackReport = [];
+        
+        // Only troops from locations with intact walls can attack
+        const ramparts = await db.get("rampart") || 0;
+        const walls = await db.get("wall") || 0;
+        const castle = await db.get("castle") || 0;
+        
+        // Rampart troops attack if ramparts are intact
+        if (ramparts > 0) {
+            const rampartTroops = await db.get("Troops_rampart") || {};
+            let rampartDamage = 0;
+            for (let i = 0; i < troopArray.length; i++) {
+                const troopType = troopArray[i];
+                const troopCount = rampartTroops[troopType] || 0;
+                rampartDamage += troopCount * troopDmgArray[i];
+            }
+            if (rampartDamage > 0) {
+                totalDamage += rampartDamage;
+                attackReport.push(`Rampart troops: ${rampartDamage} damage`);
+            }
+        }
+        
+        // Wall troops attack if walls are intact
+        if (walls > 0) {
+            const wallTroops = await db.get("Troops_wall") || {};
+            let wallDamage = 0;
+            for (let i = 0; i < troopArray.length; i++) {
+                const troopType = troopArray[i];
+                const troopCount = wallTroops[troopType] || 0;
+                wallDamage += troopCount * troopDmgArray[i];
+            }
+            if (wallDamage > 0) {
+                totalDamage += wallDamage;
+                attackReport.push(`Wall troops: ${wallDamage} damage`);
+            }
+        }
+        
+        // Castle troops attack if castle is intact
+        if (castle > 0) {
+            const castleTroops = await db.get("Troops_castle") || {};
+            let castleDamage = 0;
+            for (let i = 0; i < troopArray.length; i++) {
+                const troopType = troopArray[i];
+                const troopCount = castleTroops[troopType] || 0;
+                castleDamage += troopCount * troopDmgArray[i];
+            }
+            if (castleDamage > 0) {
+                totalDamage += castleDamage;
+                attackReport.push(`Castle troops: ${castleDamage} damage`);
+            }
+        }
+        
+        if (channel && totalDamage > 0) {
+            channel.send(`🗡️ **Troops counterattack!** ${attackReport.join(", ")}`);
+        }
+        
+        return totalDamage;
+    } catch (error) {
+        console.error("Error calculating troop damage:", error);
+        return 0;
+    }
+}
+
+async function applyTroopDamageToMonsters(troopDamage, channel) {
+    try {
+        const monsters = await db.get("Monsters") || {};
+        let remainingDamage = troopDamage;
+        let totalKilled = 0;
+        let killReport = [];
+        
+        // Apply troop damage to monsters (starting with weakest)
+        for (let i = 0; i < monsterArray.length && remainingDamage > 0; i++) {
+            const monsterType = monsterArray[i];
+            const monsterCount = monsters[monsterType] || 0;
+            if (monsterCount > 0) {
+                const monstersKilled = Math.min(Math.floor(remainingDamage / monsterHealthArray[i]), monsterCount);
+                if (monstersKilled > 0) {
+                    await db.sub(`Monsters.${monsterType}`, monstersKilled);
+                    remainingDamage -= monstersKilled * monsterHealthArray[i];
+                    totalKilled += monstersKilled;
+                    killReport.push(`${monstersKilled} ${monsterType}(s)`);
+                }
+            }
+        }
+        
+        if (channel && totalKilled > 0) {
+            channel.send(`⚔️ **Troop casualties on monsters:** ${killReport.join(", ")} (${troopDamage} troop damage dealt)`);
+        }
+    } catch (error) {
+        console.error("Error applying troop damage to monsters:", error);
     }
 }
 
