@@ -1,4 +1,3 @@
-
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -147,7 +146,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
     quest.data.combat = combat;
 
     const { embed, row } = combat.createCombatEmbed("A massive vine beast blocks your path!");
-    
+
     await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     // Set up maze combat collector
@@ -179,7 +178,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
         if (i.customId === 'maze_attack') {
             const combatResult = await quest.data.combat.processCombatRound();
-            
+
             if (combatResult.result === 'victory') {
                 // Victory - continue maze quest (back to stage 1)
                 quest.data.stage = 2;
