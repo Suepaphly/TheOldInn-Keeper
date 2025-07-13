@@ -22,13 +22,13 @@ module.exports.run = async (client, message, args) => {
 
     let user = message.author;
     let timeout = 46000000; // about 12.77 hours
-    let amount = Math.floor(Math.random() * 301) + 200; // 200-500 kopeks
+    let amount = 100; // Fixed 100 kopeks
 
     // Check for white crystal bonus
     const { hasCrystal } = require("../../utility/crystalUtils.js");
     const hasWhiteCrystal = await hasCrystal(user.id, 'white');
     if (hasWhiteCrystal) {
-        amount *= 2;
+        amount = 200; // 200 kopeks with white crystal
     }
 
     // Use 'get' instead of 'fetch'
