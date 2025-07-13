@@ -1,6 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
+const { CombatSystem, COMBAT_PRESETS } = require('./combatSystem.js');
 
 const trolleyScenarios = [
     { many: "5 grandmothers", one: "1 judge" },
@@ -72,22 +73,7 @@ async function startTrolleyQuest(interaction, userId, activeQuests) {
                 .setStyle(ButtonStyle.Secondary)
         );
 
-    try {
-        // Check if interaction has already been replied to or deferred
-        if (interaction.replied || interaction.deferred) {
-            await interaction.editReply({ embeds: [embed], components: [row] });
-        } else {
-            await interaction.update({ embeds: [embed], components: [row] });
-        }
-    } catch (error) {
-        if (error.code === 10062 || error.code === 'InteractionNotReplied') {
-            // Interaction expired or not replied, send a new message instead
-            await interaction.followUp({ embeds: [embed], components: [row] });
-        } else {
-            console.error('Error with interaction:', error);
-            throw error;
-        }
-    }
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     const filter = (i) => i.user.id === userId;
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
@@ -133,16 +119,7 @@ async function startTrolleyQuest(interaction, userId, activeQuests) {
                     { name: "⚔️ Combat", value: "You must fight for your life!", inline: false }
                 );
 
-            try {
-                await i.update({ embeds: [embed], components: [] });
-            } catch (error) {
-                if (error.code === 10062) {
-                    await i.followUp({ embeds: [embed], components: [] });
-                } else {
-                    console.error('Error updating interaction:', error);
-                    throw error;
-                }
-            }
+            await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [] });
 
             // Set up vengeance combat after a delay
             setTimeout(() => {
@@ -166,119 +143,76 @@ async function startTrolleyQuest(interaction, userId, activeQuests) {
                         .setStyle(ButtonStyle.Primary)
                 );
 
-            try {
-                await i.update({ embeds: [embed], components: [continueRow] });
-            } catch (error) {
-                if (error.code === 10062) {
-                    await i.followUp({ embeds: [embed], components: [continueRow] });
-                } else {
-                    console.error('Error updating interaction:', error);
-                    throw error;
-                }
-            }
+            await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
         }
     });
 }
 
 async function startVengeanceCombat(interaction, userId, parentCollector, activeQuests) {
     const quest = activeQuests.get(userId);
-    const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
+    const enemyData = COMBAT_PRESETS.vengeanceEnemy();
 
-    quest.data.combat = {
-        playerHealth: 5 + (combatLevel * 2),
-        playerMaxHealth: 5 + (combatLevel * 2),
-        playerWeapon: await getBestWeapon(userId),
-        playerArmor: await getBestArmor(userId),
-        combatLevel: combatLevel,
-        vengeanceHealth: 7,
-        vengeanceMaxHealth: 7,
-        monsterHealth: 7, // Add this for compatibility with combat utils
-        monsterMaxHealth: 7, // Add this for compatibility with combat utils
-        monsterDamage: 4, // Pistol damage
-        monsterDefense: 0, // No armor
-        round: 0
-    };
+    // Create combat instance
+    const combat = CombatSystem.create(userId, 'vengeance');
+    await combat.initializeCombat({}, enemyData);
 
-    const embed = new EmbedBuilder()
-        .setTitle("⚔️ VENGEANCE COMBAT")
-        .setColor("#FF0000")
-        .setDescription("A grief-stricken relative seeks revenge!")
-        .addFields(
-            { name: "Your Health", value: `${quest.data.combat.playerHealth}/${quest.data.combat.playerMaxHealth} HP`, inline: true },
-            { name: "Your Weapon", value: quest.data.combat.playerWeapon.name, inline: true },
-            { name: "Your Armor", value: quest.data.combat.playerArmor.name, inline: true },
-            { name: "Enemy Health", value: `${quest.data.combat.vengeanceHealth}/${quest.data.combat.vengeanceMaxHealth} HP`, inline: true },
-            { name: "Enemy Weapon", value: "Pistol", inline: true }
-        );
+    // Store combat instance in quest data
+    quest.data.combat = combat;
 
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('vengeance_attack')
-                .setLabel('⚔️ Attack')
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId('vengeance_run')
-                .setLabel('🏃 Run Away')
-                .setStyle(ButtonStyle.Secondary)
-        );
+    const { embed, row } = combat.createCombatEmbed("A grief-stricken relative seeks revenge!");
 
-    const { updateInteractionSafely } = require('../../utility/combatUtils.js');
-    await updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     // Set up vengeance combat collector
     const filter = (i) => i.user.id === userId;
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
-        await handleVengeanceCombat(i, userId, collector, parentCollector, activeQuests);
+        if (i.customId === 'vengeance_run') {
+            const { endQuest } = require('../quest.js');
+            await endQuest(i, userId, false, "You fled from combat! Your quest ends in cowardly retreat.", activeQuests);
+            collector.stop();
+            parentCollector.stop();
+            return;
+        }
+
+        if (i.customId === 'vengeance_attack') {
+            const combatResult = await quest.data.combat.processCombatRound();
+
+            if (combatResult.result === 'victory') {
+                // Victory - give rewards and continue quest
+                const rewards = await quest.data.combat.handleVictory();
+
+                const embed = new EmbedBuilder()
+                    .setTitle("🏆 VENGEANCE DEFEATED")
+                    .setColor("#00FF00")
+                    .setDescription(`${combatResult.battleText}\n\nYou have defeated your attacker in self-defense!\n\n**Rewards:**\n💰 +${rewards.money} kopeks\n🔫 +1 pistol`)
+                    .addFields(
+                        { name: "Victory", value: "You continue your quest with a heavy heart.", inline: false }
+                    );
+
+                const continueRow = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('trolley_vengeance_continue')
+                            .setLabel('➡️ Continue Quest')
+                            .setStyle(ButtonStyle.Primary)
+                    );
+
+                await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
+                collector.stop();
+            } else if (combatResult.result === 'defeat') {
+                const { endQuest } = require('../quest.js');
+                await endQuest(i, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
+                collector.stop();
+                parentCollector.stop();
+            } else {
+                // Combat continues
+                const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
+                await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [row] });
+            }
+        }
     });
-}
-
-async function handleVengeanceCombat(interaction, userId, collector, parentCollector, activeQuests) {
-    const { handleCombatRound } = require('../../utility/combatUtils.js');
-    const quest = activeQuests.get(userId);
-    if (!quest || !quest.data.combat) return;
-
-    await handleCombatRound(interaction, userId, quest.data.combat, 'vengeance', collector, parentCollector, activeQuests);
-}
-
-async function getBestWeapon(userId) {
-    const weapons = [
-        { type: "rifle", name: "Rifle", minDamage: 6, maxDamage: 12 },
-        { type: "shotgun", name: "Shotgun", minDamage: 4, maxDamage: 10 },
-        { type: "pistol", name: "Pistol", minDamage: 3, maxDamage: 5 },
-        { type: "sword", name: "Sword", minDamage: 2, maxDamage: 4 },
-        { type: "knife", name: "Knife", minDamage: 1, maxDamage: 3 }
-    ];
-
-    for (const weapon of weapons) {
-        const count = await db.get(`weapon_${weapon.type}_${userId}`) || 0;
-        if (count > 0) {
-            return weapon;
-        }
-    }
-
-    return { type: "none", name: "Fists", minDamage: 0, maxDamage: 0 };
-}
-
-async function getBestArmor(userId) {
-    const armors = [
-        { type: "plate", name: "Plate Armor", defense: 10 },
-        { type: "studded", name: "Studded Armor", defense: 5 },
-        { type: "chainmail", name: "Chainmail Armor", defense: 3 },
-        { type: "leather", name: "Leather Armor", defense: 2 },
-        { type: "cloth", name: "Cloth Armor", defense: 1 }
-    ];
-
-    for (const armor of armors) {
-        const count = await db.get(`armor_${armor.type}_${userId}`) || 0;
-        if (count > 0) {
-            return armor;
-        }
-    }
-
-    return { type: "none", name: "No Armor", defense: 0 };
 }
 
 module.exports = {
