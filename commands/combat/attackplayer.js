@@ -168,11 +168,32 @@ async function runBattleRounds(message, battleData, players, currentPlayerIndex,
     const currentPlayer = players[currentPlayerIndex];
     const otherPlayer = players[1 - currentPlayerIndex];
 
-    // Calculate damage
+    // Calculate damage - check for dual pistols
     const combatDamage = currentPlayer.combatLevel + 1;
-    const weaponDamage = Math.floor(Math.random() * (currentPlayer.weapon.maxDamage - currentPlayer.weapon.minDamage + 1)) + currentPlayer.weapon.minDamage;
-    const totalDamage = combatDamage + weaponDamage;
-    const finalDamage = Math.max(1, totalDamage - otherPlayer.armor.defense);
+    let finalDamage = 0;
+    let attackDescription = "";
+
+    // Check if player has dual pistols (Guns Akimbo feat)
+    if (currentPlayer.weapon.isDual) {
+        // First pistol attack
+        const firstWeaponDamage = Math.floor(Math.random() * (currentPlayer.weapon.maxDamage - currentPlayer.weapon.minDamage + 1)) + currentPlayer.weapon.minDamage;
+        const firstTotalDamage = combatDamage + firstWeaponDamage;
+        const firstFinalDamage = Math.max(1, firstTotalDamage - otherPlayer.armor.defense);
+
+        // Second pistol attack
+        const secondWeaponDamage = Math.floor(Math.random() * (currentPlayer.weapon.maxDamage - currentPlayer.weapon.minDamage + 1)) + currentPlayer.weapon.minDamage;
+        const secondTotalDamage = combatDamage + secondWeaponDamage;
+        const secondFinalDamage = Math.max(1, secondTotalDamage - otherPlayer.armor.defense);
+
+        finalDamage = firstFinalDamage + secondFinalDamage;
+        attackDescription = `unleashes a devastating dual-pistol barrage! 🔫🔫\nFirst shot: ${firstFinalDamage} damage! Second shot: ${secondFinalDamage} damage!\nTotal damage: ${finalDamage}!`;
+    } else {
+        // Normal single weapon attack
+        const weaponDamage = Math.floor(Math.random() * (currentPlayer.weapon.maxDamage - currentPlayer.weapon.minDamage + 1)) + currentPlayer.weapon.minDamage;
+        const totalDamage = combatDamage + weaponDamage;
+        finalDamage = Math.max(1, totalDamage - otherPlayer.armor.defense);
+        attackDescription = `attacks for ${finalDamage} damage!`;
+    }
 
     // Apply damage
     otherPlayer.health -= finalDamage;
@@ -188,7 +209,7 @@ async function runBattleRounds(message, battleData, players, currentPlayerIndex,
     const embed = new Discord.EmbedBuilder()
         .setTitle(`⚔️ Round ${battleData.round}/4`)
         .setColor("#FFA500")
-        .setDescription(`${currentPlayer.username} attacks for ${finalDamage} damage!`)
+        .setDescription(`${currentPlayer.username} ${attackDescription}`)
         .addFields(
             {
                 name: `${battleData.attacker.username}`,
@@ -351,6 +372,29 @@ async function getBestWeapon(userId) {
         { type: "sword", name: "Sword", minDamage: 2, maxDamage: 4 },
         { type: "knife", name: "Knife", minDamage: 1, maxDamage: 3 }
     ];
+
+    // Check for dual pistols first (Guns Akimbo feat)
+    const hasGunsAkimbo = await db.get(`feat_guns_akimbo_${userId}`) || false;
+    const pistolCount = await db.get(`weapon_pistol_${userId}`) || 0;
+    
+    if (hasGunsAkimbo && pistolCount >= 2) {
+        // Check if dual pistols are the best weapon by comparing max potential damage
+        const dualPistolMaxDamage = 5 * 2; // 5 max damage per pistol * 2 pistols
+        
+        // Check if any better weapon exists
+        const rifleCount = await db.get(`weapon_rifle_${userId}`) || 0;
+        const shotgunCount = await db.get(`weapon_shotgun_${userId}`) || 0;
+        
+        if (rifleCount === 0 && shotgunCount === 0) {
+            return { 
+                type: "pistol", 
+                name: "Dual Pistols", 
+                minDamage: 3, 
+                maxDamage: 5, 
+                isDual: true 
+            };
+        }
+    }
 
     for (const weapon of weapons) {
         const count = await db.get(`weapon_${weapon.type}_${userId}`) || 0;

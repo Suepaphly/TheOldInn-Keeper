@@ -203,6 +203,29 @@ class CombatSystem {
             { type: "knife", name: "Knife", minDamage: 1, maxDamage: 3 }
         ];
 
+        // Check for dual pistols first (Guns Akimbo feat)
+        const hasGunsAkimbo = await db.get(`feat_guns_akimbo_${this.userId}`) || false;
+        const pistolCount = await db.get(`weapon_pistol_${this.userId}`) || 0;
+        
+        if (hasGunsAkimbo && pistolCount >= 2) {
+            // Check if dual pistols are the best weapon by comparing max potential damage
+            const dualPistolMaxDamage = 5 * 2; // 5 max damage per pistol * 2 pistols
+            
+            // Check if any better weapon exists
+            const rifleCount = await db.get(`weapon_rifle_${this.userId}`) || 0;
+            const shotgunCount = await db.get(`weapon_shotgun_${this.userId}`) || 0;
+            
+            if (rifleCount === 0 && shotgunCount === 0) {
+                return { 
+                    type: "pistol", 
+                    name: "Dual Pistols", 
+                    minDamage: 3, 
+                    maxDamage: 5, 
+                    isDual: true 
+                };
+            }
+        }
+
         for (const weapon of weapons) {
             const count = await db.get(`weapon_${weapon.type}_${this.userId}`) || 0;
             if (count > 0) {

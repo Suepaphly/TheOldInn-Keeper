@@ -384,20 +384,40 @@ async function handlePrankFailed(message, prankData, client) {
         });
     }
 
-    message.channel.send({ embeds: [embed] });
-}
-
 async function getBestWeapon(userId) {
     const weapons = [
         { type: "rifle", name: "Rifle", minDamage: 6, maxDamage: 12 },
         { type: "shotgun", name: "Shotgun", minDamage: 4, maxDamage: 10 },
         { type: "pistol", name: "Pistol", minDamage: 3, maxDamage: 5 },
         { type: "sword", name: "Sword", minDamage: 2, maxDamage: 4 },
-        { type: "knife", name: "Knife", minDamage: 1, maxDamage: 3 },
+        { type: "knife", name: "Knife", minDamage: 1, maxDamage: 3 }
     ];
 
+    // Check for dual pistols first (Guns Akimbo feat)
+    const hasGunsAkimbo = await db.get(`feat_guns_akimbo_${userId}`) || false;
+    const pistolCount = await db.get(`weapon_pistol_${userId}`) || 0;
+
+    if (hasGunsAkimbo && pistolCount >= 2) {
+        // Check if dual pistols are the best weapon by comparing max potential damage
+        const dualPistolMaxDamage = 5 * 2; // 5 max damage per pistol * 2 pistols
+
+        // Check if any better weapon exists
+        const rifleCount = await db.get(`weapon_rifle_${userId}`) || 0;
+        const shotgunCount = await db.get(`weapon_shotgun_${userId}`) || 0;
+
+        if (rifleCount === 0 && shotgunCount === 0) {
+            return { 
+                type: "pistol", 
+                name: "Dual Pistols", 
+                minDamage: 3, 
+                maxDamage: 5, 
+                isDual: true 
+            };
+        }
+    }
+
     for (const weapon of weapons) {
-        const count = (await db.get(`weapon_${weapon.type}_${userId}`)) || 0;
+        const count = await db.get(`weapon_${weapon.type}_${userId}`) || 0;
         if (count > 0) {
             return weapon;
         }
