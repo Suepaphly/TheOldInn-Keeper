@@ -73,10 +73,20 @@ async function startBattle(channel) {
     if (channel) channel.send("🏰 Battle started! The arena is locked.");
 
     try {
-        // Clear any existing turn attack tracking
+        // Clear any existing turn attack tracking and freeze effects
         const allEntries = await db.all();
         const turnAttackEntries = allEntries.filter(entry => entry.id.startsWith("turn_attack_"));
         for (const entry of turnAttackEntries) {
+            await db.delete(entry.id);
+        }
+        
+        // Clear freeze-related effects
+        await db.delete("freeze_used_this_combat");
+        await db.delete("monsters_frozen_this_turn");
+        
+        // Clear user freeze tracking
+        const freezeEntries = allEntries.filter(entry => entry.id.startsWith("user_freeze_used_"));
+        for (const entry of freezeEntries) {
             await db.delete(entry.id);
         }
         // Display initial battle state
@@ -216,12 +226,22 @@ async function attackTurn(channel) {
             channel.send(`⚔️ **Town defenses strike!** Killed: ${killReport.join(", ")} (${townDamage} total damage dealt)`);
         }
 
-        // Calculate monster damage
+        // Calculate monster damage (check for freeze effect first)
         let monsterDamage = 0;
-        for (let i = 0; i < monsterArray.length; i++) {
-            const monsterType = monsterArray[i];
-            const monsterCount = (await db.get(`Monsters.${monsterType}`)) || 0;
-            monsterDamage += monsterCount * monsterDmgArray[i];
+        const monstersFrozen = await db.get("monsters_frozen_this_turn") || false;
+        
+        if (monstersFrozen) {
+            // Monsters are frozen - no damage this turn
+            if (channel) channel.send("🧊 **Monsters are frozen solid!** They cannot attack this turn!");
+            // Clear freeze effect for next turn
+            await db.delete("monsters_frozen_this_turn");
+        } else {
+            // Normal monster damage calculation
+            for (let i = 0; i < monsterArray.length; i++) {
+                const monsterType = monsterArray[i];
+                const monsterCount = (await db.get(`Monsters.${monsterType}`)) || 0;
+                monsterDamage += monsterCount * monsterDmgArray[i];
+            }
         }
 
         // Apply monster damage to walls (starting with ramparts)
@@ -261,8 +281,17 @@ async function endBattle(channel) {
         }
         // Note: Monster retreat is handled in the battle loop at turn 10
         
-        // Clear any remaining troop contracts
+        // Clear any remaining troop contracts and freeze effects
         await endTroopContract();
+        
+        // Ensure freeze effects are cleared
+        await db.delete("freeze_used_this_combat");
+        await db.delete("monsters_frozen_this_turn");
+        const allEntries = await db.all();
+        const freezeEntries = allEntries.filter(entry => entry.id.startsWith("user_freeze_used_"));
+        for (const entry of freezeEntries) {
+            await db.delete(entry.id);
+        }
         
         if (channel) channel.send("Battle concluded. Preparing for next conflict...");
     } catch (error) {

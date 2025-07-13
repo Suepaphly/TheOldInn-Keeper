@@ -36,7 +36,7 @@ module.exports.run = async (client, message, args) => {
         white: { name: "White Crystal", ability: "Double daily rewards, maze protection", emoji: "⚪" },
         black: { name: "Black Crystal", ability: "50% cheaper summons", emoji: "⚫" },
         red: { name: "Red Crystal", ability: "+2 attack, +4 health", emoji: "🔴" },
-        blue: { name: "Blue Crystal", ability: "Fight sphinx instead of death", emoji: "🔵" },
+        blue: { name: "Blue Crystal", ability: "Fight sphinx instead of death, freeze monsters during town combat", emoji: "🔵" },
         green: { name: "Green Crystal", ability: "Free revive once per 24h", emoji: "🟢" }
     };
 
