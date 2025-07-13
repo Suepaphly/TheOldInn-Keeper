@@ -122,8 +122,8 @@ async function startTrolleyQuest(interaction, userId, activeQuests) {
             await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [] });
 
             // Set up vengeance combat after a delay
-            setTimeout(() => {
-                startVengeanceCombat(i, userId, collector, activeQuests);
+            setTimeout(async () => {
+                await startVengeanceCombat(i, userId, collector, activeQuests);
             }, 3000);
         } else {
             // Normal continue
@@ -161,7 +161,7 @@ async function startVengeanceCombat(interaction, userId, parentCollector, active
 
     const { embed, row } = combat.createCombatEmbed("A grief-stricken relative seeks revenge!");
 
-    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+    await interaction.editReply({ embeds: [embed], components: [row] });
 
     // Set up vengeance combat collector
     const filter = (i) => i.user.id === userId;
