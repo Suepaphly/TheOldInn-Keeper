@@ -43,6 +43,7 @@ class CombatSystem {
             monster: `⚔️ AMBUSH - ${this.combatData.enemyName}`,
             vengeance: `⚔️ VENGEANCE COMBAT - Round ${this.combatData.round}`,
             maze: `🌿 HEDGE MAZE - VINE BEAST COMBAT - Round ${this.combatData.round}`,
+            mimic: `🧰 MIMIC COMBAT - Round ${this.combatData.round}`,
             default: `⚔️ COMBAT - Round ${this.combatData.round}`
         };
 
@@ -161,6 +162,7 @@ class CombatSystem {
             vengeance: "You were killed by the vengeful relative! Your quest ends in tragedy.",
             maze: "You were defeated by the vine beast! Your quest ends in failure.",
             riddle: "The ancient sphinx devours you for your ignorance!",
+            mimic: "You were devoured by the chest mimic! Your quest ends in failure.",
             default: "You were defeated in combat!"
         };
 

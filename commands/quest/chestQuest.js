@@ -16,6 +16,14 @@ const colors = [
 async function startChestQuest(interaction, userId, activeQuests) {
     const { completeQuest, endQuest } = require('../quest.js');
 
+    // Check for mimic (20% chance)
+    const isMimic = Math.random() < 0.20;
+    
+    if (isMimic) {
+        await startMimicEncounter(interaction, userId, activeQuests);
+        return;
+    }
+
     // Generate a random 4-color code
     const secretCode = [];
     for (let i = 0; i < 4; i++) {
@@ -266,6 +274,204 @@ async function updateChestDisplay(interaction, questData) {
         );
 
     await interaction.update({ embeds: [embed], components: [colorRow1, colorRow2, actionRow] });
+}
+
+async function startMimicEncounter(interaction, userId, activeQuests) {
+    const { CombatSystem } = require('./combatSystem.js');
+    const { completeQuest, endQuest } = require('../quest.js');
+
+    const mimicData = {
+        name: "Chest Mimic",
+        health: 25,
+        maxHealth: 25,
+        damage: 6, // Average of 4-8
+        defense: 0,
+        value: 0
+    };
+
+    // Create combat instance
+    const combat = CombatSystem.create(userId, 'mimic');
+    await combat.initializeCombat({}, mimicData);
+
+    const embed = new EmbedBuilder()
+        .setTitle("🧰 MIMIC ENCOUNTER!")
+        .setColor("#8B4513")
+        .setDescription(`As you approach the chest, it suddenly sprouts teeth and tentacles! This is no ordinary chest - it's a **Chest Mimic**!\n\n*The mimic's tongue lashes out menacingly, dripping with acidic saliva that could dissolve your belongings!*\n\n⚠️ **Warning:** The mimic's lick attack can destroy items in your backpack!`)
+        .addFields(
+            { name: "Mimic Health", value: "25/25 HP", inline: true },
+            { name: "Special Attack", value: "Acidic Lick (30% item destruction chance)", inline: true },
+            { name: "Reward if Defeated", value: "Original chest contents", inline: true }
+        );
+
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('mimic_attack')
+                .setLabel('⚔️ Attack Mimic')
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('mimic_run')
+                .setLabel('🏃 Run Away')
+                .setStyle(ButtonStyle.Secondary)
+        );
+
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+
+    // Set up combat collector
+    const filter = (i) => i.user.id === userId;
+    
+    let message;
+    try {
+        if (interaction.replied || interaction.deferred) {
+            message = await interaction.fetchReply();
+        } else {
+            message = interaction.message;
+        }
+    } catch (error) {
+        console.error('Error getting message for mimic combat collector:', error);
+        return;
+    }
+
+    const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
+
+    collector.on('collect', async (i) => {
+        if (i.customId === 'mimic_run') {
+            await endQuest(i, userId, false, "You fled from the mimic! Your quest ends in cowardly retreat.", activeQuests);
+            collector.stop();
+            return;
+        }
+
+        if (i.customId === 'mimic_attack') {
+            await handleMimicCombat(i, userId, combat, collector, activeQuests);
+        }
+    });
+
+    collector.on('end', async (collected, reason) => {
+        if (reason === 'time') {
+            await endQuest(interaction, userId, false, "⏰ You took too long to decide! The mimic grows bored and disappears.", activeQuests);
+        }
+    });
+}
+
+async function handleMimicCombat(interaction, userId, combat, collector, activeQuests) {
+    const { completeQuest, endQuest } = require('../quest.js');
+    const { QuickDB } = require("quick.db");
+    const db = new QuickDB();
+
+    try {
+        const combatResult = await combat.processCombatRound();
+        let battleText = combatResult.battleText;
+
+        // Add mimic's special lick attack effect
+        if (combatResult.result === 'continue' || combatResult.result === 'defeat') {
+            // 30% chance for lick attack to destroy an item
+            if (Math.random() < 0.30) {
+                const destroyedItem = await removeRandomBackpackItem(userId);
+                if (destroyedItem) {
+                    battleText += `\n💀 **The mimic's acidic lick dissolves your ${destroyedItem}!**`;
+                } else {
+                    battleText += `\n🛡️ The mimic's lick attack finds no items to destroy.`;
+                }
+            }
+        }
+
+        if (combatResult.result === 'victory') {
+            // Mimic defeated - give normal chest reward
+            const reward = Math.floor(Math.random() * 401) + 100; // 100-500 kopeks
+            await db.add(`money_${userId}`, reward);
+
+            const successMessage = `🎉 **MIMIC DEFEATED!** 🎉\n\nYou've slain the chest mimic! As it dissolves, it reveals the original chest contents: **${reward} kopeks**!\n\n⚔️ Your combat prowess has earned you a well-deserved reward!`;
+
+            await completeQuest(interaction, userId, activeQuests, successMessage);
+            collector.stop();
+            return;
+        } else if (combatResult.result === 'defeat') {
+            await endQuest(interaction, userId, false, "💀 **DEVOURED BY THE MIMIC!**\n\nThe chest mimic's powerful jaws crush you! Your quest ends in a gruesome defeat.", activeQuests);
+            collector.stop();
+            return;
+        }
+
+        // Update combat display
+        const { embed, row } = combat.createCombatEmbed(battleText);
+        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+
+    } catch (error) {
+        console.error('Error in mimic combat:', error);
+        await endQuest(interaction, userId, false, "An error occurred during the mimic encounter.", activeQuests);
+        collector.stop();
+    }
+}
+
+async function removeRandomBackpackItem(userId) {
+    const { QuickDB } = require("quick.db");
+    const db = new QuickDB();
+
+    // Get all user items
+    const allItems = await db.all();
+    const userItems = [];
+
+    // Collect weapons
+    const weapons = ['knife', 'sword', 'pistol', 'shotgun', 'rifle'];
+    for (const weapon of weapons) {
+        const count = await db.get(`weapon_${weapon}_${userId}`) || 0;
+        if (count > 0) {
+            userItems.push({ type: 'weapon', name: weapon, key: `weapon_${weapon}_${userId}` });
+        }
+    }
+
+    // Collect armor
+    const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate', 'dragonscale'];
+    for (const armor of armors) {
+        const count = await db.get(`armor_${armor}_${userId}`) || 0;
+        if (count > 0) {
+            userItems.push({ type: 'armor', name: armor, key: `armor_${armor}_${userId}` });
+        }
+    }
+
+    // Collect crystals
+    const crystals = ['white', 'black', 'red', 'blue', 'green'];
+    for (const crystal of crystals) {
+        const count = await db.get(`crystal_${crystal}_${userId}`) || 0;
+        if (count > 0) {
+            userItems.push({ type: 'crystal', name: crystal, key: `crystal_${crystal}_${userId}` });
+        }
+    }
+
+    if (userItems.length === 0) {
+        return null; // No items to destroy
+    }
+
+    // Select random item and remove one
+    const randomItem = userItems[Math.floor(Math.random() * userItems.length)];
+    await db.subtract(randomItem.key, 1);
+
+    // Return friendly name
+    const friendlyNames = {
+        weapon: {
+            knife: 'Knife',
+            sword: 'Sword', 
+            pistol: 'Pistol',
+            shotgun: 'Shotgun',
+            rifle: 'Rifle'
+        },
+        armor: {
+            cloth: 'Cloth Armor',
+            leather: 'Leather Armor',
+            chainmail: 'Chainmail Armor',
+            studded: 'Studded Armor',
+            plate: 'Plate Armor',
+            dragonscale: 'Dragonscale Armor'
+        },
+        crystal: {
+            white: 'White Crystal',
+            black: 'Black Crystal',
+            red: 'Red Crystal',
+            blue: 'Blue Crystal',
+            green: 'Green Crystal'
+        }
+    };
+
+    return friendlyNames[randomItem.type][randomItem.name] || randomItem.name;
 }
 
 module.exports = {
