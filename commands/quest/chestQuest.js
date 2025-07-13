@@ -358,6 +358,7 @@ async function startMimicEncounter(interaction, userId, activeQuests) {
 
 async function handleMimicCombat(interaction, userId, combat, collector, activeQuests) {
     const { completeQuest, endQuest } = require('../quest.js');
+    const { CombatSystem } = require('./combatSystem.js');
     const { QuickDB } = require("quick.db");
     const db = new QuickDB();
 
