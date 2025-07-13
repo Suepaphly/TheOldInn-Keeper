@@ -54,6 +54,11 @@ module.exports.run = async (client, message, args) => {
                     inline: true,
                 },
                 {
+                    name: "💎 Crystals",
+                    value: `**White Crystal** - 4,000 kopeks (Special Ability)\n**Black Crystal** - 4,000 kopeks (Special Ability)\n**Red Crystal** - 4,000 kopeks (Special Ability)\n**Blue Crystal** - 4,000 kopeks (Special Ability)\n**Green Crystal** - 4,000 kopeks (Special Ability)`,
+                    inline: true,
+                },
+                {
                     name: "💰 Your Balance",
                     value: `${money.toLocaleString()} kopeks`,
                     inline: false,
@@ -80,6 +85,14 @@ module.exports.run = async (client, message, args) => {
             chainmail: { cost: 1500, name: "Chainmail Armor", defense: 3 },
             studded: { cost: 3000, name: "Studded Armor", defense: 5 },
             plate: { cost: 6000, name: "Plate Armor", defense: 10 },
+        };
+
+        const crystals = {
+            white: { cost: 4000, name: "White Crystal" },
+            black: { cost: 4000, name: "Black Crystal" },
+            red: { cost: 4000, name: "Red Crystal" },
+            blue: { cost: 4000, name: "Blue Crystal" },
+            green: { cost: 4000, name: "Green Crystal" },
         };
 
         if (weapons[item]) {
@@ -116,7 +129,25 @@ module.exports.run = async (client, message, args) => {
             message.channel.send(
                 `✅ You bought ${armor[item].name} for ${armor[item].cost.toLocaleString()} kopeks!`,
             );
-        } else {
+        } else if (crystals[item]) {
+            if (money < crystals[item].cost) {
+                return message.channel.send(
+                    `❌ You need ${crystals[item].cost.toLocaleString()} kopeks to buy a ${crystals[item].name}. You have ${money.toLocaleString()}.`,
+                );
+            }
+
+            if (!(await canAddToBackpack(user.id))) {
+                return message.channel.send(getBackpackFullMessage());
+            }
+
+            await db.sub(`money_${user.id}`, crystals[item].cost);
+            await db.add(`crystal_${item}_${user.id}`, 1);
+
+            message.channel.send(
+                `✅ You bought a ${crystals[item].name} for ${crystals[item].cost.toLocaleString()} kopeks!`,
+            );
+        }
+         else {
             message.channel.send(
                 `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate`,
             );
@@ -138,6 +169,14 @@ module.exports.run = async (client, message, args) => {
             chainmail: { cost: 1500, name: "Chainmail Armor", defense: 3 },
             studded: { cost: 3000, name: "Studded Armor", defense: 5 },
             plate: { cost: 6000, name: "Plate Armor", defense: 10 },
+        };
+
+        const crystals = {
+            white: { cost: 4000, name: "White Crystal" },
+            black: { cost: 4000, name: "Black Crystal" },
+            red: { cost: 4000, name: "Red Crystal" },
+            blue: { cost: 4000, name: "Blue Crystal" },
+            green: { cost: 4000, name: "Green Crystal" },
         };
 
         if (weapons[item]) {
@@ -170,9 +209,21 @@ module.exports.run = async (client, message, args) => {
             message.channel.send(
                 `💰 You sold ${armor[item].name} for ${sellPrice.toLocaleString()} kopeks!`,
             );
+        } else if (crystals[item]) {
+            const count = await db.get(`crystal_${item}_${user.id}`) || 0;
+            if (count <= 0) {
+                return message.channel.send(`❌ You don't have any ${crystals[item].name} to sell!`);
+            }
+
+            await db.sub(`crystal_${item}_${user.id}`, 1);
+            await db.add(`money_${user.id}`, 4000);
+
+            message.channel.send(
+                `✅ You sold a ${crystals[item].name} for 4,000 kopeks!`,
+            );
         } else {
             message.channel.send(
-                `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate`,
+                `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate, white, black, red, blue, green`,
             );
         }
     } else {

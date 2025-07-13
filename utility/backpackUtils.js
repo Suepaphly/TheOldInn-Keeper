@@ -12,6 +12,9 @@ async function getBackpackCount(userId) {
     const userArmor = allItems.filter(item => 
         item.id.startsWith("armor_") && item.id.endsWith(`_${userId}`) && item.value > 0
     );
+    const userCrystals = allItems.filter(item => 
+        item.id.startsWith("crystal_") && item.id.endsWith(`_${userId}`) && item.value > 0
+    );
 
     let totalItems = 0;
     for (const weapon of userWeapons) {
@@ -19,6 +22,9 @@ async function getBackpackCount(userId) {
     }
     for (const armor of userArmor) {
         totalItems += armor.value;
+    }
+    for (const crystal of userCrystals) {
+        totalItems += crystal.value;
     }
 
     return totalItems;

@@ -31,8 +31,17 @@ module.exports.run = async (client, message, args) => {
         plate: { name: "Plate Armor", defense: "10", emoji: "🛡️" }
     };
 
+    const crystalData = {
+        white: { name: "White Crystal", ability: "Double daily rewards, maze protection", emoji: "⚪" },
+        black: { name: "Black Crystal", ability: "50% cheaper summons", emoji: "⚫" },
+        red: { name: "Red Crystal", ability: "+2 attack, +4 health", emoji: "🔴" },
+        blue: { name: "Blue Crystal", ability: "Fight sphinx instead of death", emoji: "🔵" },
+        green: { name: "Green Crystal", ability: "Free revive once per 24h", emoji: "🟢" }
+    };
+
     let weaponText = "";
     let armorText = "";
+    let crystalText = "";
 
     if (userWeapons.length === 0) {
         weaponText = "No weapons owned";
@@ -58,6 +67,22 @@ module.exports.run = async (client, message, args) => {
         }
     }
 
+    const userCrystals = allItems.filter(item =>
+        item.id.startsWith("crystal_") && item.id.endsWith(`_${user.id}`)
+    );
+
+    if (userCrystals.length === 0) {
+        crystalText = "No crystals owned";
+    } else {
+        for (const crystal of userCrystals) {
+            const crystalType = crystal.id.split('_')[1];
+            const count = crystal.value;
+            if (crystalData[crystalType] && count > 0) {
+                crystalText += `${crystalData[crystalType].emoji} ${crystalData[crystalType].name} x${count} (${crystalData[crystalType].ability})\n`;
+            }
+        }
+    }
+
     const totalItems = await getBackpackCount(user.id);
 
     const embed = new Discord.EmbedBuilder()
@@ -72,6 +97,11 @@ module.exports.run = async (client, message, args) => {
             {
                 name: "🛡️ Armor",
                 value: armorText || "No armor owned", 
+                inline: true
+            },
+            {
+                name: "🔮 Crystals",
+                value: crystalText || "No crystals owned",
                 inline: true
             }
         );

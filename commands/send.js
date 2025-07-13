@@ -54,6 +54,14 @@ module.exports.run = async (client, message, args) => {
         plate: { name: "Plate Armor" },
     };
 
+    const crystals = {
+        white: { name: "White Crystal" },
+        black: { name: "Black Crystal" },
+        red: { name: "Red Crystal" },
+        blue: { name: "Blue Crystal" },
+        green: { name: "Green Crystal" },
+    };
+
     if (weapons[itemLower]) {
         const userWeaponCount = (await db.get(`weapon_${itemLower}_${user.id}`)) || 0;
         if (userWeaponCount <= 0) {
@@ -138,11 +146,31 @@ module.exports.run = async (client, message, args) => {
             );
 
         message.channel.send({ embeds: [embed] });
-    } else {
-        message.channel.send(
-            `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate`,
-        );
-    }
+    } else if (crystals[itemLower]) {
+            const senderCount = await db.get(`crystal_${itemLower}_${user.id}`) || 0;
+            if (senderCount <= 0) {
+                return message.channel.send(
+                    `❌ You don't have any ${crystals[itemLower].name} to send!`,
+                );
+            }
+
+            if (!(await canAddToBackpack(target.id))) {
+                return message.channel.send(
+                    `❌ ${target.username}'s backpack is full! They cannot receive items.`,
+                );
+            }
+
+            await db.sub(`crystal_${itemLower}_${user.id}`, 1);
+            await db.add(`crystal_${itemLower}_${target.id}`, 1);
+
+            message.channel.send(
+                `✅ You sent a ${crystals[itemLower].name} to ${target.username}!`,
+            );
+        } else {
+            message.channel.send(
+                `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate, white, black, red, blue, green`,
+            );
+        }
 };
 
 module.exports.help = {

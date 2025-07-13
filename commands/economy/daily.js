@@ -22,7 +22,14 @@ module.exports.run = async (client, message, args) => {
 
     let user = message.author;
     let timeout = 46000000; // about 12.77 hours
-    let amount = 100;
+    let amount = Math.floor(Math.random() * 301) + 200; // 200-500 kopeks
+
+    // Check for white crystal bonus
+    const { hasCrystal } = require("../../utility/crystalUtils.js");
+    const hasWhiteCrystal = await hasCrystal(user.id, 'white');
+    if (hasWhiteCrystal) {
+        amount *= 2;
+    }
 
     // Use 'get' instead of 'fetch'
     let daily = await db.get(`daily_${user.id}`);
@@ -31,7 +38,11 @@ module.exports.run = async (client, message, args) => {
         let time = ms(timeout - (Date.now() - daily));
         message.channel.send(`**${user.username}**, you already received daily kopeks recently, try again in \`${time.hours} hours, ${time.minutes} minutes, ${time.seconds} seconds\`.`);
     } else {
-        message.channel.send(`**<@${message.author.id}>**, you received your \`${amount}\` daily kopeks!`);
+        let message_text = `✅ You claimed your daily reward of ${amount.toLocaleString()} kopeks!`;
+        if (hasWhiteCrystal) {
+            message_text += ` ⚪ **White Crystal Bonus: DOUBLED!**`;
+        }
+        message.channel.send(message_text);
         await db.add(`money_${user.id}`, amount); // Ensure this operation completes before proceeding
         await db.set(`daily_${user.id}`, Date.now()); // Ensure this operation completes before proceeding
     }

@@ -121,9 +121,22 @@ async function handleMazeChoice(interaction, userId, collector, activeQuests) {
             await completeQuest(interaction, userId, activeQuests);
             collector.stop();
         } else {
-            // Death
-            await db.set(`death_cooldown_${userId}`, Date.now());
-            await endQuest(interaction, userId, false, `You chose poorly. The maze's deadly trap claims your life. You are now dead for 24 hours.`, activeQuests);
+            // Death - check for white crystal protection
+            const { hasCrystal } = require('../../utility/crystalUtils.js');
+            const hasWhiteCrystal = await hasCrystal(userId, 'white');
+            
+            if (hasWhiteCrystal) {
+                // White crystal protects from death, only lose money
+                const loss = Math.floor(Math.random() * 500) + 200;
+                const currentMoney = await db.get(`money_${userId}`) || 0;
+                if (currentMoney >= loss) {
+                    await db.sub(`money_${userId}`, loss);
+                }
+                await endQuest(interaction, userId, false, `You chose poorly, but your White Crystal protects you from death! You lose ${loss} kopeks and escape the maze. ⚪`, activeQuests);
+            } else {
+                await db.set(`death_cooldown_${userId}`, Date.now());
+                await endQuest(interaction, userId, false, `You chose poorly. The maze's deadly trap claims your life. You are now dead for 24 hours.`, activeQuests);
+            }
             collector.stop();
         }
     }

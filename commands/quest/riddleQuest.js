@@ -109,27 +109,39 @@ async function presentRiddle(interaction, userId, activeQuests, riddleNumber) {
                 }, 3000);
             }
         } else {
-            // Wrong answer - death by sphinx
-            const deathMessage = "The ancient sphinx devours you for your ignorance!";
+            // Wrong answer - check for blue crystal protection
+            const { hasCrystal } = require('../../utility/crystalUtils.js');
+            const hasBlueCrystal = await hasCrystal(userId, 'blue');
 
-            // Set death timer
-            await db.set(`death_cooldown_${userId}`, Date.now());
-
-            const { endQuest } = require('../quest.js');
-            await endQuest(interaction, userId, false, deathMessage, activeQuests);
+            if (hasBlueCrystal) {
+                // Start sphinx combat
+                quest.data.sphinxCombat = true;
+                await startSphinxCombat(interaction, userId, collector, activeQuests);
+            } else {
+                // Death
+                await db.set(`death_cooldown_${userId}`, Date.now());
+                await endQuest(interaction, userId, false, "The sphinx roars with anger and devours you whole. You are now dead for 24 hours.", activeQuests);
+                collector.stop();
+            }
         }
     });
 
     collector.on('end', async (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            // Timeout - death by sphinx
-            const deathMessage = "You took too long to answer! The ancient sphinx devours you for your hesitation!";
+            // Timeout - check for blue crystal protection
+            const { hasCrystal } = require('../../utility/crystalUtils.js');
+            const hasBlueCrystal = await hasCrystal(userId, 'blue');
 
-            // Set death timer
-            await db.set(`death_cooldown_${userId}`, Date.now());
-
-            const { endQuest } = require('../quest.js');
-            await endQuest(interaction, userId, false, deathMessage, activeQuests);
+            if (hasBlueCrystal) {
+                // Start sphinx combat
+                quest.data.sphinxCombat = true;
+                await startSphinxCombat(interaction, userId, collector, activeQuests);
+            } else {
+                // Death
+                await db.set(`death_cooldown_${userId}`, Date.now());
+                await endQuest(interaction, userId, false, "The sphinx roars with anger and devours you whole. You are now dead for 24 hours.", activeQuests);
+                collector.stop();
+            }
         }
     });
 }
