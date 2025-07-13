@@ -258,8 +258,8 @@ class TiamatCombatSystem extends CombatSystem {
                 }
             }
 
-            // Get all armor
-            const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate', 'dragonscale'];
+            // Get all armor (excluding dragonscale - it's protected)
+            const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate'];
             for (const armor of armors) {
                 const count = await db.get(`armor_${armor}_${this.userId}`) || 0;
                 if (count > 0) {
@@ -271,6 +271,8 @@ class TiamatCombatSystem extends CombatSystem {
                     });
                 }
             }
+
+            // Don't include crystals - they are protected from destruction
         } catch (error) {
             console.error('Error getting backpack items:', error);
         }
@@ -507,7 +509,7 @@ class DragonCombatSystem extends CombatSystem {
                         if (!randomItem) {
                             return `The Red Dragon casts Melt, but no item could be found to melt!`;
                         }
-                        
+
                         await db.sub(randomItem.key, 1);
                         return `The Red Dragon casts Melt! Your ${randomItem.name} is destroyed by the intense heat!`;
                     } else {
@@ -554,8 +556,8 @@ class DragonCombatSystem extends CombatSystem {
                 }
             }
 
-            // Get all armor
-            const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate', 'dragonscale'];
+            // Get all armor (excluding dragonscale - it's protected)
+            const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate'];
             for (const armor of armors) {
                 const count = await db.get(`armor_${armor}_${this.userId}`) || 0;
                 if (count > 0) {
@@ -567,6 +569,8 @@ class DragonCombatSystem extends CombatSystem {
                     });
                 }
             }
+
+            // Don't include crystals - they are protected from destruction
         } catch (error) {
             console.error('Error getting backpack items:', error);
         }
@@ -593,7 +597,7 @@ class DragonCombatSystem extends CombatSystem {
         // Award the crystal
         const crystalKey = `crystal_${dragon.color}_${this.userId}`;
         await db.add(crystalKey, 1);
-        
+
         return `You have slain the mighty ${dragon.name}! As it falls, a ${dragon.crystal} materializes and flies into your backpack. This rare artifact pulses with ancient power...`;
     }
 

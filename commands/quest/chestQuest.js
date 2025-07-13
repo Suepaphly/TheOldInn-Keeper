@@ -423,8 +423,8 @@ async function removeRandomBackpackItem(userId) {
         }
     }
 
-    // Collect armor
-    const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate', 'dragonscale'];
+    // Collect armor (excluding dragonscale)
+    const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate'];
     for (const armor of armors) {
         const count = await db.get(`armor_${armor}_${userId}`) || 0;
         if (count > 0) {
@@ -432,14 +432,7 @@ async function removeRandomBackpackItem(userId) {
         }
     }
 
-    // Collect crystals
-    const crystals = ['white', 'black', 'red', 'blue', 'green'];
-    for (const crystal of crystals) {
-        const count = await db.get(`crystal_${crystal}_${userId}`) || 0;
-        if (count > 0) {
-            userItems.push({ type: 'crystal', name: crystal, key: `crystal_${crystal}_${userId}` });
-        }
-    }
+    // Don't collect crystals - they are protected from destruction
 
     if (userItems.length === 0) {
         return null; // No items to destroy
