@@ -16,8 +16,8 @@ const colors = [
 async function startChestQuest(interaction, userId, activeQuests) {
     const { completeQuest, endQuest } = require('../quest.js');
 
-    // Check for mimic (20% chance)
-    const isMimic = Math.random() < 0.20;
+    // Check for mimic (100% chance for testing)
+    const isMimic = Math.random() < 1.00;
     
     if (isMimic) {
         await startMimicEncounter(interaction, userId, activeQuests);
