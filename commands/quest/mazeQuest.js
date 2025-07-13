@@ -152,17 +152,19 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
     // Set up maze combat collector
     const filter = (i) => i.user.id === userId;
 
-    // Get the message from the interaction response
+    // Get the updated message after the interaction update
     let message;
     try {
-        if (interaction.replied || interaction.deferred) {
-            message = await interaction.fetchReply();
-        } else {
-            message = interaction.message;
-        }
+        // Always try to fetch the reply first since the interaction was just updated
+        message = await interaction.fetchReply();
     } catch (error) {
-        console.error('Error getting message for maze combat collector:', error);
-        return;
+        // Fallback to interaction.message if fetchReply fails
+        try {
+            message = interaction.message;
+        } catch (fallbackError) {
+            console.error('Error getting message for maze combat collector:', { error: error.message, fallbackError: fallbackError.message });
+            return;
+        }
     }
 
     const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
