@@ -60,7 +60,8 @@ module.exports.run = async (client, message, args) => {
     tactician: ['feat_tactician', 'Tactician', 2500, 'Reduces troop cost by 50% (rounded up)'],
     mechanist: ['feat_mechanist', 'Mechanist', 2500, 'Reduces trap cost by 50% (rounded up)'],
     ninja: ['feat_ninja', 'Ninja', 2500, 'Escape PvP combat defeat with 80% success rate (no death penalty)'],
-    investigator: ['feat_investigator', 'Investigator', 2500, 'Allows using =snoop on other players once per hour']
+    investigator: ['feat_investigator', 'Investigator', 2500, 'Allows using =snoop on other players once per hour'],
+    thief: ['feat_thief', 'Thief', 5000, 'Allows using =steal on other players once per hour (success rate = rob level)']
   };
 
   if (!item) {

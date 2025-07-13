@@ -39,7 +39,8 @@ if (featData.length > 0) {
         'feat_tactician': 'Tactician',
         'feat_mechanist': 'Mechanist',
         'feat_ninja': 'Ninja',
-        'feat_investigator': 'Investigator'
+        'feat_investigator': 'Investigator',
+        'feat_thief': 'Thief'
     };
     
     for (let i = 0; i < featData.length; i++) {

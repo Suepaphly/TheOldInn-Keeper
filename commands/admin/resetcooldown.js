@@ -26,7 +26,8 @@ module.exports.run = async (client, message, args) => {
                 item.id.includes("work_") ||
                 item.id.includes("rob_") ||
                 item.id.includes("deposit_") ||
-                item.id.includes("snoop_cooldown_")
+                item.id.includes("snoop_cooldown_") ||
+                item.id.includes("steal_cooldown_")
             );
         });
 

@@ -38,7 +38,8 @@ module.exports.run = async (client, message, args) => {
             tactician: 'feat_tactician',
             mechanist: 'feat_mechanist',
             ninja: 'feat_ninja',
-            investigator: 'feat_investigator'
+            investigator: 'feat_investigator',
+            thief: 'feat_thief'
         };
 
         // Reset skills
@@ -63,7 +64,7 @@ module.exports.run = async (client, message, args) => {
                 },
                 { 
                     name: "Feats Removed", 
-                    value: "• Guns Akimbo\n• Healer\n• Tactician\n• Mechanist\n• Ninja\n• Investigator", 
+                    value: "• Guns Akimbo\n• Healer\n• Tactician\n• Mechanist\n• Ninja\n• Investigator\n• Thief", 
                     inline: true 
                 },
                 { 
