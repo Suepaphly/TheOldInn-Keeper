@@ -57,8 +57,8 @@ module.exports.run = async (bot, message, args) => {
         return;
     }
 
-    if (!thiefMoney || !targetUserMoney) {
-        message.channel.send(`:pirate_flag: ${message.author.username}, both users need to have some kopeks to rob.`);
+    if (!targetUserMoney) {
+        message.channel.send(`:pirate_flag: ${message.author.username}, the target needs to have some kopeks to rob.`);
         return;
     }
 
@@ -74,10 +74,14 @@ module.exports.run = async (bot, message, args) => {
         await db.sub(`money_${user.id}`, kopek);
         await db.add(`money_${message.author.id}`, kopek);
     } else {
-        let penalty = Math.min(thiefMoney, Math.floor(thiefMoney * perc));
-        message.channel.send(`:ninja: ${message.author.username}, you got caught by the town guard and were forced to pay ${penalty} kopeks restitution to ${user.user.username}.`);
-        await db.sub(`money_${message.author.id}`, penalty);
-        await db.add(`money_${user.id}`, penalty);
+        let penalty = thiefMoney ? Math.min(thiefMoney, Math.floor(thiefMoney * perc)) : 0;
+        if (penalty > 0) {
+            message.channel.send(`:ninja: ${message.author.username}, you got caught by the town guard and were forced to pay ${penalty} kopeks restitution to ${user.user.username}.`);
+            await db.sub(`money_${message.author.id}`, penalty);
+            await db.add(`money_${user.id}`, penalty);
+        } else {
+            message.channel.send(`:ninja: ${message.author.username}, you got caught by the town guard but had no money to pay restitution. You were given a stern warning instead.`);
+        }
     }
 
     await db.set(`rob_${message.author.id}`, Date.now());
