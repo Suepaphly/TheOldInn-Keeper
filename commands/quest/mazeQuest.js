@@ -162,9 +162,9 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
     collector.on('collect', async (i) => {
         if (i.customId === 'maze_run') {
             const { endQuest } = require('../quest.js');
-            await endQuest(i, userId, false, "You fled from combat! Your quest ends in cowardly retreat.", activeQuests);
             collector.stop();
             parentCollector.stop();
+            await endQuest(i, userId, false, "You fled from combat! Your quest ends in cowardly retreat.", activeQuests);
             return;
         }
 
@@ -175,6 +175,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
                 // Victory - continue maze quest (back to stage 1)
                 quest.data.stage = 2;
                 quest.data.mazeCombat = false;
+                collector.stop();
 
                 const embed = new EmbedBuilder()
                     .setTitle("🌿 HEDGE MAZE - VINE BEAST DEFEATED")
@@ -194,10 +195,8 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
                 await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
 
-                // Set up continue collector
+                // Set up continue collector with proper cleanup
                 const continueFilter = (ci) => ci.user.id === userId;
-
-                // Get the updated message for the new collector
                 let continueMessage;
                 try {
                     continueMessage = await i.fetchReply();
@@ -210,6 +209,8 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
                 continueCollector.on('collect', async (ci) => {
                     if (ci.customId === 'maze_continue_after_combat') {
+                        continueCollector.stop();
+                        
                         // Show stage 2 paths
                         const stage2Embed = new EmbedBuilder()
                             .setTitle("🌿 HEDGE MAZE - Stage 2/2")
@@ -239,16 +240,28 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
                             );
 
                         await CombatSystem.updateInteractionSafely(ci, { embeds: [stage2Embed], components: [stage2Row] });
-                        continueCollector.stop();
+                        
+                        // Restart the parent collector for stage 2 choices
+                        const newFilter = (ni) => ni.user.id === userId;
+                        let newMessage;
+                        try {
+                            newMessage = await ci.fetchReply();
+                        } catch (error) {
+                            console.error('Error getting new message:', error);
+                            return;
+                        }
+                        
+                        const newCollector = newMessage.createMessageComponentCollector({ filter: newFilter, time: 1800000 });
+                        newCollector.on('collect', async (ni) => {
+                            await handleMazeChoice(ni, userId, newCollector, activeQuests);
+                        });
                     }
                 });
-
-                collector.stop();
             } else if (combatResult.result === 'defeat') {
                 const { endQuest } = require('../quest.js');
-                await endQuest(i, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
                 collector.stop();
                 parentCollector.stop();
+                await endQuest(i, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
             } else {
                 // Combat continues
                 const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
