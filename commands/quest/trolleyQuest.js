@@ -149,6 +149,9 @@ async function startTrolleyQuest(interaction, userId, activeQuests) {
 }
 
 async function startVengeanceCombat(interaction, userId, parentCollector, activeQuests) {
+    // Stop the parent collector to prevent interference
+    parentCollector.stop();
+    
     const quest = activeQuests.get(userId);
     const enemyData = COMBAT_PRESETS.vengeanceEnemy();
 
@@ -191,39 +194,47 @@ async function startVengeanceCombat(interaction, userId, parentCollector, active
         }
 
         if (i.customId === 'vengeance_attack') {
-            const combatResult = await quest.data.combat.processCombatRound();
+            try {
+                const combatResult = await quest.data.combat.processCombatRound();
 
-            if (combatResult.result === 'victory') {
-                // Victory - give rewards and continue quest
-                const rewards = await quest.data.combat.handleVictory();
+                if (combatResult.result === 'victory') {
+                    // Victory - give rewards and continue quest
+                    const rewards = await quest.data.combat.handleVictory();
 
-                const embed = new EmbedBuilder()
-                    .setTitle("🏆 VENGEANCE DEFEATED")
-                    .setColor("#00FF00")
-                    .setDescription(`${combatResult.battleText}\n\nYou have defeated your attacker in self-defense!\n\n**Rewards:**\n💰 +${rewards.money} kopeks\n🔫 +1 pistol`)
-                    .addFields(
-                        { name: "Victory", value: "You continue your quest with a heavy heart.", inline: false }
-                    );
+                    const embed = new EmbedBuilder()
+                        .setTitle("🏆 VENGEANCE DEFEATED")
+                        .setColor("#00FF00")
+                        .setDescription(`${combatResult.battleText}\n\nYou have defeated your attacker in self-defense!\n\n**Rewards:**\n💰 +${rewards.money} kopeks\n🔫 +1 pistol`)
+                        .addFields(
+                            { name: "Victory", value: "You continue your quest with a heavy heart.", inline: false }
+                        );
 
-                const continueRow = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('trolley_vengeance_continue')
-                            .setLabel('➡️ Continue Quest')
-                            .setStyle(ButtonStyle.Primary)
-                    );
+                    const continueRow = new ActionRowBuilder()
+                        .addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('trolley_vengeance_continue')
+                                .setLabel('➡️ Continue Quest')
+                                .setStyle(ButtonStyle.Primary)
+                        );
 
-                await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
-                collector.stop();
-            } else if (combatResult.result === 'defeat') {
+                    await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
+                    collector.stop();
+                } else if (combatResult.result === 'defeat') {
+                    const { endQuest } = require('../quest.js');
+                    await endQuest(i, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
+                    collector.stop();
+                    parentCollector.stop();
+                } else {
+                    // Combat continues
+                    const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
+                    await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [row] });
+                }
+            } catch (error) {
+                console.error('Error in vengeance combat:', error);
                 const { endQuest } = require('../quest.js');
-                await endQuest(i, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
+                await endQuest(i, userId, false, "An error occurred during combat. Your quest ends.", activeQuests);
                 collector.stop();
                 parentCollector.stop();
-            } else {
-                // Combat continues
-                const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
-                await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [row] });
             }
         }
     });
