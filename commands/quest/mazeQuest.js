@@ -143,22 +143,26 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
     const { embed, row } = combat.createCombatEmbed("A massive vine beast blocks your path!");
 
-    // Handle debug vs normal interactions differently
+    // Properly handle the interaction based on its state
     try {
         if (interaction.safeUpdate) {
             // Debug interaction
             await interaction.safeUpdate({ embeds: [embed], components: [row] });
+        } else if (interaction.replied || interaction.deferred) {
+            // Normal interaction that has already been replied to
+            await interaction.editReply({ embeds: [embed], components: [row] });
         } else {
-            // Normal interaction - use editReply since interaction was already responded to
+            // Interaction hasn't been replied to yet - defer first then edit
+            await interaction.deferUpdate();
             await interaction.editReply({ embeds: [embed], components: [row] });
         }
     } catch (error) {
         console.error('Error updating maze combat interaction:', error);
-        // Fallback to followUp if all else fails
+        // Final fallback - try to send a new message to the channel
         try {
-            await interaction.followUp({ embeds: [embed], components: [row] });
-        } catch (followError) {
-            console.error('Fallback followUp also failed:', followError);
+            await interaction.channel.send({ embeds: [embed], components: [row] });
+        } catch (channelError) {
+            console.error('Channel send also failed:', channelError);
         }
     }
 
