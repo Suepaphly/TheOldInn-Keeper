@@ -143,13 +143,23 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
     const { embed, row } = combat.createCombatEmbed("A massive vine beast blocks your path!");
 
-    // Use editReply instead of update since the interaction was already responded to
+    // Handle debug vs normal interactions differently
     try {
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        if (interaction.safeUpdate) {
+            // Debug interaction
+            await interaction.safeUpdate({ embeds: [embed], components: [row] });
+        } else {
+            // Normal interaction - use editReply since interaction was already responded to
+            await interaction.editReply({ embeds: [embed], components: [row] });
+        }
     } catch (error) {
-        console.error('Error editing reply in maze combat:', error);
-        // Fallback to followUp if editReply fails
-        await interaction.followUp({ embeds: [embed], components: [row] });
+        console.error('Error updating maze combat interaction:', error);
+        // Fallback to followUp if all else fails
+        try {
+            await interaction.followUp({ embeds: [embed], components: [row] });
+        } catch (followError) {
+            console.error('Fallback followUp also failed:', followError);
+        }
     }
 
     // Set up maze combat collector

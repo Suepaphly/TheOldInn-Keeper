@@ -517,11 +517,31 @@ async function startDebugQuest(message, userId, questType) {
             editReply: async (options) => await debugMessage.edit(options),
             fetchReply: async () => debugMessage,
             followUp: async (options) => await message.channel.send(options),
+            reply: async (options) => await message.channel.send(options),
+            deferReply: async () => { /* No-op for debug */ },
             message: debugMessage,
             user: message.author,
             replied: true,
             deferred: false,
-            channel: message.channel
+            channel: message.channel,
+            customId: null,
+            // Add proper interaction state tracking
+            acknowledged: false,
+            acknowledge: function() { this.acknowledged = true; },
+            // Override methods to handle debug state properly
+            safeUpdate: async function(options) {
+                try {
+                    if (!this.acknowledged) {
+                        this.acknowledged = true;
+                        return await debugMessage.edit(options);
+                    } else {
+                        return await message.channel.send(options);
+                    }
+                } catch (error) {
+                    console.error('Debug interaction update failed:', error);
+                    return await message.channel.send(options);
+                }
+            }
         };
 
         switch (questType) {
