@@ -50,9 +50,9 @@ const questTypes = {
 module.exports.run = async (client, message, args) => {
     const userId = message.author.id;
 
-    // Check for debug mode (owner only) - Replace '217069557263286273' with your actual Discord user ID
+    // Check for debug mode (owner only)
     if (args[0] === 'debug') {
-        if (userId !== '217069557263286273') { // Replace with your actual Discord user ID
+        if (userId !== '367445249376649217') { // Bot owner ID from endquest.js
             return message.channel.send("❌ This command is owner-only!");
         }
         if (!args[1]) {
