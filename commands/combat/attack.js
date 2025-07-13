@@ -7,7 +7,15 @@ const ptt = require("../../utility/protectTheTavern.js");
 module.exports.run = async (client, message, args) => {
     const user = message.author;
     const member = message.guild.members.cache.get(user.id);
+    const mentionedUser = message.mentions.users.first();
 
+    // If a user is mentioned, redirect to PvP combat
+    if (mentionedUser) {
+        const pvpAttack = require('./attackplayer.js');
+        return pvpAttack.run(client, message, args);
+    }
+
+    // Town combat logic (no user mentioned)
     // Check if there's an active battle using the new system
     if (!ptt.lockArena) {
         return message.channel.send("❌ No battle is currently active! Use `=summon` to add monsters or wait for an automatic attack.");
