@@ -50,37 +50,9 @@ class DragonCombatSystem extends CombatSystem {
         this.location = location;
         this.dragon = dragonData[location];
         this.playerFrozen = false;
-        this.turnCount = 0;
     }
 
-    async initializeDragonCombat() {
-        const combatLevel = await db.get(`combatlevel_${this.userId}`) || 0;
-
-        this.combatData = {
-            // Player stats
-            playerHealth: 5 + (combatLevel * 2),
-            playerMaxHealth: 5 + (combatLevel * 2),
-            playerWeapon: await this.getBestWeapon(),
-            playerArmor: await this.getBestArmor(),
-            combatLevel: combatLevel,
-
-            // Dragon stats
-            enemyName: this.dragon.name,
-            enemyHealth: 50,
-            enemyMaxHealth: 50,
-            enemyDamage: 8, // Base damage for regular attacks
-            enemyDefense: 2,
-            enemyValue: 0,
-
-            // Combat state
-            round: 0,
-            isActive: true
-        };
-
-        return this.combatData;
-    }
-
-    createDragonCombatEmbed(battleText = "") {
+    createCombatEmbed(battleText = "") {
         if (!this.combatData) throw new Error("Dragon combat not initialized");
 
         const embed = new EmbedBuilder()
@@ -96,20 +68,19 @@ class DragonCombatSystem extends CombatSystem {
                 { name: "Special Ability", value: `${this.dragon.specialMove} - ${this.dragon.specialDescription}`, inline: true }
             );
 
-        const components = [];
+        let row;
         if (this.playerFrozen) {
             embed.addFields({ name: "❄️ Status", value: "You are frozen and must skip this turn!", inline: false });
             
-            const row = new ActionRowBuilder()
+            row = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
                         .setCustomId('dragon_skip_turn')
                         .setLabel('❄️ Skip Turn (Frozen)')
                         .setStyle(ButtonStyle.Secondary)
                 );
-            components.push(row);
         } else {
-            const row = new ActionRowBuilder()
+            row = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
                         .setCustomId('dragon_attack')
@@ -120,16 +91,14 @@ class DragonCombatSystem extends CombatSystem {
                         .setLabel('🏃 Run Away')
                         .setStyle(ButtonStyle.Secondary)
                 );
-            components.push(row);
         }
 
-        return { embed, components };
+        return { embed, row };
     }
 
-    async processDragonCombatRound() {
+    async processCombatRound() {
         if (!this.combatData || !this.combatData.isActive) return null;
 
-        this.turnCount++;
         this.combatData.round++;
 
         // If player is frozen, unfreeze them for next turn
@@ -142,7 +111,7 @@ class DragonCombatSystem extends CombatSystem {
             };
         }
 
-        // Player attacks first
+        // Player attacks first (same as base combat system)
         const playerCombatDamage = this.combatData.combatLevel + 1;
         const playerWeaponDamage = Math.floor(Math.random() * 
             (this.combatData.playerWeapon.maxDamage - this.combatData.playerWeapon.minDamage + 1)) + 
@@ -268,7 +237,7 @@ class DragonCombatSystem extends CombatSystem {
         return items;
     }
 
-    async handleDragonVictory() {
+    async handleVictory() {
         const dragon = this.dragon;
         
         // Check if player can carry the crystal
@@ -284,7 +253,7 @@ class DragonCombatSystem extends CombatSystem {
         return `You have slain the mighty ${dragon.name}! As it falls, a ${dragon.crystal} materializes and flies into your backpack. This rare artifact pulses with ancient power...`;
     }
 
-    async handleDragonDefeat() {
+    async handleDefeat() {
         await db.set(`death_cooldown_${this.userId}`, Date.now());
         return `The ${this.dragon.name} has defeated you! Your quest ends in death. You are now dead for 24 hours.`;
     }
@@ -292,15 +261,29 @@ class DragonCombatSystem extends CombatSystem {
 
 async function startDragonBattle(interaction, userId, location, activeQuests) {
     const quest = activeQuests.get(userId);
-    const dragon = new DragonCombatSystem(userId, location);
-    await dragon.initializeDragonCombat();
+    const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
 
-    // Store dragon combat instance in quest data
+    // Create dragon combat system
+    const dragonCombat = new DragonCombatSystem(userId, location);
+    
+    // Initialize combat with dragon stats
+    const dragonStats = {
+        name: dragonData[location].name,
+        health: 50,
+        maxHealth: 50,
+        damage: 8, // Base damage for regular attacks
+        defense: 2,
+        value: 0
+    };
+
+    await dragonCombat.initializeCombat({}, dragonStats);
+
+    // Store combat instance in quest data
     quest.data = quest.data || {};
-    quest.data.dragonCombat = dragon;
+    quest.data.combat = dragonCombat;
 
-    const { embed, components } = dragon.createDragonCombatEmbed("The ancient dragon roars and prepares to attack!");
-    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components });
+    const { embed, row } = dragonCombat.createCombatEmbed("The ancient dragon roars and prepares to attack!");
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     // Set up dragon combat collector
     const filter = (i) => i.user.id === userId;
@@ -327,9 +310,9 @@ async function startDragonBattle(interaction, userId, location, activeQuests) {
 async function handleDragonCombat(interaction, userId, collector, activeQuests) {
     const { endQuest, completeQuest } = require('../quest.js');
     const quest = activeQuests.get(userId);
-    if (!quest || !quest.data.dragonCombat) return;
+    if (!quest || !quest.data.combat) return;
 
-    const dragon = quest.data.dragonCombat;
+    const dragonCombat = quest.data.combat;
 
     if (interaction.customId === 'dragon_run') {
         await endQuest(interaction, userId, false, "You fled from the dragon! Your quest ends in cowardly retreat.", activeQuests);
@@ -339,31 +322,31 @@ async function handleDragonCombat(interaction, userId, collector, activeQuests) 
 
     if (interaction.customId === 'dragon_skip_turn') {
         // Player skips turn due to freeze
-        const combatResult = await dragon.processDragonCombatRound();
+        const combatResult = await dragonCombat.processCombatRound();
         
-        if (combatResult.result === 'continue') {
-            const { embed, components } = dragon.createDragonCombatEmbed(combatResult.battleText);
-            await CombatSystem.updateInteractionSafely(interaction, { embeds: embed, components });
+        if (combatResult && combatResult.result === 'continue') {
+            const { embed, row } = dragonCombat.createCombatEmbed(combatResult.battleText);
+            await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
         }
         return;
     }
 
     if (interaction.customId === 'dragon_attack') {
         try {
-            const combatResult = await dragon.processDragonCombatRound();
+            const combatResult = await dragonCombat.processCombatRound();
 
             if (combatResult.result === 'victory') {
-                const victoryMessage = await dragon.handleDragonVictory();
+                const victoryMessage = await dragonCombat.handleVictory();
                 await completeQuest(interaction, userId, activeQuests, victoryMessage);
                 collector.stop();
             } else if (combatResult.result === 'defeat') {
-                const defeatMessage = await dragon.handleDragonDefeat();
+                const defeatMessage = await dragonCombat.handleDefeat();
                 await endQuest(interaction, userId, false, defeatMessage, activeQuests);
                 collector.stop();
             } else {
                 // Combat continues
-                const { embed, components } = dragon.createDragonCombatEmbed(combatResult.battleText);
-                await CombatSystem.updateInteractionSafely(interaction, { embeds: embed, components });
+                const { embed, row } = dragonCombat.createCombatEmbed(combatResult.battleText);
+                await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
             }
         } catch (error) {
             console.error('Error in dragon combat:', error);
