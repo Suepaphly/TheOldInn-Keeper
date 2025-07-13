@@ -224,7 +224,7 @@ class TiamatCombatSystem extends CombatSystem {
         }
 
         // Get all armor
-        const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate'];
+        const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate', 'dragonscale'];
         for (const armor of armors) {
             const count = await db.get(`armor_${armor}_${this.userId}`) || 0;
             if (count > 0) {
@@ -459,7 +459,7 @@ class DragonCombatSystem extends CombatSystem {
         }
 
         // Get all armor
-        const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate'];
+        const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate', 'dragonscale'];
         for (const armor of armors) {
             const count = await db.get(`armor_${armor}_${this.userId}`) || 0;
             if (count > 0) {

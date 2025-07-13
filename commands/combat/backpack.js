@@ -28,7 +28,8 @@ module.exports.run = async (client, message, args) => {
         leather: { name: "Leather Armor", defense: "2", emoji: "🧥" },
         chainmail: { name: "Chainmail Armor", defense: "3", emoji: "⛓️" },
         studded: { name: "Studded Armor", defense: "5", emoji: "🦺" },
-        plate: { name: "Plate Armor", defense: "10", emoji: "🛡️" }
+        plate: { name: "Plate Armor", defense: "10", emoji: "🛡️" },
+        dragonscale: { name: "Dragonscale Armor", defense: "20", emoji: "🐲" }
     };
 
     const crystalData = {

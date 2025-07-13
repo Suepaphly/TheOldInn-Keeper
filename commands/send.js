@@ -52,6 +52,7 @@ module.exports.run = async (client, message, args) => {
         chainmail: { name: "Chainmail Armor" },
         studded: { name: "Studded Armor" },
         plate: { name: "Plate Armor" },
+        dragonscale: { name: "Dragonscale Armor" },
     };
 
     const crystals = {
@@ -168,7 +169,7 @@ module.exports.run = async (client, message, args) => {
             );
         } else {
             message.channel.send(
-                `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate, white, black, red, blue, green`,
+                `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate, dragonscale, white, black, red, blue, green`,
             );
         }
 };
