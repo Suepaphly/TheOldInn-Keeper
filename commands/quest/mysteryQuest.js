@@ -277,6 +277,71 @@ const mysteryScenarios = [
             suspect: "Ex-Girlfriend"
         },
         explanation: "The ex-girlfriend modified the prop electric chair to deliver a lethal shock after discovering Jake's blackmail scheme using hidden cameras. She couldn't allow him to continue exploiting customers' private moments for money and leverage."
+    },
+    {
+        title: "The Submarine Sabotage",
+        description: "Deep-sea researcher Captain Marina Depth was found dead in the command center of her experimental submarine during a classified military mission. She was discovered slumped over the sonar controls with her diving helmet cracked and seawater slowly leaking into the vessel. The submarine's navigation systems had been tampered with, and several classified documents were missing from the secure storage compartment. Three crew members had access to the command center: her first officer who had discovered Marina was planning to sell submarine blueprints to foreign governments for retirement money, her marine biologist colleague who had learned Marina was illegally dumping toxic waste in protected coral reef areas, and her military liaison who had been secretly ordered to eliminate Marina if she discovered the true nature of their 'research' mission. A pressurized oxygen tank was found with its valve deliberately loosened, and the emergency communication system had been disabled from the inside.",
+        weapons: ["Drowning", "Pressure Decompression", "Toxic Gas"],
+        motives: ["Military Treason", "Environmental Crime", "Classified Mission"],
+        suspects: ["First Officer", "Marine Biologist", "Military Liaison"],
+        solution: {
+            weapon: "Pressure Decompression",
+            motive: "Classified Mission",
+            suspect: "Military Liaison"
+        },
+        explanation: "The military liaison sabotaged the submarine's pressure systems after Marina discovered their mission was actually to plant listening devices on enemy naval routes. The liaison had orders to silence anyone who learned the truth about their illegal espionage operation."
+    },
+    {
+        title: "The Ice Sculpture Festival Freeze",
+        description: "Master ice sculptor Viktor Frosthand was found frozen solid inside his own ice sculpture during the annual winter arts festival. He was discovered encased in a massive ice block, still holding his carving tools, with his final masterpiece half-completed around him. The festival's refrigeration systems had been running at maximum capacity despite the already freezing temperatures, and several propane torches used for ice shaping were scattered around the work area. Three people were working late at the festival: his apprentice who had discovered Viktor was planning to take full credit for the apprentice's innovative ice preservation techniques, his main competitor who had been losing prestigious commissions to Viktor's superior craftsmanship for years, and the festival director who had learned Viktor was using the event to smuggle diamonds hidden inside ice sculptures. A bottle of liquid nitrogen was found empty near the sculpture, and the workshop's ventilation system had been deliberately blocked.",
+        weapons: ["Freezing", "Suffocation", "Chemical Poisoning"],
+        motives: ["Technique Theft", "Artistic Rivalry", "Diamond Smuggling"],
+        suspects: ["Apprentice", "Main Competitor", "Festival Director"],
+        solution: {
+            weapon: "Freezing",
+            motive: "Diamond Smuggling",
+            suspect: "Festival Director"
+        },
+        explanation: "The festival director trapped Viktor in a rapidly freezing ice mold using liquid nitrogen after discovering the diamond smuggling operation. The director couldn't allow the festival's reputation to be destroyed by Viktor's illegal activities and the associated criminal investigations."
+    },
+    {
+        title: "The Magician's Final Trick",
+        description: "World-renowned illusionist 'The Great Mysterio' was found dead on stage inside his signature locked box trick during a sold-out performance. The audience watched in horror as the escape trick went wrong, but investigators found evidence of foul play rather than accident. The theater's stage was covered in his trademark smoke and mirrors, making the crime scene analysis difficult. Three people had backstage access during the performance: his longtime stage assistant who had discovered Mysterio was planning to retire and expose all their trade secrets in a tell-all book, his jealous rival magician who had been copying Mysterio's acts and selling them to cheaper performers, and his business manager who had been embezzling ticket sales and merchandise profits for years. A modified lock mechanism was found inside the escape box, and several of Mysterio's signature props showed signs of sabotage.",
+        weapons: ["Suffocation", "Stabbing", "Chemical Gas"],
+        motives: ["Secret Exposure", "Trick Theft", "Financial Embezzlement"],
+        suspects: ["Stage Assistant", "Rival Magician", "Business Manager"],
+        solution: {
+            weapon: "Chemical Gas",
+            motive: "Secret Exposure",
+            suspect: "Stage Assistant"
+        },
+        explanation: "The stage assistant released toxic gas into Mysterio's escape box after learning about the planned tell-all book that would reveal decades of magic secrets and destroy the assistant's own career prospects. The assistant used their intimate knowledge of the trick to ensure Mysterio couldn't escape in time."
+    },
+    {
+        title: "The Perfume Laboratory Poison",
+        description: "Celebrity perfumer Madame Essence was found dead in her private fragrance laboratory surrounded by hundreds of rare scent bottles and aromatic ingredients. She was discovered slumped over her mixing station with a half-completed signature perfume still bubbling in the distillation apparatus. The laboratory's ventilation system had been deliberately disabled, concentrating toxic fumes throughout the sealed workspace. Three people had keys to the exclusive laboratory: her perfume apprentice who had learned Madame Essence was stealing formulas from small independent creators and passing them off as her own work, her main business rival who had been systematically excluded from high-end contracts due to Madame Essence's industry manipulation, and her chemical supplier who had discovered she was diluting expensive ingredients with cheaper alternatives while charging premium prices. A rare poisonous flower extract was missing from the secured ingredient vault, and several formula notebooks had been deliberately damaged with acid.",
+        weapons: ["Poison", "Toxic Inhalation", "Chemical Burns"],
+        motives: ["Formula Theft", "Business Manipulation", "Ingredient Fraud"],
+        suspects: ["Perfume Apprentice", "Business Rival", "Chemical Supplier"],
+        solution: {
+            weapon: "Toxic Inhalation",
+            motive: "Formula Theft",
+            suspect: "Perfume Apprentice"
+        },
+        explanation: "The perfume apprentice disabled the laboratory's ventilation system and released concentrated toxic botanical vapors after discovering Madame Essence's systematic theft of original formulas from struggling artists. The apprentice couldn't stand to see more creative people's work stolen and their careers destroyed by Essence's plagiarism."
+    },
+    {
+        title: "The Antique Clock Tower Mystery",
+        description: "Master clockmaker Grandfather Timepiece was found dead at the top of the historic clock tower, tangled in the massive gear mechanisms of the ancient timepiece. He was discovered with his repair tools scattered around the clockwork, and the tower's great bell had been ringing continuously for hours before his body was found. The clock's intricate mechanical systems showed signs of deliberate sabotage, and several valuable antique timepieces from his collection were missing. Three people had access to the clock tower: his horologist apprentice who had discovered Timepiece was selling fake antique clocks as authentic historical pieces, his insurance investigator who had learned the clockmaker was planning to stage a fire to collect massive insurance payouts on his collection, and his estranged son who had been systematically excluded from the family business despite being a more skilled craftsman. A bottle of clock oil was found spilled near the gears, and the tower's safety mechanisms had been deliberately disabled.",
+        weapons: ["Crushing", "Strangulation", "Falling"],
+        motives: ["Antique Fraud", "Insurance Fraud", "Family Betrayal"],
+        suspects: ["Horologist Apprentice", "Insurance Investigator", "Estranged Son"],
+        solution: {
+            weapon: "Crushing",
+            motive: "Family Betrayal",
+            suspect: "Estranged Son"
+        },
+        explanation: "The estranged son sabotaged the clock tower's gear mechanisms to crush Timepiece after years of being denied recognition and inheritance despite superior craftsmanship skills. The son's resentment over family favoritism and professional exclusion finally reached a deadly breaking point when Timepiece announced plans to leave the business to the apprentice instead."
     }
 ];
 
