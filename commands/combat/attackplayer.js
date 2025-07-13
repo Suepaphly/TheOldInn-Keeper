@@ -186,13 +186,26 @@ async function runBattleRounds(message, battleData, players, currentPlayerIndex,
         const secondFinalDamage = Math.max(1, secondTotalDamage - otherPlayer.armor.defense);
 
         finalDamage = firstFinalDamage + secondFinalDamage;
-        attackDescription = `unleashes a devastating dual-pistol barrage! 🔫🔫\nFirst shot: ${firstFinalDamage} damage! Second shot: ${secondFinalDamage} damage!\nTotal damage: ${finalDamage}!`;
+        
+        const dualAttacks = [
+            "spins both pistols like a gunslinger and unleashes a devastating barrage",
+            "draws both pistols in a blur of motion, bullets flying in perfect sync",
+            "empties both clips in a thunderous display of firepower",
+            "channels their inner cowboy with a spectacular dual-pistol assault",
+            "becomes a whirlwind of lead and steel with both guns blazing"
+        ];
+        const randomDualAttack = dualAttacks[Math.floor(Math.random() * dualAttacks.length)];
+        attackDescription = `${randomDualAttack}! 🔫🔫\nFirst shot: ${firstFinalDamage} damage! Second shot: ${secondFinalDamage} damage!\nTotal damage: ${finalDamage}!`;
     } else {
-        // Normal single weapon attack
+        // Normal single weapon attack with flavor text
         const weaponDamage = Math.floor(Math.random() * (currentPlayer.weapon.maxDamage - currentPlayer.weapon.minDamage + 1)) + currentPlayer.weapon.minDamage;
         const totalDamage = combatDamage + weaponDamage;
         finalDamage = Math.max(1, totalDamage - otherPlayer.armor.defense);
-        attackDescription = `attacks for ${finalDamage} damage!`;
+        
+        // Get weapon-specific attack descriptions
+        const weaponAttacks = getWeaponAttackDescriptions(currentPlayer.weapon.type, currentPlayer.username, otherPlayer.username);
+        const randomAttack = weaponAttacks[Math.floor(Math.random() * weaponAttacks.length)];
+        attackDescription = `${randomAttack} for ${finalDamage} damage!`;
     }
 
     // Apply damage
@@ -362,6 +375,55 @@ async function handleBattleEnd(message, battleData, client) {
     }
 
     message.channel.send({ embeds: [embed] });
+}
+
+function getWeaponAttackDescriptions(weaponType, attackerName, targetName) {
+    const attacks = {
+        rifle: [
+            `${attackerName} takes careful aim with their rifle and fires a precise shot at ${targetName}`,
+            `${attackerName} shoulders their rifle and delivers a devastating long-range strike`,
+            `${attackerName} works the bolt action smoothly, sending a high-velocity round toward ${targetName}`,
+            `${attackerName} steadies their rifle against their shoulder and squeezes off a tactical shot`,
+            `${attackerName} lines up the crosshairs and unleashes the full power of their rifle`
+        ],
+        shotgun: [
+            `${attackerName} pumps their shotgun with a menacing *click-clack* and blasts ${targetName}`,
+            `${attackerName} levels their shotgun and unleashes a spread of buckshot`,
+            `${attackerName} fires a thunderous shotgun blast that echoes across the battlefield`,
+            `${attackerName} chambers another shell and delivers a devastating close-range blast`,
+            `${attackerName} brings their shotgun to bear and fires a bone-rattling shot`
+        ],
+        pistol: [
+            `${attackerName} draws their pistol in a quick-draw motion and fires at ${targetName}`,
+            `${attackerName} steadies their pistol with both hands and squeezes off a precise shot`,
+            `${attackerName} fans the hammer of their pistol like an old west gunslinger`,
+            `${attackerName} takes a combat stance and delivers a well-aimed pistol shot`,
+            `${attackerName} quick-fires their sidearm with practiced precision`
+        ],
+        sword: [
+            `${attackerName} draws their blade and delivers a swift sword strike to ${targetName}`,
+            `${attackerName} lunges forward with their sword in a classic fencing attack`,
+            `${attackerName} swings their sword in a deadly arc toward ${targetName}`,
+            `${attackerName} parries and ripostes with their gleaming blade`,
+            `${attackerName} executes a masterful sword technique against ${targetName}`
+        ],
+        knife: [
+            `${attackerName} flicks open their knife and strikes with lightning speed`,
+            `${attackerName} closes the distance and delivers a precise knife thrust`,
+            `${attackerName} slashes with their combat knife in a fluid motion`,
+            `${attackerName} brandishes their blade and strikes like a viper`,
+            `${attackerName} weaves past defenses and lands a quick knife strike`
+        ],
+        none: [
+            `${attackerName} throws a devastating haymaker punch at ${targetName}`,
+            `${attackerName} delivers a brutal uppercut with their bare fists`,
+            `${attackerName} unleashes a flurry of punches in a boxing combination`,
+            `${attackerName} grapples with ${targetName} and lands a crushing blow`,
+            `${attackerName} channels their inner brawler with a powerful right hook`
+        ]
+    };
+    
+    return attacks[weaponType] || attacks.none;
 }
 
 async function getBestWeapon(userId) {
