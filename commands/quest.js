@@ -7,6 +7,7 @@ const { startMonsterQuest } = require('./quest/monsterQuest.js');
 const { startRiddleQuest } = require('./quest/riddleQuest.js');
 const { startMazeQuest } = require('./quest/mazeQuest.js');
 const { startTrolleyQuest } = require('./quest/trolleyQuest.js');
+const { startMysteryQuest } = require('./quest/mysteryQuest.js');
 const { CombatSystem } = require('./quest/combatSystem.js');
 
 // Active quests storage
@@ -63,6 +64,10 @@ const questTypes = {
     trolley: {
         name: "🚃 Moral Dilemma",
         description: "Face an impossible choice"
+    },
+    mystery: {
+        name: "🕵️ Detective Mystery",
+        description: "Solve a murder mystery case"
     }
 };
 
@@ -78,10 +83,10 @@ module.exports.run = async (client, message, args) => {
             const debugEmbed = new EmbedBuilder()
                 .setTitle("🔧 QUEST DEBUG COMMANDS")
                 .setColor("#FFA500")
-                .setDescription("**Owner-only debug commands for testing individual quest types**\n\n**Available Quest Names:**\n• `monster` - Combat quest with 2 monsters\n• `riddle` - Ancient riddle solving quest\n• `maze` - Hedge maze navigation quest\n• `trolley` - Moral dilemma trolley problem\n• `dragon` - Choose and fight any boss dragon")
+                .setDescription("**Owner-only debug commands for testing individual quest types**\n\n**Available Quest Names:**\n• `monster` - Combat quest with 2 monsters\n• `riddle` - Ancient riddle solving quest\n• `maze` - Hedge maze navigation quest\n• `trolley` - Moral dilemma trolley problem\n• `mystery` - Detective murder mystery case\n• `dragon` - Choose and fight any boss dragon")
                 .addFields(
                     { name: "Usage", value: "`=quest debug <questname>`", inline: false },
-                    { name: "Quest Details", value: "🗡️ **monster** - Fight Goblin Scout → Orc Raider\n🧩 **riddle** - Solve 2 random riddles (death on failure)\n🌿 **maze** - Navigate 2-stage maze with traps/combat\n🚃 **trolley** - Face moral choices with vengeance risk\n🐲 **dragon** - Select any dragon to fight immediately", inline: false },
+                    { name: "Quest Details", value: "🗡️ **monster** - Fight Goblin Scout → Orc Raider\n🧩 **riddle** - Solve 2 random riddles (death on failure)\n🌿 **maze** - Navigate 2-stage maze with traps/combat\n🚃 **trolley** - Face moral choices with vengeance risk\n🕵️ **mystery** - Solve murder case (weapon/motive/suspect)\n🐲 **dragon** - Select any dragon to fight immediately", inline: false },
                     { name: "Debug Features", value: "• Complete after 1 quest instead of 2\n• 30-minute timeout still applies\n• No real rewards given", inline: false }
                 );
 
@@ -325,6 +330,9 @@ async function startLocationQuest(interaction, location, userId) {
                     case 'trolley':
                         await startTrolleyQuest(i, userId, activeQuests);
                         break;
+                    case 'mystery':
+                        await startMysteryQuest(i, userId, activeQuests);
+                        break;
                 }
                 startCollector.stop();
             }
@@ -511,6 +519,9 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
                             break;
                         case 'trolley':
                             await startTrolleyQuest(i, userId, activeQuests);
+                            break;
+                        case 'mystery':
+                            await startMysteryQuest(i, userId, activeQuests);
                             break;
                     }
                     startCollector.stop();
@@ -889,6 +900,9 @@ async function startDebugQuest(message, userId, questType) {
                 break;
             case 'trolley':
                 startTrolleyQuest(fakeInteraction, userId, activeQuests);
+                break;
+            case 'mystery':
+                startMysteryQuest(fakeInteraction, userId, activeQuests);
                 break;
         }
     }, 2000);
