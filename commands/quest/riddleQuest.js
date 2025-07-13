@@ -119,6 +119,7 @@ async function presentRiddle(interaction, userId, activeQuests, riddleNumber) {
                 await startSphinxCombat(interaction, userId, collector, activeQuests);
             } else {
                 // Death
+                const { endQuest } = require('../quest.js');
                 await db.set(`death_cooldown_${userId}`, Date.now());
                 await endQuest(interaction, userId, false, "The sphinx roars with anger and devours you whole. You are now dead for 24 hours.", activeQuests);
                 collector.stop();
@@ -138,9 +139,118 @@ async function presentRiddle(interaction, userId, activeQuests, riddleNumber) {
                 await startSphinxCombat(interaction, userId, collector, activeQuests);
             } else {
                 // Death
+                const { endQuest } = require('../quest.js');
                 await db.set(`death_cooldown_${userId}`, Date.now());
                 await endQuest(interaction, userId, false, "The sphinx roars with anger and devours you whole. You are now dead for 24 hours.", activeQuests);
                 collector.stop();
+            }
+        }
+    });
+}
+
+async function startSphinxCombat(interaction, userId, collector, activeQuests) {
+    // Stop the parent collector to prevent interference
+    collector.stop();
+
+    const quest = activeQuests.get(userId);
+    const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
+
+    // Create sphinx enemy
+    const sphinxData = {
+        name: "Ancient Sphinx",
+        health: 50,
+        maxHealth: 50,
+        attack: [1, 20],
+        attackName: "bite"
+    };
+
+    // Create combat instance
+    const combat = CombatSystem.create(userId, 'riddle');
+    await combat.initializeCombat({}, sphinxData);
+
+    // Store combat instance in quest data
+    quest.data.combat = combat;
+
+    const { embed, row } = combat.createCombatEmbed("The sphinx attacks you with its deadly bite!");
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+
+    // Set up sphinx combat collector
+    const filter = (i) => i.user.id === userId;
+
+    // Get the message for the collector
+    let message;
+    try {
+        if (interaction.replied || interaction.deferred) {
+            message = await interaction.fetchReply();
+        } else {
+            message = interaction.message;
+        }
+    } catch (error) {
+        console.error('Error getting message for sphinx combat collector:', error);
+        return;
+    }
+
+    const combatCollector = message.createMessageComponentCollector({ filter, time: 1800000 });
+
+    combatCollector.on('collect', async (i) => {
+        if (i.customId === 'riddle_run') {
+            const { endQuest } = require('../quest.js');
+            await endQuest(i, userId, false, "You fled from the sphinx! Your quest ends in cowardly retreat.", activeQuests);
+            combatCollector.stop();
+            return;
+        }
+
+        if (i.customId === 'riddle_attack') {
+            try {
+                const combatResult = await quest.data.combat.processCombatRound();
+
+                if (combatResult.result === 'victory') {
+                    // Victory - continue with riddles
+                    const embed = new EmbedBuilder()
+                        .setTitle("🧩 SPHINX DEFEATED!")
+                        .setColor("#00FF00")
+                        .setDescription(`${combatResult.battleText}\n\nYou have defeated the sphinx! Now you may continue with the riddles.`)
+                        .addFields(
+                            { name: "Progress", value: "Sphinx defeated - continuing with riddles", inline: false }
+                        );
+
+                    const continueRow = new ActionRowBuilder()
+                        .addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('sphinx_continue_riddles')
+                                .setLabel('➡️ Continue with Riddles')
+                                .setStyle(ButtonStyle.Primary)
+                        );
+
+                    await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
+                    combatCollector.stop();
+
+                    // Set up new collector for the continue button
+                    const continueFilter = (continueI) => continueI.user.id === userId;
+                    const continueCollector = i.message.createMessageComponentCollector({ filter: continueFilter, time: 1800000 });
+
+                    continueCollector.on('collect', async (continueI) => {
+                        if (continueI.customId === 'sphinx_continue_riddles') {
+                            quest.data.sphinxCombat = false;
+                            // Continue with the riddle quest
+                            await presentRiddle(continueI, userId, activeQuests, quest.data.currentRiddle);
+                            continueCollector.stop();
+                        }
+                    });
+                } else if (combatResult.result === 'defeat') {
+                    const { endQuest } = require('../quest.js');
+                    await endQuest(i, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
+                    combatCollector.stop();
+                } else {
+                    // Combat continues
+                    const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
+                    await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [row] });
+                }
+            } catch (error) {
+                console.error('Error in sphinx combat:', error);
+                const { endQuest } = require('../quest.js');
+                await endQuest(i, userId, false, "An error occurred during combat. Your quest ends.", activeQuests);
+                combatCollector.stop();
             }
         }
     });
