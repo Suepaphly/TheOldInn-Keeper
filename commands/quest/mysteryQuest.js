@@ -201,6 +201,71 @@ const mysteryScenarios = [
         explanation: "The festival organizer killed Miguel by adjusting the propane tanks to cause gas inhalation after learning about Miguel's plans to start a competing festival. The organizer couldn't afford to lose his star attraction and the associated vendor fees that kept his festival profitable."
     },
     {
+        title: "The Boxing Gym Beatdown",
+        description: "Heavyweight champion 'Iron Mike' Morrison was found dead in his private training gym after hours, slumped against the heavy bag with his boxing gloves still on. The gym's security system had been disabled, and several championship belts were scattered around the ring. A protein shake bottle sat half-empty on the equipment bench, and the gym's ventilation system was running at maximum capacity despite the late hour. Three people had after-hours access to the facility: his ambitious sparring partner who had discovered Mike was using performance-enhancing drugs and threatening to expose him unless he threw his next fight, his corrupt promoter who had been skimming money from Mike's fight purses and betting against him with underground bookmakers, and his estranged brother who had learned Mike was planning to change his will to leave everything to charity instead of family. The gym's electrical equipment showed signs of tampering, and a syringe was found hidden in the equipment locker.",
+        weapons: ["Blunt Object", "Injection", "Electrocution"],
+        motives: ["Drug Exposure", "Financial Embezzlement", "Inheritance Dispute"],
+        suspects: ["Sparring Partner", "Corrupt Promoter", "Estranged Brother"],
+        solution: {
+            weapon: "Injection",
+            motive: "Drug Exposure",
+            suspect: "Sparring Partner"
+        },
+        explanation: "The sparring partner injected Mike with a lethal dose of the same performance-enhancing drugs Mike had been using, turning his own secret against him. The partner couldn't allow Mike to expose the entire underground doping network that would destroy both their careers."
+    },
+    {
+        title: "The Podcast Studio Silencing",
+        description: "Popular true crime podcaster Sarah 'Truthseeker' Williams was found dead in her soundproof recording studio with her headphones still on and her microphone positioned perfectly for recording. The studio's recording equipment was still running, capturing hours of silence after her death. Her laptop displayed research notes about a cold case she was investigating, and several threatening emails were open on her secondary monitor. Three people had access to her private studio: her podcast co-host who had discovered Sarah was planning to start a solo show and take their entire audience and sponsor deals with her, the detective whose corruption Sarah was about to expose in her next episode, and the family member of a murder victim whose case Sarah had been sensationalizing for profit without permission. A coffee mug with lipstick stains sat on the mixing board, and the studio's ventilation system had been modified with ductwork leading to the outside.",
+        weapons: ["Poison", "Suffocation", "Electrocution"],
+        motives: ["Partnership Betrayal", "Corruption Exposure", "Exploitation Anger"],
+        suspects: ["Podcast Co-Host", "Corrupt Detective", "Victim's Family Member"],
+        solution: {
+            weapon: "Suffocation",
+            motive: "Corruption Exposure",
+            suspect: "Corrupt Detective"
+        },
+        explanation: "The corrupt detective modified the studio's ventilation system to pump in carbon monoxide, causing Sarah to suffocate while recording. He couldn't allow her to expose his involvement in evidence tampering and wrongful convictions that had sent innocent people to prison."
+    },
+    {
+        title: "The Dance Competition Catastrophe",
+        description: "Professional ballroom dancer Elena Graceful was found dead in the competition hall's dressing room, still wearing her elaborate sequined costume and dance shoes. She was discovered sitting at her makeup mirror with her competition number pinned to her dress, surrounded by trophies and flowers from admirers. The dressing room's mirrors had been shattered, and several other dancers' costumes were slashed and ruined. Three people were backstage during the competition: her dance partner who had just discovered Elena was planning to switch partners before the world championships, effectively ending his professional career, her main rival who had been systematically sabotaged by Elena's dirty tactics and bribery of judges, and the competition organizer who had learned Elena was selling performance slots to wealthy amateurs, corrupting the integrity of the sport. A bottle of stage makeup remover was spilled across the vanity, and the room's costume steamer was still running at maximum heat.",
+        weapons: ["Stabbing", "Poison", "Burning"],
+        motives: ["Career Destruction", "Competition Sabotage", "Sport Corruption"],
+        suspects: ["Dance Partner", "Main Rival", "Competition Organizer"],
+        solution: {
+            weapon: "Stabbing",
+            motive: "Competition Sabotage",
+            suspect: "Main Rival"
+        },
+        explanation: "The main rival stabbed Elena with a sharpened dance costume pin after years of Elena's cheating and judge manipulation destroyed the rival's chances at legitimate victory. The rival had finally snapped after discovering Elena's latest bribery scheme."
+    },
+    {
+        title: "The Veterinary Clinic Incident",
+        description: "Beloved veterinarian Dr. Amanda Heartwell was found dead in her animal clinic's surgery room, slumped over an operating table with surgical instruments scattered around her. The clinic's animals were unusually agitated, and several cages had been left open with animals roaming freely. A half-finished surgery on a golden retriever remained incomplete, and the clinic's medication storage had been ransacked. Three people had access to the clinic after hours: her veterinary assistant who had discovered Dr. Heartwell was euthanizing healthy animals to sell their organs on the black market, her ex-husband who had learned she was hiding assets in offshore accounts during their bitter divorce proceedings, and the pharmaceutical sales representative who had been supplying her with illegal performance-enhancing drugs for racing dogs. A syringe containing an unknown substance was found in the medical waste, and the clinic's security cameras had been spray-painted over.",
+        weapons: ["Injection", "Surgical Instrument", "Animal Attack"],
+        motives: ["Animal Cruelty Exposure", "Asset Hiding", "Illegal Drug Trade"],
+        suspects: ["Veterinary Assistant", "Ex-Husband", "Pharmaceutical Rep"],
+        solution: {
+            weapon: "Injection",
+            motive: "Animal Cruelty Exposure",
+            suspect: "Veterinary Assistant"
+        },
+        explanation: "The veterinary assistant injected Dr. Heartwell with a lethal dose of animal euthanasia drugs after discovering her horrific black market organ harvesting operation. The assistant couldn't bear to see more innocent animals killed for profit and used the same drugs Dr. Heartwell had been using on healthy pets."
+    },
+    {
+        title: "The Wedding Planner's Final Event",
+        description: "Elite wedding planner Priscilla Perfect was found dead in the bridal suite of her most exclusive venue, surrounded by wedding decorations and sample menus for upcoming events. She was discovered wearing one of her signature white suits, slumped over her planning tablet which displayed threatening messages from disgruntled clients. The room's elaborate flower arrangements had been destroyed, and several expensive wedding gifts were missing from their display table. Three people were at the venue for final preparations: her business rival who had discovered Priscilla was stealing client lists and sabotaging competitors' events to maintain her monopoly, her largest client's mother who had learned Priscilla was embezzling money from wedding budgets while providing cheaper alternatives, and her former business partner who had been written out of their company's profits despite contributing the original startup capital. A bottle of champagne was open on the gift table, and the venue's industrial-grade cleaning supplies had been moved from their usual storage location.",
+        weapons: ["Poison", "Blunt Object", "Chemical Burning"],
+        motives: ["Business Sabotage", "Financial Embezzlement", "Partnership Betrayal"],
+        suspects: ["Business Rival", "Client's Mother", "Former Partner"],
+        solution: {
+            weapon: "Poison",
+            motive: "Partnership Betrayal",
+            suspect: "Former Partner"
+        },
+        explanation: "The former business partner poisoned Priscilla's champagne with cleaning chemicals after being systematically cheated out of the wedding planning empire they had built together. Years of legal battles and stolen profits had driven the partner to seek deadly revenge against Priscilla's betrayal."
+    },
+    {
         title: "The Escape Room Execution",
         description: "Escape room designer Jake 'The Puzzlemaster' Thompson was found dead inside his latest creation, a horror-themed room called 'The Serial Killer's Lair.' He was discovered chained to a prop electric chair with fake blood splattered around the room, but the blood pooling beneath him was real. The room's elaborate puzzle mechanisms were still running their automated sequences, and several red herrings were scattered around the space. Three people had master codes to override the room's systems: his business partner who had discovered Jake was selling their proprietary puzzle designs to international competitors, his ex-girlfriend who worked as a game master and had learned Jake was secretly recording customers through hidden cameras for blackmail purposes, and his rival escape room owner who had been systematically sabotaged by Jake's fake negative reviews and corporate espionage. A modified electronic lock was found sparking near the victim, and the room's emergency exit had been sealed from the outside.",
         weapons: ["Electrocution", "Stabbing", "Suffocation"],
