@@ -202,7 +202,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
             const combatResult = await quest.data.combat.processCombatRound();
             console.log('🔧 [MAZE DEBUG] Combat result:', combatResult.result);
 
-                if (combatResult.result === 'victory') {
+            if (combatResult.result === 'victory') {
                 // Victory - continue maze quest (back to stage 1)
                 quest.data.stage = 2;
                 quest.data.mazeCombat = false;
@@ -288,22 +288,11 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
                 parentCollector.stop();
                 await endQuest(i, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
             } else {
-                // Combat continues
+                // Combat continues - just update the embed, don't start new combat
                 console.log('🔧 [MAZE DEBUG] Combat continues, updating embed');
-                console.log('🔧 [MAZE DEBUG] Continue interaction state:', {
-                    replied: i.replied,
-                    deferred: i.deferred
-                });
-                
                 const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
-                
-                try {
-                    await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [row] });
-                    console.log('🔧 [MAZE DEBUG] Combat continue embed updated successfully');
-                } catch (error) {
-                    console.error('🔧 [MAZE DEBUG] Failed to update combat continue embed:', error);
-                    throw error;
-                }
+                await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [row] });
+                console.log('🔧 [MAZE DEBUG] Combat continue embed updated successfully');
             }
         }
     });
