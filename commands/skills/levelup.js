@@ -58,7 +58,8 @@ module.exports.run = async (client, message, args) => {
     akimbo: ['feat_akimbo', 'Guns Akimbo', 2500, 'Allows wielding two pistols simultaneously for double attacks'],
     healer: ['feat_healer', 'Healer', 3000, 'Reduces revive cost by 50% (rounded up)'],
     tactician: ['feat_tactician', 'Tactician', 2500, 'Reduces troop cost by 50% (rounded up)'],
-    mechanist: ['feat_mechanist', 'Mechanist', 2500, 'Reduces trap cost by 50% (rounded up)']
+    mechanist: ['feat_mechanist', 'Mechanist', 2500, 'Reduces trap cost by 50% (rounded up)'],
+    ninja: ['feat_ninja', 'Ninja', 2500, 'Escape PvP combat defeat with 80% success rate (no death penalty)']
   };
 
   if (!item) {

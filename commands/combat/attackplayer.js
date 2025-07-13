@@ -291,7 +291,38 @@ async function handleBattleEnd(message, battleData, client) {
         loser = battleData.target;
     }
 
-    // Set death cooldown for loser
+    // Check for Ninja feat escape attempt
+    const hasNinjaFeat = await db.get(`feat_ninja_${loser.id}`) || 0;
+    let ninjaEscaped = false;
+    
+    if (hasNinjaFeat) {
+        const escapeChance = Math.random() * 100;
+        if (escapeChance <= 80) { // 80% success rate
+            ninjaEscaped = true;
+            
+            const escapeEmbed = new Discord.EmbedBuilder()
+                .setTitle("💨 Ninja Escape!")
+                .setColor("#9932CC")
+                .setDescription(`${loser.username} throws a smoke bomb and vanishes into the shadows!`)
+                .addFields(
+                    {
+                        name: "Escape Successful!",
+                        value: `🥷 **Ninja feat** activated! ${loser.username} escapes defeat and avoids all penalties.`,
+                        inline: false
+                    },
+                    {
+                        name: "Result",
+                        value: `${winner.username} wins the battle, but ${loser.username} slips away unharmed!`,
+                        inline: false
+                    }
+                );
+
+            message.channel.send({ embeds: [escapeEmbed] });
+            return; // Exit early - no penalties for ninja escape
+        }
+    }
+
+    // Set death cooldown for loser (only if ninja escape failed or no ninja feat)
     await db.set(`death_cooldown_${loser.id}`, Date.now());
 
     // Transfer wallet
@@ -349,10 +380,15 @@ async function handleBattleEnd(message, battleData, client) {
         spoilsText += `\n💔 Items Lost (backpack full): ${droppedItems.join(', ')}`;
     }
 
+    let victoryDescription = `${winner.username} emerges victorious!`;
+    if (hasNinjaFeat && !ninjaEscaped) {
+        victoryDescription += `\n💨 ${loser.username} attempted to escape with their Ninja feat but failed!`;
+    }
+
     const embed = new Discord.EmbedBuilder()
         .setTitle("🏆 Battle Victory!")
         .setColor("#00FF00")
-        .setDescription(`${winner.username} emerges victorious!`)
+        .setDescription(victoryDescription)
         .addFields(
             {
                 name: "Spoils of War",
