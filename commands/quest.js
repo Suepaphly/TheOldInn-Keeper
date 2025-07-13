@@ -515,8 +515,13 @@ async function startDebugQuest(message, userId, questType) {
         const fakeInteraction = {
             update: async (options) => await debugMessage.edit(options),
             editReply: async (options) => await debugMessage.edit(options),
+            fetchReply: async () => debugMessage,
+            followUp: async (options) => await message.channel.send(options),
             message: debugMessage,
-            user: message.author
+            user: message.author,
+            replied: true,
+            deferred: false,
+            channel: message.channel
         };
 
         switch (questType) {
