@@ -122,7 +122,7 @@ module.exports = {
 };
 const cron = require('node-cron');
 
-cron.schedule('*/15 * * * *', async () => {
+cron.schedule('0 0 * * *', async () => {
     try {
         console.log('🧹 Running cooldown cleanup...');
 
