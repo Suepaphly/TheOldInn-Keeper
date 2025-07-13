@@ -369,12 +369,17 @@ async function handleLocationPurchase(interaction) {
     };
     
     // Determine if it's a troop or trap and call appropriate function
+    console.log(`Location purchase: item=${item}, troopArray includes: ${ptt.troopArray.includes(item)}, trapArray includes: ${ptt.trapArray.includes(item)}`);
+    
     if (ptt.troopArray.includes(item)) {
         await ptt.buyArmy(item, 1, location, user, mockMessage);
         await showTroopsInterface(interaction);
     } else if (ptt.trapArray.includes(item)) {
         await ptt.buyTrap(item, 1, location, user, mockMessage);
         await showTrapsInterface(interaction);
+    } else {
+        console.log(`Unknown item type: ${item}`);
+        await interaction.followUp({ content: `❌ Unknown item type: ${item}`, ephemeral: true });
     }
 }
 
