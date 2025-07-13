@@ -41,7 +41,27 @@ const trolleyScenarios = [
     { many: "3 pessimists", one: "1 optimist" },
     { many: "5 humans", one: "1 alien" },
     { many: "2 enemies", one: "1 ally" },
-    { many: "4 conservatives", one: "1 liberal" }
+    { many: "4 conservatives", one: "1 liberal" },
+    { many: "3 scientists", one: "1 philosopher" },
+    { many: "5 city dwellers", one: "1 farmer" },
+    { many: "2 celebrities", one: "1 normal person" },
+    { many: "4 young adults", one: "1 child" },
+    { many: "3 programmers", one: "1 artist" },
+    { many: "6 gamblers", one: "1 priest" },
+    { many: "2 surgeons", one: "1 street musician" },
+    { many: "4 tourists", one: "1 tour guide" },
+    { many: "5 landlords", one: "1 tenant" },
+    { many: "3 inventors", one: "1 traditionalist" },
+    { many: "4 night shift workers", one: "1 day shift worker" },
+    { many: "2 food critics", one: "1 chef" },
+    { many: "6 social media influencers", one: "1 librarian" },
+    { many: "3 marathon runners", one: "1 wheelchair user" },
+    { many: "5 vegans", one: "1 butcher" },
+    { many: "2 identical strangers", one: "1 unique individual" },
+    { many: "4 lottery winners", one: "1 person who's never won anything" },
+    { many: "3 extroverts", one: "1 introvert" },
+    { many: "5 people with phobias", one: "1 fearless person" },
+    { many: "2 time travelers", one: "1 person from this era" }
 ];
 
 async function startTrolleyQuest(interaction, userId, activeQuests) {
