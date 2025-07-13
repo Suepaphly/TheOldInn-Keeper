@@ -99,4 +99,43 @@ client.on("ready", () => {
     startCooldownCleanup(client);
 });
 
+client.on("interactionCreate", async (interaction) => {
+    // Handle button interactions for protection system
+    if (interaction.isButton() && interaction.customId.startsWith('protect_') || 
+        interaction.customId.startsWith('buy_') || 
+        interaction.customId.startsWith('location_') || 
+        interaction.customId.startsWith('trap_location_') ||
+        interaction.customId === 'back_to_main') {
+
+        const { handleProtectionButton } = require("./utility/protectionButtons.js");
+        try {
+            await handleProtectionButton(interaction);
+        } catch (error) {
+            console.error("Error handling protection button:", error);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ 
+                    content: "❌ There was an error processing your request!", 
+                    ephemeral: true 
+                });
+            }
+        }
+        return;
+    }
+
+    if (!interaction.isCommand()) return;
+
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
+
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        console.error(error);
+        await interaction.reply({ 
+            content: "There was an error while executing this command!", 
+            ephemeral: true 
+        });
+    }
+});
+
 client.login(token);

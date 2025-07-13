@@ -165,8 +165,8 @@ module.exports.run = async (client, message, args) => {
       { name: "Wall Types & Costs", value: "• **rampart** - 100 kopeks\n• **wall** - 500 kopeks\n• **castle** - 5000 kopeks", inline: true },
       { name: "Troop Types", value: "• **town_guard** - Basic defender\n• **mercenary** - Hired fighter\n• **soldier** - Trained warrior\n• **knight** - Elite defender\n• **royal_guard** - Ultimate protection", inline: true },
       { name: "Trap Types", value: "• **spikes** - Basic damage\n• **boiling_oil** - Area damage\n• **repeater** - Multiple shots\n• **ballista** - Heavy damage\n• **cannon** - Massive damage", inline: true },
-      { name: "=buy [amount] [type]", value: "Buy walls: `=buy 10 rampart`", inline: false },
-      { name: "=buy [amount] [location] [item]", value: "Buy troops/traps: `=buy 5 rampart town_guard`", inline: false },
+      { name: "=protect", value: "Interactive defense system with buttons", inline: false },
+      { name: "Legacy: =buy [amount] [location] [item]", value: "Old text-based system still works", inline: false },
       { name: "Defense Rules", value: "• Every 5 walls = 1 troop slot + 1 trap slot per player\n• Troops are dismissed after each battle\n• Traps are permanent until destroyed", inline: false },
       { name: "=map", value: "View town status, defenses & monster threats", inline: true }
     );
