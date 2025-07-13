@@ -38,33 +38,35 @@ module.exports.run = async (client, message, args) => {
         const bank = await db.get(`bank_${target.id}`) || 0;
         const allData = await db.all();
         
-        // Get items from backpack
+        // Get items from backpack (weapons, armor, crystals only)
         const items = allData.filter(item => 
             item.id.includes(`_${target.id}`) && 
-            !item.id.includes('level') && 
-            !item.id.includes('money') && 
-            !item.id.includes('bank') && 
-            !item.id.includes('daily') && 
-            !item.id.includes('fish_') && 
-            !item.id.includes('craft_') && 
-            !item.id.includes('gather_') && 
-            !item.id.includes('hunt_') && 
-            !item.id.includes('work_') && 
-            !item.id.includes('rob_') && 
-            !item.id.includes('deposit_') && 
-            !item.id.includes('feat_') && 
-            !item.id.includes('cooldown') && 
-            !item.id.includes('death') && 
-            !item.id.includes('on_quest') && 
-            !item.id.includes('snoop_cooldown') &&
+            (item.id.startsWith('weapon_') || 
+             item.id.startsWith('armor_') || 
+             item.id.startsWith('crystal_')) &&
             item.value > 0
         );
 
         let itemsList = "None";
         if (items.length > 0) {
             itemsList = items.map(item => {
-                const itemName = item.id.replace(`_${target.id}`, '').replace(/_/g, ' ');
-                return `${itemName}: ${item.value}`;
+                let itemName = item.id.replace(`_${target.id}`, '').replace(/_/g, ' ');
+                
+                // Clean up item names
+                if (itemName.startsWith('weapon ')) {
+                    itemName = itemName.replace('weapon ', '');
+                }
+                if (itemName.startsWith('armor ')) {
+                    itemName = itemName.replace('armor ', '') + ' armor';
+                }
+                if (itemName.startsWith('crystal ')) {
+                    itemName = itemName.replace('crystal ', '') + ' crystal';
+                }
+                
+                // Capitalize first letter
+                itemName = itemName.charAt(0).toUpperCase() + itemName.slice(1);
+                
+                return `${itemName} (x${item.value})`;
             }).slice(0, 10).join('\n'); // Limit to 10 items to avoid spam
             
             if (items.length > 10) {
