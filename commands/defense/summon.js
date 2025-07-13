@@ -41,22 +41,31 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send("❌ Amount must be a number between 1 and 20!");
     }
 
-    // Use the protectTheTavern summonMonster function
-    const success = await ptt.summonMonster(monsterType, amount, user.id);
+    // Check for black crystal discount and apply it
+    const { hasCrystal } = require("../../utility/crystalUtils.js");
+    const hasBlackCrystal = await hasCrystal(user.id, 'black');
+    
+    const monsterIndex = ptt.monsterArray.indexOf(monsterType);
+    let cost = ptt.monsterCostArray[monsterIndex] * amount;
+    
+    if (hasBlackCrystal) {
+        cost = Math.ceil(cost * 0.5); // 50% off, rounded up
+    }
 
-    if (!success) {
-        const monsterIndex = ptt.monsterArray.indexOf(monsterType);
-        let cost = ptt.monsterCostArray[monsterIndex] * amount;
-
-        // Check for black crystal discount
-        const { hasCrystal } = require("../../utility/crystalUtils.js");
-        const hasBlackCrystal = await hasCrystal(user.id, 'black');
-        if (hasBlackCrystal) {
-            cost = Math.ceil(cost * 0.5); // 50% off, rounded up
-        }
-
+    // Check if player has enough money
+    const playerMoney = await db.get(`money_${user.id}`) || 0;
+    
+    if (playerMoney < cost) {
         return message.channel.send(`❌ You need ${cost} kopeks to summon ${amount} ${monsterType}(s)!`);
     }
+
+    // Deduct the discounted cost and add monsters
+    await db.sub(`money_${user.id}`, cost);
+    await ptt.addMonster(monsterType, amount);
+    
+    // Track monster summoner for reward distribution
+    const currentContribution = await db.get(`monster_summoner_${user.id}`) || 0;
+    await db.set(`monster_summoner_${user.id}`, currentContribution + cost);
 
     // Get total monster count for display
     const monsters = await db.get("Monsters") || {};
