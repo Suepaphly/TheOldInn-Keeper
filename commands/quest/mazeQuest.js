@@ -152,19 +152,17 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
     // Set up maze combat collector
     const filter = (i) => i.user.id === userId;
 
-    // Get the updated message after the interaction update
+    // Get the message for the collector
     let message;
     try {
-        // Always try to fetch the reply first since the interaction was just updated
-        message = await interaction.fetchReply();
-    } catch (error) {
-        // Fallback to interaction.message if fetchReply fails
-        try {
+        if (interaction.replied || interaction.deferred) {
+            message = await interaction.fetchReply();
+        } else {
             message = interaction.message;
-        } catch (fallbackError) {
-            console.error('Error getting message for maze combat collector:', { error: error.message, fallbackError: fallbackError.message });
-            return;
         }
+    } catch (error) {
+        console.error('Error getting message for maze combat collector:', error);
+        return;
     }
 
     const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
@@ -206,12 +204,18 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
                 // Set up continue collector
                 const continueFilter = (ci) => ci.user.id === userId;
+
                 // Get the updated message for the new collector
                 let continueMessage;
                 try {
-                    continueMessage = await i.fetchReply();
+                    if (i.replied || i.deferred) {
+                        continueMessage = await i.fetchReply();
+                    } else {
+                        continueMessage = i.message;
+                    }
                 } catch (error) {
-                    continueMessage = i.message;
+                    console.error('Error getting continue message:', error);
+                    return;
                 }
 
                 const continueCollector = continueMessage.createMessageComponentCollector({ filter: continueFilter, time: 1800000 });
