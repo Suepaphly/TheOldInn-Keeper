@@ -13,7 +13,70 @@ module.exports.run = async (client, message, args) => {
     const user = message.author;
     const money = await db.get(`money_${user.id}`) || 0;
 
-    // Create main protection interface
+    // If there are arguments, handle the old =buy command functionality
+    if (args.length > 0) {
+        const amount = args[0];
+        const locationOrItem = args[1];
+        const item = args[2];
+
+        if (!amount || (!locationOrItem && !item)) {
+            message.channel.send(`🏰 **TOWN DEFENSE SHOP** 🏰
+
+**💰 WALLS:**
+• \`=protect [amount] rampart\` - 100 kopeks each
+• \`=protect [amount] wall\` - 500 kopeks each  
+• \`=protect [amount] castle\` - 5,000 kopeks each
+
+**⚔️ TROOPS:** (Requires walls - 1 troop per 5 walls)
+• \`=protect [amount] [location] town_guard\` - 50 kopeks
+• \`=protect [amount] [location] mercenary\` - 100 kopeks
+• \`=protect [amount] [location] soldier\` - 200 kopeks
+• \`=protect [amount] [location] knight\` - 500 kopeks
+• \`=protect [amount] [location] royal_guard\` - 1,000 kopeks
+
+**🛡️ TRAPS:** (Requires walls - 1 trap per 5 walls)
+• \`=protect [amount] [location] spikes\` - 25 kopeks
+• \`=protect [amount] [location] boiling_oil\` - 75 kopeks
+• \`=protect [amount] [location] repeater\` - 150 kopeks
+• \`=protect [amount] [location] ballista\` - 300 kopeks
+• \`=protect [amount] [location] cannon\` - 750 kopeks
+
+**Examples:**
+\`=protect 10 rampart\` (buy 10 rampart walls)
+\`=protect 5 rampart town_guard\` (buy 5 town guards at rampart)
+\`=protect 3 castle cannon\` (buy 3 cannons at castle)
+
+*Location options: rampart, wall, castle*
+
+**Or use the interactive menu below:**`);
+        } else {
+            if (item) {
+                // The command includes an item and a location
+                if (ptt.troopArray.includes(item) && ptt.wallArray.includes(locationOrItem)) {
+                    ptt.buyArmy(item, amount, locationOrItem, user, message);
+                    return;
+                } else if (ptt.trapArray.includes(item) && ptt.wallArray.includes(locationOrItem)) {
+                    ptt.buyTrap(item, amount, locationOrItem, user, message);
+                    return;
+                } else {
+                    message.channel.send(`<@${user.id}>, Make sure you set the location! Ex: =protect 1 castle boiling_oil`);
+                    return;
+                }
+            } else {
+                // The command is for buying a wall, rampart, or castle
+                const wallItem = locationOrItem;
+                if (ptt.wallArray.includes(wallItem)) {
+                    ptt.buyWall(wallItem, amount, user, message);
+                    return;
+                } else {
+                    message.channel.send(`<@${user.id}>, Make sure you set the location! Ex: =protect 1 castle boiling_oil`);
+                    return;
+                }
+            }
+        }
+    }
+
+    // Create main protection interface (if no args or after showing help)
     const embed = new Discord.EmbedBuilder()
         .setTitle("🏰 TOWN PROTECTION CENTER")
         .setColor("#4169E1")
@@ -68,5 +131,5 @@ async function getDefenseStatus() {
 
 module.exports.help = {
     name: "protect",
-    aliases: ["defense", "def"]
+    aliases: ["defense", "def", "buy"]
 };

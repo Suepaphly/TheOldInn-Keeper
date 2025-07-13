@@ -1,4 +1,3 @@
-
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -390,7 +389,7 @@ module.exports.run = async (client, message, args) => {
       });
       return newRow;
     });
-    
+
     helpMessage.edit({ embeds: [mainEmbed], components: disabledRows }).catch(console.error);
   });
 };

@@ -370,18 +370,64 @@ async function showMainInterface(interaction) {
 }
 
 async function showStatusInterface(interaction) {
-    // Use the showmap functionality
-    const showmapCommand = require("../commands/defense/showmap.js");
-    const mockMessage = {
-        channel: {
-            send: async (content) => {
-                await interaction.followUp({ content, ephemeral: true });
-            }
-        }
-    };
-    
-    await showmapCommand.run(null, mockMessage, []);
-    await showMainInterface(interaction);
+    try {
+        // Get current defense status
+        const ramparts = await db.get("rampart") || 0;
+        const walls = await db.get("wall") || 0;
+        const castle = await db.get("castle") || 0;
+        
+        // Get troop counts
+        const rampartTroops = await db.get("Troops_rampart") || {};
+        const wallTroops = await db.get("Troops_wall") || {};
+        const castleTroops = await db.get("Troops_castle") || {};
+        
+        // Get trap counts
+        const rampartTraps = await db.get("Traps_rampart") || {};
+        const wallTraps = await db.get("Traps_wall") || {};
+        const castleTraps = await db.get("Traps_castle") || {};
+        
+        // Get monster counts
+        const monsters = await db.get("Monsters") || {};
+        
+        const embed = new Discord.EmbedBuilder()
+            .setTitle("📊 TOWN DEFENSE STATUS")
+            .setColor("#4169E1")
+            .addFields(
+                { 
+                    name: "🏗️ Fortifications", 
+                    value: `🪵 Ramparts: ${ramparts}\n🧱 Walls: ${walls}\n🏰 Castle: ${castle}`, 
+                    inline: true 
+                },
+                { 
+                    name: "⚔️ Total Troops", 
+                    value: `🪵 Rampart: ${(rampartTroops.total || 0)}\n🧱 Wall: ${(wallTroops.total || 0)}\n🏰 Castle: ${(castleTroops.total || 0)}`, 
+                    inline: true 
+                },
+                { 
+                    name: "🕳️ Total Traps", 
+                    value: `🪵 Rampart: ${(rampartTraps.total || 0)}\n🧱 Wall: ${(wallTraps.total || 0)}\n🏰 Castle: ${(castleTraps.total || 0)}`, 
+                    inline: true 
+                },
+                { 
+                    name: "👹 Monster Army", 
+                    value: `🟢 Goblins: ${monsters.goblin || 0}\n🔵 Mephits: ${monsters.mephit || 0}\n🟡 Broodlings: ${monsters.broodling || 0}\n🟠 Ogres: ${monsters.ogre || 0}\n🔴 Automatons: ${monsters.automaton || 0}`, 
+                    inline: true 
+                }
+            );
+
+        const row = new Discord.ActionRowBuilder()
+            .addComponents(
+                new Discord.ButtonBuilder()
+                    .setCustomId('back_to_main')
+                    .setLabel('⬅️ Back to Main')
+                    .setStyle(Discord.ButtonStyle.Secondary)
+            );
+
+        await interaction.update({ embeds: [embed], components: [row] });
+    } catch (error) {
+        console.error("Error in showStatusInterface:", error);
+        await showMainInterface(interaction);
+    }
 }
 
 async function showHelpInterface(interaction) {
