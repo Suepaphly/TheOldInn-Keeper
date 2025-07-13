@@ -8,6 +8,7 @@ const { startRiddleQuest } = require('./quest/riddleQuest.js');
 const { startMazeQuest } = require('./quest/mazeQuest.js');
 const { startTrolleyQuest } = require('./quest/trolleyQuest.js');
 const { startMysteryQuest } = require('./quest/mysteryQuest.js');
+const { startChestQuest } = require('./quest/chestQuest.js');
 const { CombatSystem } = require('./quest/combatSystem.js');
 
 // Active quests storage
@@ -68,6 +69,10 @@ const questTypes = {
     mystery: {
         name: "🕵️ Detective Mystery",
         description: "Solve a murder mystery case"
+    },
+    chest: {
+        name: "📦 Locked Chest",
+        description: "Crack the color code to open a treasure chest"
     }
 };
 
@@ -83,10 +88,10 @@ module.exports.run = async (client, message, args) => {
             const debugEmbed = new EmbedBuilder()
                 .setTitle("🔧 QUEST DEBUG COMMANDS")
                 .setColor("#FFA500")
-                .setDescription("**Owner-only debug commands for testing individual quest types**\n\n**Available Quest Names:**\n• `monster` - Combat quest with 2 monsters\n• `riddle` - Ancient riddle solving quest\n• `maze` - Hedge maze navigation quest\n• `trolley` - Moral dilemma trolley problem\n• `mystery` - Detective murder mystery case\n• `dragon` - Choose and fight any boss dragon")
+                .setDescription("**Owner-only debug commands for testing individual quest types**\n\n**Available Quest Names:**\n• `monster` - Combat quest with 2 monsters\n• `riddle` - Ancient riddle solving quest\n• `maze` - Hedge maze navigation quest\n• `trolley` - Moral dilemma trolley problem\n• `mystery` - Detective murder mystery case\n• `chest` - Mastermind color code chest puzzle\n• `dragon` - Choose and fight any boss dragon")
                 .addFields(
                     { name: "Usage", value: "`=quest debug <questname>`", inline: false },
-                    { name: "Quest Details", value: "🗡️ **monster** - Fight Goblin Scout → Orc Raider\n🧩 **riddle** - Solve 2 random riddles (death on failure)\n🌿 **maze** - Navigate 2-stage maze with traps/combat\n🚃 **trolley** - Face moral choices with vengeance risk\n🕵️ **mystery** - Solve murder case (weapon/motive/suspect)\n🐲 **dragon** - Select any dragon to fight immediately", inline: false },
+                    { name: "Quest Details", value: "🗡️ **monster** - Fight Goblin Scout → Orc Raider\n🧩 **riddle** - Solve 2 random riddles (death on failure)\n🌿 **maze** - Navigate 2-stage maze with traps/combat\n🚃 **trolley** - Face moral choices with vengeance risk\n🕵️ **mystery** - Solve murder case (weapon/motive/suspect)\n📦 **chest** - Crack 4-color code within 5 attempts\n🐲 **dragon** - Select any dragon to fight immediately", inline: false },
                     { name: "Debug Features", value: "• Complete after 1 quest instead of 2\n• 30-minute timeout still applies\n• No real rewards given", inline: false }
                 );
 
@@ -95,7 +100,7 @@ module.exports.run = async (client, message, args) => {
 
         const questType = args[1].toLowerCase();
         if (!questTypes[questType] && questType !== 'dragon') {
-            return message.channel.send("❌ Invalid quest type! Available: monster, riddle, maze, trolley, dragon");
+            return message.channel.send("❌ Invalid quest type! Available: monster, riddle, maze, trolley, mystery, chest, dragon");
         }
 
         // Handle dragon debug separately
@@ -333,6 +338,9 @@ async function startLocationQuest(interaction, location, userId) {
                     case 'mystery':
                         await startMysteryQuest(i, userId, activeQuests);
                         break;
+                    case 'chest':
+                        await startChestQuest(i, userId, activeQuests);
+                        break;
                 }
                 startCollector.stop();
             }
@@ -522,6 +530,9 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
                             break;
                         case 'mystery':
                             await startMysteryQuest(i, userId, activeQuests);
+                            break;
+                        case 'chest':
+                            await startChestQuest(i, userId, activeQuests);
                             break;
                     }
                     startCollector.stop();
@@ -903,6 +914,9 @@ async function startDebugQuest(message, userId, questType) {
                 break;
             case 'mystery':
                 startMysteryQuest(fakeInteraction, userId, activeQuests);
+                break;
+            case 'chest':
+                startChestQuest(fakeInteraction, userId, activeQuests);
                 break;
         }
     }, 2000);
