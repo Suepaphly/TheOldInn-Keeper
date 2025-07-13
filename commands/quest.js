@@ -341,6 +341,21 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
 
     quest.questsCompleted++;
 
+    // Track daily quest completions for dragon spawning
+    const today = new Date().toDateString();
+    const dailyKey = `daily_quests_${userId}_${today}`;
+    const dailyQuests = await db.get(dailyKey) || 0;
+    await db.set(dailyKey, dailyQuests + 1);
+
+    // Check for boss dragon spawn (50% chance after first quest of the day)
+    const shouldSpawnDragon = dailyQuests >= 1 && Math.random() < 0.5;
+    
+    if (shouldSpawnDragon && quest.questsCompleted >= 2) {
+        // Spawn boss dragon instead of completing normally
+        await spawnBossDragon(interaction, userId, quest.location, activeQuests);
+        return;
+    }
+
     if (quest.questsCompleted >= 2) {
         // Both quests completed - give final reward
         let totalReward = 250; // Base reward
@@ -497,6 +512,67 @@ async function endQuest(interaction, userId, success, message, activeQuests) {
             throw error;
         }
     }
+}
+
+// Dragon data for each location
+const dragonData = {
+    plains: {
+        name: "Ancient White Dragon",
+        color: "white",
+        crystal: "White Crystal",
+        specialMove: "Tax",
+        specialDescription: "steals 10% of your coins"
+    },
+    forest: {
+        name: "Ancient Black Dragon",
+        color: "black", 
+        crystal: "Black Crystal",
+        specialMove: "Death",
+        specialDescription: "has a 10% chance to instantly kill you"
+    },
+    redlands: {
+        name: "Ancient Red Dragon",
+        color: "red",
+        crystal: "Red Crystal", 
+        specialMove: "Melt",
+        specialDescription: "destroys a random item in your backpack"
+    },
+    frostlands: {
+        name: "Ancient Blue Dragon",
+        color: "blue",
+        crystal: "Blue Crystal",
+        specialMove: "Freeze", 
+        specialDescription: "you skip your next turn"
+    },
+    emeraldlands: {
+        name: "Ancient Green Dragon",
+        color: "green",
+        crystal: "Green Crystal",
+        specialMove: "Heal",
+        specialDescription: "heals the dragon for 2-8 health"
+    }
+};
+
+async function spawnBossDragon(interaction, userId, location, activeQuests) {
+    const dragon = dragonData[location];
+    const { startDragonBattle } = require('./quest/dragonBattle.js');
+    
+    const embed = new EmbedBuilder()
+        .setTitle("🐲 BOSS DRAGON APPEARS!")
+        .setColor("#8B0000")
+        .setDescription(`As you complete your quest, the ground trembles! An **${dragon.name}** emerges from the depths!\n\n*"You dare trespass in my domain, mortal?"*\n\nThe ancient beast roars, ready for battle!`)
+        .addFields(
+            { name: "Dragon", value: dragon.name, inline: true },
+            { name: "Special Ability", value: `${dragon.specialMove} - ${dragon.specialDescription}`, inline: true },
+            { name: "Reward", value: `${dragon.crystal} (if victorious)`, inline: true }
+        );
+
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
+
+    // Start dragon battle after a delay
+    setTimeout(async () => {
+        await startDragonBattle(interaction, userId, location, activeQuests);
+    }, 3000);
 }
 
 // Function to check if user is on quest (for use in other commands)

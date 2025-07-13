@@ -1,4 +1,3 @@
-
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
@@ -7,7 +6,7 @@ const { getBackpackCount } = require("../../utility/backpackUtils.js");
 module.exports.run = async (client, message, args) => {
     const user = message.author;
     const allItems = await db.all();
-    
+
     // Filter user's weapons and armor
     const userWeapons = allItems.filter(item => 
         item.id.startsWith("weapon_") && item.id.endsWith(`_${user.id}`)
@@ -60,7 +59,7 @@ module.exports.run = async (client, message, args) => {
     }
 
     const totalItems = await getBackpackCount(user.id);
-    
+
     const embed = new Discord.EmbedBuilder()
         .setTitle(`🎒 ${user.username}'s Backpack (${totalItems}/5)`)
         .setColor("#8B4513")
