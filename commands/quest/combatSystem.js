@@ -221,10 +221,27 @@ class CombatSystem {
         } catch (error) {
             if (error.code === 10062 || error.code === 'InteractionNotReplied') {
                 try {
-                    return await interaction.followUp(options);
-                } catch (followUpError) {
-                    console.error('Failed to send follow-up message:', followUpError);
-                    throw followUpError;
+                    // Try to defer first, then edit
+                    if (!interaction.replied && !interaction.deferred) {
+                        await interaction.deferUpdate();
+                        return await interaction.editReply(options);
+                    } else {
+                        return await interaction.followUp(options);
+                    }
+                } catch (fallbackError) {
+                    console.error('All interaction methods failed:', { 
+                        originalError: error.message, 
+                        fallbackError: fallbackError.message 
+                    });
+                    // Last resort - try to send a new message to the channel if possible
+                    if (interaction.channel) {
+                        try {
+                            return await interaction.channel.send(options);
+                        } catch (channelError) {
+                            console.error('Channel send also failed:', channelError.message);
+                        }
+                    }
+                    throw fallbackError;
                 }
             } else {
                 console.error('Error updating interaction:', error);

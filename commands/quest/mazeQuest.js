@@ -204,7 +204,15 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
                 // Set up continue collector
                 const continueFilter = (ci) => ci.user.id === userId;
-                const continueCollector = i.message.createMessageComponentCollector({ filter: continueFilter, time: 1800000 });
+                // Get the updated message for the new collector
+                let continueMessage;
+                try {
+                    continueMessage = await i.fetchReply();
+                } catch (error) {
+                    continueMessage = i.message;
+                }
+
+                const continueCollector = continueMessage.createMessageComponentCollector({ filter: continueFilter, time: 1800000 });
 
                 continueCollector.on('collect', async (ci) => {
                     if (ci.customId === 'maze_continue_after_combat') {
