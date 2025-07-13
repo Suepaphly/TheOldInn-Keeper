@@ -147,6 +147,71 @@ const mysteryScenarios = [
             suspect: "Graduate Student"
         },
         explanation: "The graduate student killed Dr. Cosmos by trapping her in the supercooled telescope chamber after discovering her data falsification would destroy both their careers. The student couldn't bear to see years of legitimate research tainted by Dr. Cosmos's fraudulent claims about alien contact."
+    },
+    {
+        title: "The Fashion Week Fatality",
+        description: "World-famous fashion designer Valentina Silk was found dead in her atelier just hours before her revolutionary runway show. She was discovered draped over her sewing machine, wearing her signature black dress with golden pins scattered around her workspace. The room's lighting had been dimmed to a romantic amber glow, and several mannequins displayed her final collection. Three people had after-hours access to the atelier: her protégé who had discovered Valentina was planning to steal credit for the protégé's groundbreaking sustainable fabric designs, her business rival who had been secretly photographing Valentina's designs to copy them for his own cheaper line, and her seamstress who had been selling Valentina's fabric scraps and vintage patterns to black market collectors. A bottle of fabric adhesive was found spilled near the sewing station, and the industrial pressing machine was still warm despite being supposedly unused that evening.",
+        weapons: ["Suffocation", "Stabbing", "Chemical Poisoning"],
+        motives: ["Design Theft", "Industrial Espionage", "Black Market Sales"],
+        suspects: ["Protégé", "Business Rival", "Seamstress"],
+        solution: {
+            weapon: "Suffocation",
+            motive: "Design Theft",
+            suspect: "Protégé"
+        },
+        explanation: "The protégé suffocated Valentina with fabric while she worked at her sewing machine, staging the scene to look like an accident. The motive was design theft - the protégé couldn't bear to see their innovative sustainable fabric designs credited to Valentina's name in fashion history."
+    },
+    {
+        title: "The Monastery Murder",
+        description: "Brother Benedict, the monastery's head librarian, was found dead in the ancient scriptorium surrounded by illuminated manuscripts and religious texts. He was slumped over a half-finished translation of a medieval prayer book, his monk's robes stained with ink from overturned inkwells. The room's single candle had burned down to a stub, and several rare books were missing from their locked cases. Three members of the religious community had keys to the scriptorium: the young novice who had discovered Brother Benedict was selling authentic medieval manuscripts to private collectors, the visiting scholar who had been denied access to certain forbidden texts that Benedict controlled, and the monastery's treasurer who had learned that Benedict was embezzling donations meant for charitable work. A chalice of communion wine sat on the reading desk, and the heavy wooden cross from the wall had fallen to the floor beside the body.",
+        weapons: ["Poison", "Blunt Object", "Strangulation"],
+        motives: ["Manuscript Theft", "Academic Denial", "Embezzlement"],
+        suspects: ["Young Novice", "Visiting Scholar", "Monastery Treasurer"],
+        solution: {
+            weapon: "Blunt Object",
+            motive: "Academic Denial",
+            suspect: "Visiting Scholar"
+        },
+        explanation: "The visiting scholar struck Brother Benedict with the heavy wooden cross after being repeatedly denied access to forbidden texts that could have advanced his controversial religious theories. The scholar couldn't accept that his life's work was being blocked by Benedict's rigid adherence to monastery rules."
+    },
+    {
+        title: "The Roller Derby Rampage",
+        description: "Star jammer 'Lightning Lucy' Rodriguez was found dead in the empty roller rink after a championship bout, still wearing her derby gear and protective helmet. She was discovered at the center of the track with her roller skates' wheels still spinning, surrounded by scattered penalty flags and a knocked-over refreshment stand. The arena's sound system was playing her victory song on repeat at maximum volume. Three people remained in the building after the match: her longtime teammate who had just learned that Lucy was planning to join a rival league and take their sponsorship money with her, the opposing team's captain who had been publicly humiliated by Lucy's aggressive blocking tactics and trash talk, and the rink's maintenance worker who had discovered Lucy was secretly dating his teenage daughter despite being much older. A energy drink bottle was crushed near the penalty box, and the track's electronic scoring system showed signs of recent tampering.",
+        weapons: ["Blunt Object", "Electrocution", "Suffocation"],
+        motives: ["Team Betrayal", "Public Humiliation", "Protective Parent"],
+        suspects: ["Longtime Teammate", "Opposing Captain", "Maintenance Worker"],
+        solution: {
+            weapon: "Electrocution",
+            motive: "Protective Parent",
+            suspect: "Maintenance Worker"
+        },
+        explanation: "The maintenance worker electrocuted Lucy by tampering with the track's electronic systems after discovering her inappropriate relationship with his underage daughter. His parental protective instincts overrode all other considerations when he learned about the illegal relationship."
+    },
+    {
+        title: "The Food Truck Festival Fiasco",
+        description: "Celebrity food truck owner Miguel 'El Fuego' Santos was found dead inside his popular taco truck during the annual street food festival. He was discovered face-down in his prep area with his chef's apron still tied, surrounded by chopped vegetables and sizzling meat on the grill. The truck's generator was running at maximum capacity despite the late hour, and the serving window was left wide open with money scattered from the register. Three vendors had access to Miguel's truck during cleanup: his sous chef who had recently discovered Miguel was planning to franchise the truck concept without giving him any credit or compensation, his main competitor who had been losing customers all week to Miguel's innovative fusion recipes, and the festival organizer who had learned Miguel was planning to break his exclusive contract and start his own competing food festival. A bottle of hot sauce with a tampered seal was found on the prep counter, and the truck's propane tanks showed signs of recent adjustment.",
+        weapons: ["Poison", "Gas Inhalation", "Stabbing"],
+        motives: ["Credit Theft", "Business Competition", "Contract Violation"],
+        suspects: ["Sous Chef", "Competitor", "Festival Organizer"],
+        solution: {
+            weapon: "Gas Inhalation",
+            motive: "Contract Violation",
+            suspect: "Festival Organizer"
+        },
+        explanation: "The festival organizer killed Miguel by adjusting the propane tanks to cause gas inhalation after learning about Miguel's plans to start a competing festival. The organizer couldn't afford to lose his star attraction and the associated vendor fees that kept his festival profitable."
+    },
+    {
+        title: "The Escape Room Execution",
+        description: "Escape room designer Jake 'The Puzzlemaster' Thompson was found dead inside his latest creation, a horror-themed room called 'The Serial Killer's Lair.' He was discovered chained to a prop electric chair with fake blood splattered around the room, but the blood pooling beneath him was real. The room's elaborate puzzle mechanisms were still running their automated sequences, and several red herrings were scattered around the space. Three people had master codes to override the room's systems: his business partner who had discovered Jake was selling their proprietary puzzle designs to international competitors, his ex-girlfriend who worked as a game master and had learned Jake was secretly recording customers through hidden cameras for blackmail purposes, and his rival escape room owner who had been systematically sabotaged by Jake's fake negative reviews and corporate espionage. A modified electronic lock was found sparking near the victim, and the room's emergency exit had been sealed from the outside.",
+        weapons: ["Electrocution", "Stabbing", "Suffocation"],
+        motives: ["Design Theft", "Blackmail", "Business Sabotage"],
+        suspects: ["Business Partner", "Ex-Girlfriend", "Rival Owner"],
+        solution: {
+            weapon: "Electrocution",
+            motive: "Blackmail",
+            suspect: "Ex-Girlfriend"
+        },
+        explanation: "The ex-girlfriend modified the prop electric chair to deliver a lethal shock after discovering Jake's blackmail scheme using hidden cameras. She couldn't allow him to continue exploiting customers' private moments for money and leverage."
     }
 ];
 
