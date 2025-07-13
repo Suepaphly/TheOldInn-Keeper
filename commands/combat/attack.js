@@ -9,13 +9,12 @@ module.exports.run = async (client, message, args) => {
     const member = message.guild.members.cache.get(user.id);
     const mentionedUser = message.mentions.users.first();
 
-    // If a user is mentioned, redirect to PvP combat
+    // This command is for town combat only (no user mentions)
     if (mentionedUser) {
-        const pvpAttack = require('./attackplayer.js');
-        return pvpAttack.run(client, message, args);
+        return message.channel.send("❌ For PvP combat, use a different command. This is for attacking monsters during town battles!");
     }
 
-    // Town combat logic (no user mentioned)
+    // Town combat logic
     // Check if there's an active battle using the new system
     if (!ptt.lockArena) {
         return message.channel.send("❌ No battle is currently active! Use `=summon` to add monsters or wait for an automatic attack.");
