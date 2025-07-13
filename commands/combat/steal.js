@@ -66,12 +66,14 @@ module.exports.run = async (client, message, args) => {
         return message.channel.send(`❌ **Steal Failed!** You failed to steal from ${target.username}. Your success rate was ${successRate}%. Try leveling up your rob skill!`);
     }
 
-    // Get target's backpack
-    const targetBackpack = await db.get(`backpack_${target.id}`) || {};
-    const targetItems = Object.keys(targetBackpack).filter(item => 
-        !item.includes('troop') && 
-        !item.includes('monster') && 
-        targetBackpack[item] > 0
+    // Get target's items (weapons, armor, crystals) using the same method as snoop
+    const allData = await db.all();
+    const targetItems = allData.filter(item => 
+        item.id.includes(`_${target.id}`) && 
+        (item.id.startsWith('weapon_') || 
+         item.id.startsWith('armor_') || 
+         item.id.startsWith('crystal_')) &&
+        item.value > 0
     );
 
     if (targetItems.length === 0) {
@@ -83,16 +85,31 @@ module.exports.run = async (client, message, args) => {
     const stolenAmount = 1;
 
     // Remove item from target
-    await db.sub(`backpack_${target.id}.${randomItem}`, stolenAmount);
-    if (targetBackpack[randomItem] - stolenAmount <= 0) {
-        await db.delete(`backpack_${target.id}.${randomItem}`);
+    await db.sub(randomItem.id, stolenAmount);
+    if (randomItem.value - stolenAmount <= 0) {
+        await db.delete(randomItem.id);
     }
 
-    // Add item to thief
-    await db.add(`backpack_${userId}.${randomItem}`, stolenAmount);
+    // Add item to thief - convert the target's item ID to thief's item ID
+    const thiefItemId = randomItem.id.replace(`_${target.id}`, `_${userId}`);
+    await db.add(thiefItemId, stolenAmount);
 
     // Format item name for display
-    const itemName = randomItem.charAt(0).toUpperCase() + randomItem.slice(1);
+    let itemName = randomItem.id.replace(`_${target.id}`, '').replace(/_/g, ' ');
+    
+    // Clean up item names
+    if (itemName.startsWith('weapon ')) {
+        itemName = itemName.replace('weapon ', '');
+    }
+    if (itemName.startsWith('armor ')) {
+        itemName = itemName.replace('armor ', '') + ' armor';
+    }
+    if (itemName.startsWith('crystal ')) {
+        itemName = itemName.replace('crystal ', '') + ' crystal';
+    }
+    
+    // Capitalize first letter
+    itemName = itemName.charAt(0).toUpperCase() + itemName.slice(1);
 
     const embed = new Discord.EmbedBuilder()
         .setTitle("🥷 Successful Steal!")
