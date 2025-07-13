@@ -383,7 +383,21 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
 
             // Set up collector for start button
             const filter = (i) => i.user.id === userId;
-            const startCollector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+            
+            // Get the message for the collector
+            let message;
+            try {
+                if (interaction.replied || interaction.deferred) {
+                    message = await interaction.fetchReply();
+                } else {
+                    message = interaction.message;
+                }
+            } catch (error) {
+                console.error('Error getting message for second quest collector:', error);
+                return;
+            }
+            
+            const startCollector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
             startCollector.on('collect', async (i) => {
                 if (i.customId === 'quest_start_second') {
