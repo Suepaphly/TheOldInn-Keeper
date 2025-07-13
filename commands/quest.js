@@ -357,24 +357,49 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
     // Check for boss dragon spawn (50% chance after first quest of the day)
     const shouldSpawnDragon = dailyQuests >= 1 && Math.random() < 0.5;
 
-    // Check if user has all 5 crystals for Tiamat encounter
-    const { getCrystals } = require('../utility/crystalUtils.js');
-    const crystals = await getCrystals(userId);
-    const hasAllCrystals = crystals.white > 0 && crystals.black > 0 && crystals.red > 0 && crystals.blue > 0 && crystals.green > 0;
-
-    if (hasAllCrystals && quest.questsCompleted >= 2) {
-        // Spawn Tiamat instead of completing normally
-        await spawnTiamat(interaction, userId, activeQuests);
-        return;
-    }
-
-    if (shouldSpawnDragon && quest.questsCompleted >= 2) {
-        // Spawn boss dragon instead of completing normally
-        await spawnBossDragon(interaction, userId, quest.location, activeQuests);
-        return;
-    }
-
     if (quest.questsCompleted >= 2) {
+        // Check if user has all 5 crystals for Tiamat encounter
+        const { getCrystals } = require('../utility/crystalUtils.js');
+        const crystals = await getCrystals(userId);
+        const hasAllCrystals = crystals.white > 0 && crystals.black > 0 && crystals.red > 0 && crystals.blue > 0 && crystals.green > 0;
+
+        if (hasAllCrystals) {
+            // Check if Tiamat is on cooldown before attempting to spawn
+            const tiamatCooldown = await db.get(`tiamat_cooldown_${userId}`);
+            if (tiamatCooldown && Date.now() < tiamatCooldown) {
+                // Tiamat is on cooldown, complete quest normally with special message
+                let totalReward = 250;
+                let rewardText = "You have completed both quests and earned 250 kopeks!";
+
+                if (quest.totalMonsterValue > 0) {
+                    const monsterBonus = Math.floor(quest.totalMonsterValue / 2);
+                    totalReward += monsterBonus;
+                    rewardText = `You have completed both quests and earned 250 kopeks + ${monsterBonus} kopeks bonus from slaying monsters (total: ${totalReward} kopeks)!`;
+                }
+
+                const timeRemaining = tiamatCooldown - Date.now();
+                const hoursRemaining = Math.ceil(timeRemaining / (60 * 60 * 1000));
+                rewardText += `\n\n🐲 **Tiamat's Presence Detected!** You possess all 5 crystals, but Tiamat is still recovering from your previous battle. She can only be challenged once per day. Time remaining: ${hoursRemaining} hours`;
+
+                if (trolleyMessage) {
+                    rewardText = `${trolleyMessage}\n\n${rewardText}`;
+                }
+
+                await db.add(`money_${userId}`, totalReward);
+                await endQuest(interaction, userId, true, rewardText, activeQuests);
+                return;
+            } else {
+                // Spawn Tiamat instead of completing normally
+                await spawnTiamat(interaction, userId, activeQuests);
+                return;
+            }
+        }
+
+        if (shouldSpawnDragon) {
+            // Spawn boss dragon instead of completing normally
+            await spawnBossDragon(interaction, userId, quest.location, activeQuests);
+            return;
+        }
         // Both quests completed - give final reward
         let totalReward = 250; // Base reward
         let rewardText = "You have completed both quests and earned 250 kopeks!";
@@ -595,21 +620,6 @@ async function spawnBossDragon(interaction, userId, location, activeQuests) {
 
 async function spawnTiamat(interaction, userId, activeQuests) {
     const { startTiamatBattle } = require('./quest/dragonBattle.js'); // Use dragonBattle.js which contains Tiamat code
-
-    // Check if Tiamat is on cooldown
-    const tiamatCooldown = await db.get(`tiamat_cooldown_${userId}`);
-    if (tiamatCooldown && Date.now() < tiamatCooldown) {
-        const timeRemaining = tiamatCooldown - Date.now();
-        const hoursRemaining = Math.ceil(timeRemaining / (60 * 60 * 1000));
-
-        const embed = new EmbedBuilder()
-            .setTitle("⏰ Tiamat is Recovering")
-            .setColor("#FF6600")
-            .setDescription(`Tiamat, Mother of Dragons, is still recovering from your previous battle. She can only be challenged once per day.\n\nTime remaining: ${hoursRemaining} hours`);
-
-        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
-        return;
-    }
 
     const embed = new EmbedBuilder()
         .setTitle("🐲 TIAMAT, MOTHER OF DRAGONS, APPEARS!")
