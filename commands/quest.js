@@ -223,7 +223,7 @@ async function startLocationQuest(interaction, location, userId) {
     }
 
     // Add a continue button for better pacing
-    setTimeout(() => {
+    setTimeout(async () => {
         const continueEmbed = new EmbedBuilder()
             .setTitle(`${locationData.name} - Ready to Begin`)
             .setColor("#4169E1")
@@ -359,7 +359,7 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
             }
 
         // Add a continue button for better pacing
-        setTimeout(() => {
+        setTimeout(async () => {
             const continueEmbed = new EmbedBuilder()
                 .setTitle(`${location.second} - Ready for Final Challenge`)
                 .setColor("#4169E1")
