@@ -85,16 +85,9 @@ module.exports.run = async (client, message, args) => {
             chainmail: { cost: 1500, name: "Chainmail Armor", defense: 3 },
             studded: { cost: 3000, name: "Studded Armor", defense: 5 },
             plate: { cost: 6000, name: "Plate Armor", defense: 10 },
-            dragonscale: { cost: 12000, name: "Dragonscale Armor", defense: 20 },
         };
 
-        const crystals = {
-            white: { cost: 4000, name: "White Crystal" },
-            black: { cost: 4000, name: "Black Crystal" },
-            red: { cost: 4000, name: "Red Crystal" },
-            blue: { cost: 4000, name: "Blue Crystal" },
-            green: { cost: 4000, name: "Green Crystal" },
-        };
+        // Crystals removed from purchase - quest rewards only
 
         if (weapons[item]) {
             if (money < weapons[item].cost) {
@@ -130,27 +123,10 @@ module.exports.run = async (client, message, args) => {
             message.channel.send(
                 `✅ You bought ${armor[item].name} for ${armor[item].cost.toLocaleString()} kopeks!`,
             );
-        } else if (crystals[item]) {
-            if (money < crystals[item].cost) {
-                return message.channel.send(
-                    `❌ You need ${crystals[item].cost.toLocaleString()} kopeks to buy a ${crystals[item].name}. You have ${money.toLocaleString()}.`,
-                );
-            }
-
-            if (!(await canAddToBackpack(user.id))) {
-                return message.channel.send(getBackpackFullMessage());
-            }
-
-            await db.sub(`money_${user.id}`, crystals[item].cost);
-            await db.add(`crystal_${item}_${user.id}`, 1);
-
-            message.channel.send(
-                `✅ You bought a ${crystals[item].name} for ${crystals[item].cost.toLocaleString()} kopeks!`,
-            );
         }
          else {
             message.channel.send(
-                `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate`,
+                `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate\n\n*Note: Crystals and Dragonscale Armor cannot be purchased.*`,
             );
         }
     } else if (args[0] === "sell" && args[1]) {
@@ -173,6 +149,7 @@ module.exports.run = async (client, message, args) => {
             dragonscale: { cost: 12000, name: "Dragonscale Armor", defense: 20 },
         };
 
+        // Crystals removed from purchase - quest rewards only
         const crystals = {
             white: { cost: 4000, name: "White Crystal" },
             black: { cost: 4000, name: "Black Crystal" },
@@ -225,7 +202,7 @@ module.exports.run = async (client, message, args) => {
             );
         } else {
             message.channel.send(
-                `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate, dragonscale, white, black, red, blue, green`,
+                `❌ Item not found! Available items: knife, sword, pistol, shotgun, rifle, cloth, leather, chainmail, studded, plate\n\n*Note: Crystals and Dragonscale Armor cannot be purchased.*`,
             );
         }
     } else {
