@@ -117,8 +117,7 @@ async function presentRiddle(interaction, userId, activeQuests, riddleNumber) {
             }
         } else {
             // Wrong answer - death by sphinx
-            const combat = CombatSystem.create(userId, 'riddle');
-            const deathMessage = await combat.handleDefeat();
+            const deathMessage = "The ancient sphinx devours you for your ignorance!";
 
             // Set death timer
             await db.set(`death_cooldown_${userId}`, Date.now());
@@ -128,21 +127,16 @@ async function presentRiddle(interaction, userId, activeQuests, riddleNumber) {
         }
     });
 
-    collector.on('end', (collected, reason) => {
+    collector.on('end', async (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
             // Timeout - death by sphinx
-            const timeoutEmbed = new EmbedBuilder()
-                .setTitle("⏰ Time's Up!")
-                .setColor("#FF0000")
-                .setDescription("You took too long to answer! The ancient sphinx devours you for your hesitation!");
-
-            interaction.followUp({ embeds: [timeoutEmbed] });
+            const deathMessage = "You took too long to answer! The ancient sphinx devours you for your hesitation!";
 
             // Set death timer
-            db.set(`death_cooldown_${userId}`, Date.now());
+            await db.set(`death_cooldown_${userId}`, Date.now());
 
             const { endQuest } = require('../quest.js');
-            endQuest(interaction, userId, false, "The ancient sphinx devours you for your ignorance!", activeQuests);
+            await endQuest(interaction, userId, false, deathMessage, activeQuests);
         }
     });
 }
