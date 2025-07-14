@@ -6,7 +6,7 @@ module.exports = {
         name: "cleanup",
         description: "Clean up quest system and database (Admin only)"
     },
-    run: async (message, args) => {
+    run: async (client, message, args) => {
         // Check if user is admin (replace with your admin ID)
         if (message.author.id !== '203964725076180992') {
             return message.channel.send("❌ This command is for administrators only.");
