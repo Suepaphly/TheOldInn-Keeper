@@ -104,7 +104,7 @@ async function handleMazeChoice(interaction, userId, collector, activeQuests) {
             // Trap - check for white crystal protection
             const { hasCrystal } = require('../../utility/crystalUtils.js');
             const hasWhiteCrystal = await hasCrystal(userId, 'white');
-            
+
             if (hasWhiteCrystal) {
                 // White crystal protects from trap damage
                 await endQuest(interaction, userId, false, `You triggered a trap! Spikes shoot from the ground, but your White Crystal glows and deflects all damage. You escape unharmed. ⚪`, activeQuests);
@@ -133,7 +133,7 @@ async function handleMazeChoice(interaction, userId, collector, activeQuests) {
             // Death - check for white crystal protection
             const { hasCrystal } = require('../../utility/crystalUtils.js');
             const hasWhiteCrystal = await hasCrystal(userId, 'white');
-            
+
             if (hasWhiteCrystal) {
                 // White crystal protects from death and money loss
                 await endQuest(interaction, userId, false, `You chose poorly, but your White Crystal protects you from the deadly trap! You escape the maze completely unharmed. ⚪`, activeQuests);
@@ -149,7 +149,7 @@ async function handleMazeChoice(interaction, userId, collector, activeQuests) {
 async function startMazeCombat(interaction, userId, parentCollector, activeQuests) {
     // Stop the parent collector to prevent interference
     parentCollector.stop();
-    
+
     const quest = activeQuests.get(userId);
     const combatLevel = await db.get(`combatlevel_${userId}`) || 0;
     const enemyData = COMBAT_PRESETS.vineBeast(combatLevel);
@@ -166,7 +166,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
     // Set up maze combat collector
     const filter = (i) => i.user.id === userId;
-    
+
     // Get the message for the collector
     let message;
     try {
@@ -179,7 +179,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
         console.error('Error getting message for maze combat collector:', error);
         return;
     }
-    
+
     const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
@@ -214,16 +214,16 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
                     await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
                     collector.stop();
-                    
+
                     // Set up new collector for the continue button
                     const continueFilter = (continueI) => continueI.user.id === userId;
                     const continueCollector = i.message.createMessageComponentCollector({ filter: continueFilter, time: 1800000 });
-                    
+
                     continueCollector.on('collect', async (continueI) => {
                         if (continueI.customId === 'maze_continue_after_combat') {
                             quest.data.stage = 2;
                             quest.data.mazeCombat = false;
-                            
+
                             // Show stage 2 paths
                             const stage2Embed = new EmbedBuilder()
                                 .setTitle("🌿 HEDGE MAZE - Stage 2/2")
@@ -254,7 +254,7 @@ async function startMazeCombat(interaction, userId, parentCollector, activeQuest
 
                             await CombatSystem.updateInteractionSafely(continueI, { embeds: [stage2Embed], components: [stage2Row] });
                             continueCollector.stop();
-                            
+
                             // Set up new collector for stage 2 choices
                             const stage2Filter = (stage2I) => stage2I.user.id === userId;
                             const stage2Collector = continueI.message.createMessageComponentCollector({ filter: stage2Filter, time: 1800000 });

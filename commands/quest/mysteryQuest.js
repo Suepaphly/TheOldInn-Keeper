@@ -1,4 +1,3 @@
-
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -385,7 +384,7 @@ async function startMysteryQuest(interaction, userId, activeQuests) {
 
     collector.on('collect', async (i) => {
         const quest = activeQuests.get(userId);
-        
+
         if (i.customId === 'mystery_weapon') {
             quest.data.selectedWeapon = i.values[0];
             await askForMotive(i, userId, activeQuests, collector);
@@ -466,7 +465,7 @@ async function askForSuspect(interaction, userId, activeQuests, collector) {
 async function revealSolution(interaction, userId, activeQuests, collector) {
     const quest = activeQuests.get(userId);
     const scenario = quest.data.scenario;
-    
+
     // Convert selected values back to display format
     const selectedWeapon = scenario.weapons.find(w => w.toLowerCase().replace(/\s+/g, '_') === quest.data.selectedWeapon);
     const selectedMotive = scenario.motives.find(m => m.toLowerCase().replace(/\s+/g, '_') === quest.data.selectedMotive);
@@ -476,7 +475,7 @@ async function revealSolution(interaction, userId, activeQuests, collector) {
     const weaponCorrect = selectedWeapon === scenario.solution.weapon;
     const motiveCorrect = selectedMotive === scenario.solution.motive;
     const suspectCorrect = selectedSuspect === scenario.solution.suspect;
-    
+
     const totalCorrect = (weaponCorrect ? 1 : 0) + (motiveCorrect ? 1 : 0) + (suspectCorrect ? 1 : 0);
     const isSuccess = totalCorrect >= 2; // Need at least 2/3 correct to succeed
 
@@ -486,7 +485,7 @@ async function revealSolution(interaction, userId, activeQuests, collector) {
     resultText += `🔪 Weapon: ${selectedWeapon} ${weaponCorrect ? "✅" : "❌"}\n`;
     resultText += `💭 Motive: ${selectedMotive} ${motiveCorrect ? "✅" : "❌"}\n`;
     resultText += `👤 Suspect: ${selectedSuspect} ${suspectCorrect ? "✅" : "❌"}\n\n`;
-    
+
     if (isSuccess) {
         resultText += `🎉 **CASE SOLVED!** You got ${totalCorrect}/3 correct. Your detective skills have cracked the case!`;
     } else {
@@ -511,7 +510,7 @@ async function revealSolution(interaction, userId, activeQuests, collector) {
     } else {
         // Failed to solve the mystery - end quest in failure
         await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
-        
+
         const { endQuest } = require('../quest.js');
         await endQuest(interaction, userId, false, "Your detective skills failed to solve the case. The mystery remains unsolved and your quest ends in failure.", activeQuests);
         collector.stop();

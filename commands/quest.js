@@ -114,8 +114,8 @@ module.exports.run = async (client, message, args) => {
         return;
     }
 
-    // Check if user is already on a quest
-    if (activeQuests.has(userId)) {
+    // Check if user is already on a quest (both memory and database)
+    if (activeQuests.has(userId) || await db.get(`on_quest_${userId}`)) {
         return message.channel.send("❌ You are already on a quest! Complete it first before starting another.");
     }
 

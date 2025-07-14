@@ -261,6 +261,13 @@ class CombatSystem {
         return new CombatSystem(userId, combatType);
     }
 
+    // Static method for safe collector cleanup
+    static cleanupCollector(collector) {
+        if (collector && !collector.ended) {
+            collector.stop('cleanup');
+        }
+    }
+
     // Static method for updating interactions safely
     static async updateInteractionSafely(interaction, options) {
         try {
