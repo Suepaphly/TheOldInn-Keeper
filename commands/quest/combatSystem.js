@@ -10,6 +10,11 @@ class CombatSystem {
     }
 
     async initializeCombat(playerData, enemyData) {
+        // Validate input data
+        if (!enemyData || typeof enemyData.health !== 'number' || enemyData.health <= 0) {
+            throw new Error('Invalid enemy data provided');
+        }
+        
         const combatLevel = await db.get(`combatlevel_${this.userId}`) || 0;
 
         this.combatData = {
@@ -266,6 +271,43 @@ class CombatSystem {
         if (collector && !collector.ended) {
             collector.stop('cleanup');
         }
+    }
+
+    // Static method to cleanup all collectors for a user
+    static cleanupUserCollectors(userId) {
+        // Store active collectors per user for cleanup
+        if (!this.userCollectors) this.userCollectors = new Map();
+        
+        const userCollectors = this.userCollectors.get(userId) || [];
+        userCollectors.forEach(collector => {
+            if (collector && !collector.ended) {
+                collector.stop('user_cleanup');
+            }
+        });
+        this.userCollectors.delete(userId);
+    }
+
+    // Static method to register a collector for cleanup
+    static registerCollector(userId, collector) {
+        if (!this.userCollectors) this.userCollectors = new Map();
+        
+        const userCollectors = this.userCollectors.get(userId) || [];
+        userCollectors.push(collector);
+        this.userCollectors.set(userId, userCollectors);
+
+        // Auto-cleanup when collector ends
+        collector.once('end', () => {
+            const collectors = this.userCollectors.get(userId) || [];
+            const index = collectors.indexOf(collector);
+            if (index > -1) {
+                collectors.splice(index, 1);
+                if (collectors.length === 0) {
+                    this.userCollectors.delete(userId);
+                } else {
+                    this.userCollectors.set(userId, collectors);
+                }
+            }
+        });
     }
 
     // Static method for updating interactions safely

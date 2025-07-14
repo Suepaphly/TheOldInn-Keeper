@@ -76,6 +76,16 @@ const questTypes = {
     }
 };
 
+// Quest data validation function
+function validateQuestData(questData) {
+    if (!questData) return false;
+    if (typeof questData.location !== 'string') return false;
+    if (typeof questData.startTime !== 'number') return false;
+    if (typeof questData.questsCompleted !== 'number') return false;
+    if (questData.questsCompleted < 0 || questData.questsCompleted > 2) return false;
+    return true;
+}
+
 module.exports.run = async (client, message, args) => {
     const userId = message.author.id;
 
@@ -115,8 +125,20 @@ module.exports.run = async (client, message, args) => {
     }
 
     // Check if user is already on a quest (both memory and database)
-    if (activeQuests.has(userId) || await db.get(`on_quest_${userId}`)) {
-        return message.channel.send("❌ You are already on a quest! Complete it first before starting another.");
+    const memoryQuest = activeQuests.has(userId);
+    const dbQuest = await db.get(`on_quest_${userId}`);
+    
+    if (memoryQuest || dbQuest) {
+        // Sync memory and database state if inconsistent
+        if (memoryQuest && !dbQuest) {
+            await db.set(`on_quest_${userId}`, true);
+        } else if (!memoryQuest && dbQuest) {
+            // Quest exists in DB but not memory - could be from restart
+            // Allow user to start new quest and clean up DB
+            await db.delete(`on_quest_${userId}`);
+        } else {
+            return message.channel.send("❌ You are already on a quest! Complete it first before starting another.");
+        }
     }
 
     // Check if user is dead
@@ -233,9 +255,15 @@ async function startLocationQuest(interaction, location, userId) {
     activeQuests.set(userId, questData);
     await db.set(`on_quest_${userId}`, true);
 
-    // Set 30 minute timeout
-    setTimeout(async () => {
-        if (activeQuests.has(userId)) {
+    // Set 30 minute timeout with enhanced cleanup
+    const timeoutId = setTimeout(async () => {
+        const quest = activeQuests.get(userId);
+        if (quest) {
+            // Cleanup any active collectors
+            CombatSystem.cleanupUserCollectors(userId);
+            
+            // Clear processing flag and remove quest
+            quest.processing = false;
             activeQuests.delete(userId);
             await db.delete(`on_quest_${userId}`);
 
@@ -251,6 +279,9 @@ async function startLocationQuest(interaction, location, userId) {
             }
         }
     }, 1800000); // 30 minutes
+    
+    // Store timeout ID for potential cleanup
+    questData.timeoutId = timeoutId;
 
     // Randomly select first quest type
     const questTypeNames = Object.keys(questTypes);
@@ -351,6 +382,10 @@ async function startLocationQuest(interaction, location, userId) {
 async function completeQuest(interaction, userId, activeQuests, trolleyMessage = null) {
     const quest = activeQuests.get(userId);
     if (!quest) return;
+
+    // Prevent race conditions by checking if quest is already being processed
+    if (quest.processing) return;
+    quest.processing = true;
 
     // Handle debug mode - complete immediately
     if (quest.isDebug) {
@@ -543,6 +578,18 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
 }
 
 async function endQuest(interaction, userId, success, message, activeQuests) {
+    const quest = activeQuests.get(userId);
+    if (quest) {
+        quest.processing = false;
+        // Clear timeout if it exists
+        if (quest.timeoutId) {
+            clearTimeout(quest.timeoutId);
+        }
+    }
+    
+    // Cleanup any active collectors for this user
+    CombatSystem.cleanupUserCollectors(userId);
+    
     activeQuests.delete(userId);
     await db.delete(`on_quest_${userId}`);
 
@@ -619,6 +666,12 @@ const dragonData = {
 };
 
 async function spawnBossDragon(interaction, userId, location, activeQuests) {
+    const quest = activeQuests.get(userId);
+    if (!quest || quest.processing) return;
+    
+    quest.processing = true;
+    quest.dragonBattle = true;
+    
     const dragon = dragonData[location];
     const { startDragonBattle } = require('./quest/dragonBattle.js');
 

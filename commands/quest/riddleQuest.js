@@ -281,69 +281,83 @@ async function presentRiddle(interaction, userId, activeQuests, riddleNumber) {
     const collector = interaction.channel.createMessageCollector({ filter, time: 60000, max: 1 });
 
     collector.on('collect', async (message) => {
-        const answer = message.content.toLowerCase().trim();
-        const correctAnswers = [riddle.answer, ...riddle.alternatives];
+        try {
+            const answer = message.content.toLowerCase().trim();
+            const correctAnswers = [riddle.answer, ...riddle.alternatives];
 
-        if (correctAnswers.includes(answer)) {
-            // Correct answer
-            quest.data.riddlesCompleted++;
+            if (correctAnswers.includes(answer)) {
+                // Correct answer
+                quest.data.riddlesCompleted++;
 
-            if (quest.data.riddlesCompleted >= 2) {
-                // Both riddles completed
-                const { completeQuest } = require('../quest.js');
-                await completeQuest(interaction, userId, activeQuests, "🧩 You have solved both ancient riddles! The sphinx nods approvingly and vanishes.");
+                if (quest.data.riddlesCompleted >= 2) {
+                    // Both riddles completed
+                    const { completeQuest } = require('../quest.js');
+                    await completeQuest(interaction, userId, activeQuests, "🧩 You have solved both ancient riddles! The sphinx nods approvingly and vanishes.");
+                } else {
+                    // Move to next riddle - update the same message
+                    const successEmbed = new EmbedBuilder()
+                        .setTitle("✅ Riddle Solved!")
+                        .setColor("#00FF00")
+                        .setDescription(`Correct! The sphinx nods approvingly.\n\nPreparing the next riddle...`)
+                        .addFields(
+                            { name: "Progress", value: `${quest.data.riddlesCompleted}/2 riddles solved`, inline: false }
+                        );
+
+                    await CombatSystem.updateInteractionSafely(interaction, { embeds: [successEmbed], components: [] });
+
+                    setTimeout(async () => {
+                        await presentRiddle(interaction, userId, activeQuests, 2);
+                    }, 3000);
+                }
             } else {
-                // Move to next riddle - update the same message
-                const successEmbed = new EmbedBuilder()
-                    .setTitle("✅ Riddle Solved!")
-                    .setColor("#00FF00")
-                    .setDescription(`Correct! The sphinx nods approvingly.\n\nPreparing the next riddle...`)
-                    .addFields(
-                        { name: "Progress", value: `${quest.data.riddlesCompleted}/2 riddles solved`, inline: false }
-                    );
+                // Wrong answer - check for blue crystal protection
+                const { hasCrystal } = require('../../utility/crystalUtils.js');
+                const hasBlueCrystal = await hasCrystal(userId, 'blue');
 
-                await CombatSystem.updateInteractionSafely(interaction, { embeds: [successEmbed], components: [] });
-
-                setTimeout(async () => {
-                    await presentRiddle(interaction, userId, activeQuests, 2);
-                }, 3000);
+                if (hasBlueCrystal) {
+                    // Start sphinx combat
+                    quest.data.sphinxCombat = true;
+                    await startSphinxCombat(interaction, userId, collector, activeQuests);
+                } else {
+                    // Death
+                    const { endQuest } = require('../quest.js');
+                    await db.set(`death_cooldown_${userId}`, Date.now());
+                    await endQuest(interaction, userId, false, "The sphinx roars with anger and devours you whole. You are now dead for 24 hours.", activeQuests);
+                    collector.stop();
+                }
             }
-        } else {
-            // Wrong answer - check for blue crystal protection
-            const { hasCrystal } = require('../../utility/crystalUtils.js');
-            const hasBlueCrystal = await hasCrystal(userId, 'blue');
-
-            if (hasBlueCrystal) {
-                // Start sphinx combat
-                quest.data.sphinxCombat = true;
-                await startSphinxCombat(interaction, userId, collector, activeQuests);
-            } else {
-                // Death
-                const { endQuest } = require('../quest.js');
-                await db.set(`death_cooldown_${userId}`, Date.now());
-                await endQuest(interaction, userId, false, "The sphinx roars with anger and devours you whole. You are now dead for 24 hours.", activeQuests);
-                collector.stop();
-            }
+        } catch (error) {
+            console.error('Error in riddle quest collector:', error);
+            const { endQuest } = require('../quest.js');
+            await endQuest(interaction, userId, false, "An error occurred during the riddle. Your quest ends.", activeQuests);
+            collector.stop();
         }
     });
 
     collector.on('end', async (collected, reason) => {
-        if (reason === 'time' && collected.size === 0) {
-            // Timeout - check for blue crystal protection
-            const { hasCrystal } = require('../../utility/crystalUtils.js');
-            const hasBlueCrystal = await hasCrystal(userId, 'blue');
+        try {
+            if (reason === 'time' && collected.size === 0) {
+                // Timeout - check for blue crystal protection
+                const { hasCrystal } = require('../../utility/crystalUtils.js');
+                const hasBlueCrystal = await hasCrystal(userId, 'blue');
 
-            if (hasBlueCrystal) {
-                // Start sphinx combat
-                quest.data.sphinxCombat = true;
-                await startSphinxCombat(interaction, userId, collector, activeQuests);
-            } else {
-                // Death
-                const { endQuest } = require('../quest.js');
-                await db.set(`death_cooldown_${userId}`, Date.now());
-                await endQuest(interaction, userId, false, "The sphinx roars with anger and devours you whole. You are now dead for 24 hours.", activeQuests);
-                collector.stop();
+                if (hasBlueCrystal) {
+                    // Start sphinx combat
+                    quest.data.sphinxCombat = true;
+                    await startSphinxCombat(interaction, userId, collector, activeQuests);
+                } else {
+                    // Death
+                    const { endQuest } = require('../quest.js');
+                    await db.set(`death_cooldown_${userId}`, Date.now());
+                    await endQuest(interaction, userId, false, "The sphinx roars with anger and devours you whole. You are now dead for 24 hours.", activeQuests);
+                    collector.stop();
+                }
             }
+        } catch (error) {
+            console.error('Error in riddle quest collector:', error);
+            const { endQuest } = require('../quest.js');
+            await endQuest(interaction, userId, false, "An error occurred during the riddle. Your quest ends.", activeQuests);
+            collector.stop();
         }
     });
 }
