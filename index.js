@@ -35,9 +35,11 @@ commandDirs.forEach(dir => {
       let props = require(`${dir}${f}`);
       console.log(`${f} loaded from ${dir}!`);
       client.commands.set(props.help.name, props);
-      props.help.aliases.forEach(alias => {
-        client.aliases.set(alias, props.help.name);
-      });
+      if (props.help.aliases && Array.isArray(props.help.aliases)) {
+        props.help.aliases.forEach(alias => {
+          client.aliases.set(alias, props.help.name);
+        });
+      }
     });
   });
 });
