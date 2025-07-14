@@ -296,17 +296,7 @@ async function startLocationQuest(interaction, location, userId) {
             { name: "Progress", value: "0/2 quests completed", inline: false }
         );
 
-    try {
-        await interaction.update({ embeds: [embed], components: [] });
-    } catch (error) {
-        if (error.code === 10062) {
-            // Interaction expired, send a new message instead
-            await interaction.followUp({ embeds: [embed], components: [] });
-        } else {
-            console.error('Error updating interaction:', error);
-            throw error;
-        }
-    }
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
 
     // Add a continue button for better pacing
     setTimeout(async () => {
@@ -488,22 +478,7 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
                 { name: "Progress", value: "1/2 quests completed", inline: false }
             );
 
-        try {
-                // Check if interaction has already been replied to or deferred
-                if (interaction.replied || interaction.deferred) {
-                    await interaction.editReply({ embeds: [embed], components: [] });
-                } else {
-                    await interaction.update({ embeds: [embed], components: [] });
-                }
-            } catch (error) {
-                if (error.code === 10062 || error.code === 'InteractionNotReplied') {
-                    // Interaction expired or not replied, send a new message instead
-                    await interaction.followUp({ embeds: [embed], components: [] });
-                } else {
-                    console.error('Error updating interaction:', error);
-                    throw error;
-                }
-            }
+        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
 
         // Add a continue button for better pacing
         setTimeout(async () => {
