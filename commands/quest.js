@@ -9,10 +9,10 @@ const { startMazeQuest } = require('./quest/mazeQuest.js');
 const { startTrolleyQuest } = require('./quest/trolleyQuest.js');
 const { startMysteryQuest } = require('./quest/mysteryQuest.js');
 const { startChestQuest } = require('./quest/chestQuest.js');
-const { CombatSystem } = require('./quest/combatSystem.js');
 
 // Active quests storage
 const activeQuests = new Map();
+const questCollectors = new Map(); // Track collectors for cleanup
 
 // Location data
 const locations = {
@@ -48,7 +48,7 @@ const locations = {
     }
 };
 
-// Quest types and their monster values
+// Quest types
 const questTypes = {
     monster: {
         name: "⚔️ Ambush",
@@ -76,75 +76,74 @@ const questTypes = {
     }
 };
 
-// Quest data validation function
-function validateQuestData(questData) {
-    if (!questData) return false;
-    if (typeof questData.location !== 'string') return false;
-    if (typeof questData.startTime !== 'number') return false;
-    if (typeof questData.questsCompleted !== 'number') return false;
-    if (questData.questsCompleted < 0 || questData.questsCompleted > 2) return false;
-    return true;
+// Simple message sender utility
+async function sendQuestMessage(channel, embed, components = []) {
+    try {
+        return await channel.send({ embeds: [embed], components: components });
+    } catch (error) {
+        console.error('Error sending quest message:', error);
+        throw error;
+    }
+}
+
+// Simple collector cleanup
+function cleanupCollector(userId) {
+    const collector = questCollectors.get(userId);
+    if (collector) {
+        collector.stop();
+        questCollectors.delete(userId);
+    }
 }
 
 module.exports.run = async (client, message, args) => {
     const userId = message.author.id;
+    const channel = message.channel;
 
     // Check for debug mode (owner only)
     if (args[0] === 'debug') {
-        if (userId !== '367445249376649217') { // Bot owner ID from endquest.js
-            return message.channel.send("❌ This command is owner-only!");
+        if (userId !== '367445249376649217') {
+            return channel.send("❌ This command is owner-only!");
         }
         if (!args[1]) {
             const debugEmbed = new EmbedBuilder()
                 .setTitle("🔧 QUEST DEBUG COMMANDS")
                 .setColor("#FFA500")
-                .setDescription("**Owner-only debug commands for testing individual quest types**\n\n**Available Quest Names:**\n• `monster` - Combat quest with 2 monsters\n• `riddle` - Ancient riddle solving quest\n• `maze` - Hedge maze navigation quest\n• `trolley` - Moral dilemma trolley problem\n• `mystery` - Detective murder mystery case\n• `chest` - Mastermind color code chest puzzle\n• `dragon` - Choose and fight any boss dragon")
+                .setDescription("**Owner-only debug commands for testing individual quest types**\n\n**Available Quest Names:**\n• `monster` - Combat quest with 2 monsters\n• `riddle` - Ancient riddle solving quest\n• `maze` - Hedge maze navigation quest\n• `trolley` - Moral dilemma trolley problem\n• `mystery` - Detective murder mystery case\n• `chest` - Mastermind color code chest puzzle")
                 .addFields(
-                    { name: "Usage", value: "`=quest debug <questname>`", inline: false },
-                    { name: "Quest Details", value: "🗡️ **monster** - Fight Goblin Scout → Orc Raider\n🧩 **riddle** - Solve 2 random riddles (death on failure)\n🌿 **maze** - Navigate 2-stage maze with traps/combat\n🚃 **trolley** - Face moral choices with vengeance risk\n🕵️ **mystery** - Solve murder case (weapon/motive/suspect)\n📦 **chest** - Crack 4-color code within 5 attempts\n🐲 **dragon** - Select any dragon to fight immediately", inline: false },
-                    { name: "Debug Features", value: "• Complete after 1 quest instead of 2\n• 30-minute timeout still applies\n• No real rewards given", inline: false }
+                    { name: "Usage", value: "`=quest debug <questname>`", inline: false }
                 );
 
-            return message.channel.send({ embeds: [debugEmbed] });
+            return channel.send({ embeds: [debugEmbed] });
         }
 
         const questType = args[1].toLowerCase();
-        if (!questTypes[questType] && questType !== 'dragon') {
-            return message.channel.send("❌ Invalid quest type! Available: monster, riddle, maze, trolley, mystery, chest, dragon");
-        }
-
-        // Handle dragon debug separately
-        if (questType === 'dragon') {
-            await startDragonDebugQuest(message, userId);
-            return;
+        if (!questTypes[questType]) {
+            return channel.send("❌ Invalid quest type! Available: monster, riddle, maze, trolley, mystery, chest");
         }
 
         // Start debug quest immediately
-        await startDebugQuest(message, userId, questType);
+        await startDebugQuest(channel, userId, questType);
         return;
     }
 
-    // Check if user is already on a quest (both memory and database)
+    // Check if user is already on a quest
     const memoryQuest = activeQuests.has(userId);
     const dbQuest = await db.get(`on_quest_${userId}`);
-    
+
     if (memoryQuest || dbQuest) {
-        // Sync memory and database state if inconsistent
         if (memoryQuest && !dbQuest) {
             await db.set(`on_quest_${userId}`, true);
         } else if (!memoryQuest && dbQuest) {
-            // Quest exists in DB but not memory - could be from restart
-            // Allow user to start new quest and clean up DB
             await db.delete(`on_quest_${userId}`);
         } else {
-            return message.channel.send("❌ You are already on a quest! Complete it first before starting another.");
+            return channel.send("❌ You are already on a quest! Complete it first before starting another.");
         }
     }
 
     // Check if user is dead
     const deathTimer = await db.get(`death_cooldown_${userId}`);
-    if (deathTimer && Date.now() - deathTimer < 86400000) { // 24 hours
-        return message.channel.send("💀 You cannot go on quests while dead! Use `=revive` first.");
+    if (deathTimer && Date.now() - deathTimer < 86400000) {
+        return channel.send("💀 You cannot go on quests while dead! Use `=revive` first.");
     }
 
     // Create location selection embed
@@ -195,103 +194,57 @@ module.exports.run = async (client, message, args) => {
                 .setStyle(ButtonStyle.Secondary)
         );
 
-    const questMessage = await message.channel.send({ 
-        embeds: [embed], 
-        components: [row1, row2] 
-    });
+    const questMessage = await sendQuestMessage(channel, embed, [row1, row2]);
 
     // Set up collector
-    const filter = (interaction) => {
-        return interaction.user.id === message.author.id;
-    };
-
+    const filter = (interaction) => interaction.user.id === userId;
     const collector = questMessage.createMessageComponentCollector({
         filter,
         time: 60000 // 1 minute to choose
     });
 
+    questCollectors.set(userId, collector);
+
     collector.on('collect', async (interaction) => {
-        if (interaction.customId === 'quest_cancel') {
-            await interaction.update({
-                embeds: [new EmbedBuilder()
+        try {
+            await interaction.deferReply();
+
+            if (interaction.customId === 'quest_cancel') {
+                const cancelEmbed = new EmbedBuilder()
                     .setTitle("❌ Quest Cancelled")
                     .setColor("#FF0000")
-                    .setDescription("You decided not to embark on a quest today.")],
-                components: []
-            });
-            collector.stop();
-            return;
-        }
+                    .setDescription("You decided not to embark on a quest today.");
 
-        if (interaction.customId === 'quest_start_first') {
-            const quest = activeQuests.get(userId);
-            if (quest && quest.questType) {
-                switch (quest.questType) {
-                    case 'monster':
-                        await startMonsterQuest(interaction, userId, activeQuests);
-                        break;
-                    case 'riddle':
-                        await startRiddleQuest(interaction, userId, activeQuests);
-                        break;
-                    case 'maze':
-                        await startMazeQuest(interaction, userId, activeQuests);
-                        break;
-                    case 'trolley':
-                        await startTrolleyQuest(interaction, userId, activeQuests);
-                        break;
-                    case 'mystery':
-                        await startMysteryQuest(interaction, userId, activeQuests);
-                        break;
-                    case 'chest':
-                        await startChestQuest(interaction, userId, activeQuests);
-                        break;
-                }
+                await interaction.editReply({ embeds: [cancelEmbed] });
+                cleanupCollector(userId);
+                return;
             }
-            return;
-        }
 
-        if (interaction.customId === 'quest_start_second') {
-            const quest = activeQuests.get(userId);
-            if (quest && quest.questType) {
-                switch (quest.questType) {
-                    case 'monster':
-                        await startMonsterQuest(interaction, userId, activeQuests);
-                        break;
-                    case 'riddle':
-                        await startRiddleQuest(interaction, userId, activeQuests);
-                        break;
-                    case 'maze':
-                        await startMazeQuest(interaction, userId, activeQuests);
-                        break;
-                    case 'trolley':
-                        await startTrolleyQuest(interaction, userId, activeQuests);
-                        break;
-                    case 'mystery':
-                        await startMysteryQuest(interaction, userId, activeQuests);
-                        break;
-                    case 'chest':
-                        await startChestQuest(interaction, userId, activeQuests);
-                        break;
-                }
+            // Start the selected location
+            const location = interaction.customId.replace('location_', '');
+            await startLocationQuest(interaction, location, userId);
+            cleanupCollector(userId);
+        } catch (error) {
+            console.error('Error in quest collector:', error);
+            try {
+                await interaction.editReply({ content: "❌ An error occurred starting your quest." });
+            } catch (e) {
+                console.error('Error sending error message:', e);
             }
-            return;
+            cleanupCollector(userId);
         }
-
-        // Start the selected location
-        const location = interaction.customId.replace('location_', '');
-        await startLocationQuest(interaction, location, userId);
     });
 
     collector.on('end', (collected, reason) => {
         if (reason === 'time' && !collected.size) {
-            questMessage.edit({
-                embeds: [new EmbedBuilder()
-                    .setTitle("⏰ Quest Selection Timeout")
-                    .setColor("#FF0000")
-                    .setDescription("You took too long to choose a location.")],
-                components: []
-            });
+            const timeoutEmbed = new EmbedBuilder()
+                .setTitle("⏰ Quest Selection Timeout")
+                .setColor("#FF0000")
+                .setDescription("You took too long to choose a location.");
+
+            questMessage.edit({ embeds: [timeoutEmbed], components: [] }).catch(console.error);
         }
+        questCollectors.delete(userId);
     });
 };
 
@@ -308,32 +261,27 @@ async function startLocationQuest(interaction, location, userId) {
     activeQuests.set(userId, questData);
     await db.set(`on_quest_${userId}`, true);
 
-    // Set 30 minute timeout with enhanced cleanup
+    // Set 30 minute timeout
     const timeoutId = setTimeout(async () => {
         const quest = activeQuests.get(userId);
         if (quest) {
-            // Cleanup any active collectors
-            CombatSystem.cleanupUserCollectors(userId);
-            
-            // Clear processing flag and remove quest
-            quest.processing = false;
+            cleanupCollector(userId);
             activeQuests.delete(userId);
             await db.delete(`on_quest_${userId}`);
 
-            const timeoutEmbed = new EmbedBuilder()
-                .setTitle("⏰ Quest Timeout")
-                .setColor("#FF0000")
-                .setDescription("Your quest has timed out after 30 minutes. You can start a new quest when ready.");
-
             try {
-                await interaction.followUp({ embeds: [timeoutEmbed] });
+                await interaction.followUp({
+                    embeds: [new EmbedBuilder()
+                        .setTitle("⏰ Quest Timeout")
+                        .setColor("#FF0000")
+                        .setDescription("Your quest has timed out after 30 minutes. You can start a new quest when ready.")]
+                });
             } catch (err) {
                 console.log("Failed to send timeout message:", err);
             }
         }
     }, 1800000); // 30 minutes
-    
-    // Store timeout ID for potential cleanup
+
     questData.timeoutId = timeoutId;
 
     // Randomly select first quest type
@@ -342,7 +290,7 @@ async function startLocationQuest(interaction, location, userId) {
     questData.currentQuest = randomQuest;
 
     const locationData = locations[location];
-    const continueEmbed = new EmbedBuilder()
+    const embed = new EmbedBuilder()
         .setTitle(`${locationData.name} - Ready to Begin`)
         .setColor("#4169E1")
         .setDescription(`You arrive at the ${locationData.name.toLowerCase()}. ${locationData.description}.\n\nA ${questTypes[randomQuest].name} awaits you!`)
@@ -359,21 +307,64 @@ async function startLocationQuest(interaction, location, userId) {
                 .setStyle(ButtonStyle.Primary)
         );
 
-    // Store the quest type in the quest data for the collector
-    questData.questType = randomQuest;
+    await interaction.editReply({ embeds: [embed], components: [continueRow] });
 
-    await CombatSystem.updateInteractionSafely(interaction, { embeds: [continueEmbed], components: [continueRow] });
+    // Set up start quest collector
+    const filter = (i) => i.user.id === userId;
+    const collector = interaction.channel.createMessageComponentCollector({ filter, time: 1800000 });
+    questCollectors.set(userId, collector);
+
+    collector.on('collect', async (i) => {
+        try {
+            if (i.customId === 'quest_start_first') {
+                await i.deferReply();
+                await startSpecificQuest(i, userId, randomQuest);
+                cleanupCollector(userId);
+            }
+        } catch (error) {
+            console.error('Error starting specific quest:', error);
+            cleanupCollector(userId);
+        }
+    });
+}
+
+async function startSpecificQuest(interaction, userId, questType) {
+    try {
+        switch (questType) {
+            case 'monster':
+                await startMonsterQuest(interaction, userId, activeQuests);
+                break;
+            case 'riddle':
+                await startRiddleQuest(interaction, userId, activeQuests);
+                break;
+            case 'maze':
+                await startMazeQuest(interaction, userId, activeQuests);
+                break;
+            case 'trolley':
+                await startTrolleyQuest(interaction, userId, activeQuests);
+                break;
+            case 'mystery':
+                await startMysteryQuest(interaction, userId, activeQuests);
+                break;
+            case 'chest':
+                await startChestQuest(interaction, userId, activeQuests);
+                break;
+        }
+    } catch (error) {
+        console.error(`Error starting ${questType} quest:`, error);
+        await endQuest(interaction, userId, false, "An error occurred starting your quest.", activeQuests);
+    }
 }
 
 async function completeQuest(interaction, userId, activeQuests, trolleyMessage = null) {
     const quest = activeQuests.get(userId);
     if (!quest) return;
 
-    // Prevent race conditions by checking if quest is already being processed
+    // Prevent race conditions
     if (quest.processing) return;
     quest.processing = true;
 
-    // Handle debug mode - complete immediately
+    // Handle debug mode
     if (quest.isDebug) {
         let rewardText = "🔧 **DEBUG QUEST COMPLETED!**\n\nThis was a test quest - no rewards given.";
         if (trolleyMessage) {
@@ -385,60 +376,9 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
 
     quest.questsCompleted++;
 
-    // Track daily quest completions for dragon spawning
-    const today = new Date().toDateString();
-    const dailyKey = `daily_quests_${userId}_${today}`;
-    const dailyQuests = await db.get(dailyKey) || 0;
-    await db.set(dailyKey, dailyQuests + 1);
-
-    // Check for boss dragon spawn (50% chance after first quest of the day)
-    const shouldSpawnDragon = dailyQuests >= 1 && Math.random() < 0.5;
-
     if (quest.questsCompleted >= 2) {
-        // Check if user has all 5 crystals for Tiamat encounter
-        const { getCrystals } = require('../utility/crystalUtils.js');
-        const crystals = await getCrystals(userId);
-        const hasAllCrystals = crystals.white > 0 && crystals.black > 0 && crystals.red > 0 && crystals.blue > 0 && crystals.green > 0;
-
-        if (hasAllCrystals) {
-            // Check if Tiamat is on cooldown before attempting to spawn
-            const tiamatCooldown = await db.get(`tiamat_cooldown_${userId}`);
-            if (tiamatCooldown && Date.now() < tiamatCooldown) {
-                // Tiamat is on cooldown, complete quest normally with special message
-                let totalReward = 250;
-                let rewardText = "You have completed both quests and earned 250 kopeks!";
-
-                if (quest.totalMonsterValue > 0) {
-                    const monsterBonus = Math.floor(quest.totalMonsterValue / 2);
-                    totalReward += monsterBonus;
-                    rewardText = `You have completed both quests and earned 250 kopeks + ${monsterBonus} kopeks bonus from slaying monsters (total: ${totalReward} kopeks)!`;
-                }
-
-                const timeRemaining = tiamatCooldown - Date.now();
-                const hoursRemaining = Math.ceil(timeRemaining / (60 * 60 * 1000));
-                rewardText += `\n\n🐲 **Tiamat's Presence Detected!** You possess all 5 crystals, but Tiamat is still recovering from your previous battle. She can only be challenged once per day. Time remaining: ${hoursRemaining} hours`;
-
-                if (trolleyMessage) {
-                    rewardText = `${trolleyMessage}\n\n${rewardText}`;
-                }
-
-                await db.add(`money_${userId}`, totalReward);
-                await endQuest(interaction, userId, true, rewardText, activeQuests);
-                return;
-            } else {
-                // Spawn Tiamat instead of completing normally
-                await spawnTiamat(interaction, userId, activeQuests);
-                return;
-            }
-        }
-
-        if (shouldSpawnDragon) {
-            // Spawn boss dragon instead of completing normally
-            await spawnBossDragon(interaction, userId, quest.location, activeQuests);
-            return;
-        }
         // Both quests completed - give final reward
-        let totalReward = 250; // Base reward
+        let totalReward = 250;
         let rewardText = "You have completed both quests and earned 250 kopeks!";
 
         if (quest.totalMonsterValue > 0) {
@@ -474,12 +414,17 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
                 { name: "Progress", value: "1/2 quests completed", inline: false }
             );
 
-        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
+        // Store the quest type for the next quest
+        quest.currentQuest = randomQuest;
 
-        // Store the second quest type for the collector to handle
-        quest.questType = randomQuest;
+        try {
+            await interaction.editReply({ embeds: [embed], components: [] });
+        } catch (error) {
+            // Fallback to followUp if editReply fails
+            await interaction.followUp({ embeds: [embed], components: [] });
+        }
 
-        // Add a continue button for better pacing
+        // Start second quest after delay
         setTimeout(async () => {
             const continueEmbed = new EmbedBuilder()
                 .setTitle(`${location.second} - Ready for Final Challenge`)
@@ -498,7 +443,29 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
                         .setStyle(ButtonStyle.Primary)
                 );
 
-            await CombatSystem.updateInteractionSafely(interaction, { embeds: [continueEmbed], components: [continueRow] });
+            try {
+                const message = await interaction.followUp({ embeds: [continueEmbed], components: [continueRow] });
+
+                // Set up collector for second quest
+                const filter = (i) => i.user.id === userId;
+                const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
+                questCollectors.set(userId, collector);
+
+                collector.on('collect', async (i) => {
+                    try {
+                        if (i.customId === 'quest_start_second') {
+                            await i.deferReply();
+                            await startSpecificQuest(i, userId, randomQuest);
+                            cleanupCollector(userId);
+                        }
+                    } catch (error) {
+                        console.error('Error starting second quest:', error);
+                        cleanupCollector(userId);
+                    }
+                });
+            } catch (error) {
+                console.error('Error sending second quest message:', error);
+            }
         }, 2000);
     }
 }
@@ -507,15 +474,12 @@ async function endQuest(interaction, userId, success, message, activeQuests) {
     const quest = activeQuests.get(userId);
     if (quest) {
         quest.processing = false;
-        // Clear timeout if it exists
         if (quest.timeoutId) {
             clearTimeout(quest.timeoutId);
         }
     }
-    
-    // Cleanup any active collectors for this user
-    CombatSystem.cleanupUserCollectors(userId);
-    
+
+    cleanupCollector(userId);
     activeQuests.delete(userId);
     await db.delete(`on_quest_${userId}`);
 
@@ -525,282 +489,17 @@ async function endQuest(interaction, userId, success, message, activeQuests) {
         .setDescription(message);
 
     try {
-        // Check if interaction has already been replied to or deferred
-        if (interaction.replied || interaction.deferred) {
-            await interaction.editReply({ embeds: [embed], components: [] });
-        } else {
-            await interaction.update({ embeds: [embed], components: [] });
-        }
+        await interaction.editReply({ embeds: [embed], components: [] });
     } catch (error) {
-        if (error.code === 10062 || error.code === 'InteractionNotReplied') {
-            // Interaction expired or not replied, try to reply first then followUp
-            try {
-                await interaction.reply({ embeds: [embed], components: [] });
-            } catch (replyError) {
-                // If reply also fails, try deferring first then editing
-                try {
-                    await interaction.deferReply();
-                    await interaction.editReply({ embeds: [embed], components: [] });
-                } catch (deferError) {
-                    console.error('All interaction methods failed:', { error, replyError, deferError });
-                }
-            }
-        } else {
-            console.error('Error updating interaction:', error);
-            throw error;
+        try {
+            await interaction.followUp({ embeds: [embed], components: [] });
+        } catch (followUpError) {
+            console.error('Failed to send quest end message:', followUpError);
         }
     }
 }
 
-// Dragon data for each location
-const dragonData = {
-    plains: {
-        name: "Ancient White Dragon",
-        color: "white",
-        crystal: "White Crystal",
-        specialMove: "Tax",
-        specialDescription: "steals 10% of your coins"
-    },
-    forest: {
-        name: "Ancient Black Dragon",
-        color: "black", 
-        crystal: "Black Crystal",
-        specialMove: "Death",
-        specialDescription: "has a 10% chance to instantly kill you"
-    },
-    redlands: {
-        name: "Ancient Red Dragon",
-        color: "red",
-        crystal: "Red Crystal", 
-        specialMove: "Melt",
-        specialDescription: "destroys a random item in your backpack"
-    },
-    frostlands: {
-        name: "Ancient Blue Dragon",
-        color: "blue",
-        crystal: "Blue Crystal",
-        specialMove: "Freeze", 
-        specialDescription: "you skip your next turn"
-    },
-    emeraldlands: {
-        name: "Ancient Green Dragon",
-        color: "green",
-        crystal: "Green Crystal",
-        specialMove: "Heal",
-        specialDescription: "heals the dragon for 2-8 health"
-    }
-};
-
-async function spawnBossDragon(interaction, userId, location, activeQuests) {
-    const quest = activeQuests.get(userId);
-    if (!quest || quest.processing) return;
-    
-    quest.processing = true;
-    quest.dragonBattle = true;
-    
-    const dragon = dragonData[location];
-    const { startDragonBattle } = require('./quest/dragonBattle.js');
-
-    const embed = new EmbedBuilder()
-        .setTitle("🐲 BOSS DRAGON APPEARS!")
-        .setColor("#8B0000")
-        .setDescription(`As you complete your quest, the ground trembles! An **${dragon.name}** emerges from the depths!\n\n*"You dare trespass in my domain, mortal?"*\n\nThe ancient beast roars, ready for battle!`)
-        .addFields(
-            { name: "Dragon", value: dragon.name, inline: true },
-            { name: "Special Ability", value: `${dragon.specialMove} - ${dragon.specialDescription}`, inline: true },
-            { name: "Reward", value: `${dragon.crystal} (if victorious)`, inline: true }
-        );
-
-    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
-
-    // Start dragon battle after a delay
-    setTimeout(async () => {
-        await startDragonBattle(interaction, userId, location, activeQuests);
-    }, 3000);
-}
-
-async function spawnTiamat(interaction, userId, activeQuests) {
-    const { startTiamatBattle } = require('./quest/dragonBattle.js'); // Use dragonBattle.js which contains Tiamat code
-
-    const embed = new EmbedBuilder()
-        .setTitle("🐲 TIAMAT, MOTHER OF DRAGONS, APPEARS!")
-        .setColor("#8B0000")
-        .setDescription(`The earth SHAKES as **TIAMAT**, the five-headed dragon goddess, descends from the heavens! She has come to reclaim the crystals you possess!\n\n*"Foolish mortal, you have collected what is rightfully mine! Prepare to face my wrath!"*`)
-        .addFields(
-            { name: "Reward", value: "Forge the crystals into dragonscale armor (if victorious)", inline: false }
-        );
-
-    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
-
-    // Start Tiamat battle after a delay
-    setTimeout(async () => {
-        await startTiamatBattle(interaction, userId, activeQuests);
-    }, 3000);
-}
-
-// Function to check if user is on quest (for use in other commands)
-async function isOnQuest(userId) {
-    return activeQuests.has(userId) || await db.get(`on_quest_${userId}`);
-}
-
-async function startDragonDebugQuest(message, userId) {
-    // Check if user is already on a quest
-    if (activeQuests.has(userId)) {
-        return message.channel.send("❌ You are already on a quest! Complete it first before starting another.");
-    }
-
-    // Check if user is dead
-    const deathTimer = await db.get(`death_cooldown_${userId}`);
-    if (deathTimer && Date.now() - deathTimer < 86400000) { // 24 hours
-        return message.channel.send("💀 You cannot go on quests while dead! Use `=revive` first.");
-    }
-
-    const embed = new EmbedBuilder()
-        .setTitle("🐲 DEBUG DRAGON SELECTION")
-        .setColor("#8B0000")
-        .setDescription("**Owner-only debug mode for testing dragon battles**\n\nChoose which ancient dragon you want to fight:")
-        .addFields(
-            { name: "🌾 White Dragon", value: "**Tax** - Steals 10% of your coins\n*Location: Plains*", inline: true },
-            { name: "🌲 Black Dragon", value: "**Death** - 10% chance to instantly kill\n*Location: Forest*", inline: true },
-            { name: "🔥 Red Dragon", value: "**Melt** - Destroys random backpack item\n*Location: Badlands*", inline: true },
-            { name: "❄️ Blue Dragon", value: "**Freeze** - Skip your next turn\n*Location: Wastelands*", inline: true },
-            { name: "🌿 Green Dragon", value: "**Heal** - Heals dragon for 2-8 health\n*Location: Highlands*", inline: true },
-            { name: "\u200B", value: "\u200B", inline: true }
-        )
-        .setFooter({ text: "🔧 Debug Mode - No real rewards will be given" });
-
-    const row1 = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('debug_dragon_plains')
-                .setLabel('🌾 White Dragon')
-                .setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder()
-                .setCustomId('debug_dragon_forest')
-                .setLabel('🌲 Black Dragon')
-                .setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder()
-                .setCustomId('debug_dragon_redlands')
-                .setLabel('🔥 Red Dragon')
-                .setStyle(ButtonStyle.Danger)
-        );
-
-    const row2 = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('debug_dragon_frostlands')
-                .setLabel('❄️ Blue Dragon')
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('debug_dragon_emeraldlands')
-                .setLabel('🌿 Green Dragon')
-                .setStyle(ButtonStyle.Success),
-            new ButtonBuilder()
-                .setCustomId('debug_dragon_cancel')
-                .setLabel('❌ Cancel')
-                .setStyle(ButtonStyle.Secondary)
-        );
-
-    const dragonMessage = await message.channel.send({ 
-        embeds: [embed], 
-        components: [row1, row2] 
-    });
-
-    // Set up collector for dragon selection
-    const filter = (interaction) => {
-        return interaction.user.id === message.author.id;
-    };
-
-    const collector = dragonMessage.createMessageComponentCollector({
-        filter,
-        time: 60000 // 1 minute to choose
-    });
-
-    collector.on('collect', async (interaction) => {
-        if (interaction.customId === 'debug_dragon_cancel') {
-            await interaction.update({
-                embeds: [new EmbedBuilder()
-                    .setTitle("❌ Dragon Debug Cancelled")
-                    .setColor("#FF0000")
-                    .setDescription("Dragon debug mode cancelled.")],
-                components: []
-            });
-            collector.stop();
-            return;
-        }
-
-        // Extract dragon location from customId
-        const location = interaction.customId.replace('debug_dragon_', '');
-        const dragon = dragonData[location];
-
-        // Mark user as on debug quest
-        const questData = {
-            location: location,
-            startTime: Date.now(),
-            questsCompleted: 2, // Set to 2 so dragon spawns immediately
-            totalMonsterValue: 0,
-            currentQuest: 'dragon',
-            isDebug: true
-        };
-
-        activeQuests.set(userId, questData);
-        await db.set(`on_quest_${userId}`, true);
-
-        // Set 30 minute timeout
-        setTimeout(async () => {
-            if (activeQuests.has(userId)) {
-                activeQuests.delete(userId);
-                await db.delete(`on_quest_${userId}`);
-
-                const timeoutEmbed = new EmbedBuilder()
-                    .setTitle("⏰ Dragon Debug Timeout")
-                    .setColor("#FF0000")
-                    .setDescription("Your dragon debug quest has timed out after 30 minutes.");
-
-                try {
-                    await interaction.followUp({ embeds: [timeoutEmbed] });
-                } catch (err) {
-                    console.log("Failed to send timeout message:", err);
-                }
-            }
-        }, 1800000); // 30 minutes
-
-        // Show dragon intro
-        const introEmbed = new EmbedBuilder()
-            .setTitle(`🐲 DEBUG DRAGON BATTLE - ${dragon.name}`)
-            .setColor("#8B0000")
-            .setDescription(`**Debug Mode Activated**\n\nThe ground trembles as an **${dragon.name}** emerges from the depths!\n\n*"You dare challenge me in debug mode, mortal?"*\n\nPreparing for battle...`)
-            .addFields(
-                { name: "Dragon", value: dragon.name, inline: true },
-                { name: "Special Ability", value: `${dragon.specialMove} - ${dragon.specialDescription}`, inline: true },
-                { name: "Debug Reward", value: `${dragon.crystal} (debug - won't be kept)`, inline: true }
-            );
-
-        await interaction.update({ embeds: [introEmbed], components: [] });
-
-        // Start dragon battle after delay
-        setTimeout(async () => {
-            const { startDragonBattle } = require('./quest/dragonBattle.js');
-            await startDragonBattle(interaction, userId, location, activeQuests);
-        }, 3000);
-
-        collector.stop();
-    });
-
-    collector.on('end', (collected, reason) => {
-        if (reason === 'time' && !collected.size) {
-            dragonMessage.edit({
-                embeds: [new EmbedBuilder()
-                    .setTitle("⏰ Dragon Selection Timeout")
-                    .setColor("#FF0000")
-                    .setDescription("You took too long to choose a dragon.")],
-                components: []
-            });
-        }
-    });
-}
-
-async function startDebugQuest(message, userId, questType) {
+async function startDebugQuest(channel, userId, questType) {
     // Mark user as on debug quest
     const questData = {
         location: 'debug',
@@ -815,23 +514,20 @@ async function startDebugQuest(message, userId, questType) {
     await db.set(`on_quest_${userId}`, true);
 
     // Set 30 minute timeout
-    setTimeout(async () => {
+    const timeoutId = setTimeout(async () => {
         if (activeQuests.has(userId)) {
             activeQuests.delete(userId);
             await db.delete(`on_quest_${userId}`);
 
-            const timeoutEmbed = new EmbedBuilder()
-                .setTitle("⏰ Debug Quest Timeout")
-                .setColor("#FF0000")
-                .setDescription("Your debug quest has timed out after 30 minutes.");
-
             try {
-                await message.channel.send({ embeds: [timeoutEmbed] });
+                await channel.send("⏰ Your debug quest has timed out after 30 minutes.");
             } catch (err) {
                 console.log("Failed to send timeout message:", err);
             }
         }
-    }, 1800000); // 30 minutes
+    }, 1800000);
+
+    questData.timeoutId = timeoutId;
 
     const embed = new EmbedBuilder()
         .setTitle(`🔧 DEBUG QUEST - ${questTypes[questType].name}`)
@@ -841,64 +537,27 @@ async function startDebugQuest(message, userId, questType) {
             { name: "Quest Type", value: questType, inline: false }
         );
 
-    const debugMessage = await message.channel.send({ embeds: [embed] });
+    const debugMessage = await sendQuestMessage(channel, embed);
 
     // Start the specific quest after delay
-    setTimeout(() => {
-        // Create a fake interaction object for compatibility
+    setTimeout(async () => {
+        // Create a fake interaction for debug mode
         const fakeInteraction = {
-            update: async (options) => await debugMessage.edit(options),
             editReply: async (options) => await debugMessage.edit(options),
-            fetchReply: async () => debugMessage,
-            followUp: async (options) => await message.channel.send(options),
-            reply: async (options) => await message.channel.send(options),
-            deferReply: async () => { /* No-op for debug */ },
-            message: debugMessage,
-            user: message.author,
-            replied: true,
-            deferred: false,
-            channel: message.channel,
-            customId: null,
-            // Add proper interaction state tracking
-            acknowledged: false,
-            acknowledge: function() { this.acknowledged = true; },
-            // Override methods to handle debug state properly
-            safeUpdate: async function(options) {
-                try {
-                    if (!this.acknowledged) {
-                        this.acknowledged = true;
-                        return await debugMessage.edit(options);
-                    } else {
-                        return await message.channel.send(options);
-                    }
-                } catch (error) {
-                    console.error('Debug interaction update failed:', error);
-                    return await message.channel.send(options);
-                }
-            }
+            followUp: async (options) => await channel.send(options),
+            user: { id: userId },
+            channel: channel,
+            deferReply: async () => { /* no-op */ },
+            replied: true
         };
 
-        switch (questType) {
-            case 'monster':
-                startMonsterQuest(fakeInteraction, userId, activeQuests);
-                break;
-            case 'riddle':
-                startRiddleQuest(fakeInteraction, userId, activeQuests);
-                break;
-            case 'maze':
-                startMazeQuest(fakeInteraction, userId, activeQuests);
-                break;
-            case 'trolley':
-                startTrolleyQuest(fakeInteraction, userId, activeQuests);
-                break;
-            case 'mystery':
-                startMysteryQuest(fakeInteraction, userId, activeQuests);
-                break;
-            case 'chest':
-                startChestQuest(fakeInteraction, userId, activeQuests);
-                break;
-        }
+        await startSpecificQuest(fakeInteraction, userId, questType);
     }, 2000);
+}
+
+// Function to check if user is on quest (for use in other commands)
+async function isOnQuest(userId) {
+    return activeQuests.has(userId) || await db.get(`on_quest_${userId}`);
 }
 
 module.exports.help = {
