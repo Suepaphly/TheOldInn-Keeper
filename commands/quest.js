@@ -286,87 +286,71 @@ async function startLocationQuest(interaction, location, userId) {
     // Randomly select first quest type
     const questTypeNames = Object.keys(questTypes);
     const randomQuest = questTypeNames[Math.floor(Math.random() * questTypeNames.length)];
+    questData.currentQuest = randomQuest;
 
     const locationData = locations[location];
-    const embed = new EmbedBuilder()
-        .setTitle(`${locationData.name} - Quest 1/2`)
+    const continueEmbed = new EmbedBuilder()
+        .setTitle(`${locationData.name} - Ready to Begin`)
         .setColor("#4169E1")
         .setDescription(`You arrive at the ${locationData.name.toLowerCase()}. ${locationData.description}.\n\nA ${questTypes[randomQuest].name} awaits you!`)
         .addFields(
-            { name: "Progress", value: "0/2 quests completed", inline: false }
+            { name: "Progress", value: "0/2 quests completed", inline: false },
+            { name: "Quest Type", value: questTypes[randomQuest].description, inline: false }
         );
 
-    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
+    const continueRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('quest_start_first')
+                .setLabel('⚔️ Begin Quest')
+                .setStyle(ButtonStyle.Primary)
+        );
 
-    // Add a continue button for better pacing
-    setTimeout(async () => {
-        const continueEmbed = new EmbedBuilder()
-            .setTitle(`${locationData.name} - Ready to Begin`)
-            .setColor("#4169E1")
-            .setDescription(`You steel yourself for what lies ahead. A ${questTypes[randomQuest].name} awaits!`)
-            .addFields(
-                { name: "Progress", value: "0/2 quests completed", inline: false },
-                { name: "Quest Type", value: questTypes[randomQuest].description, inline: false }
-            );
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [continueEmbed], components: [continueRow] });
 
-        const continueRow = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('quest_start_first')
-                    .setLabel('⚔️ Begin Quest')
-                    .setStyle(ButtonStyle.Primary)
-            );
+    // Set up collector for start button
+    const filter = (i) => i.user.id === userId;
 
-        interaction.editReply({ embeds: [continueEmbed], components: [continueRow] }).catch(() => {
-            interaction.followUp({ embeds: [continueEmbed], components: [continueRow] });
-        });
-
-        // Set up collector for start button
-        const filter = (i) => i.user.id === userId;
-
-        // Get the message for the collector
-        let message;
-        try {
-            if (interaction.replied || interaction.deferred) {
-                message = await interaction.fetchReply();
-            } else {
-                message = interaction.message;
-            }
-        } catch (error) {
-            console.error('Error getting message for second quest collector:', error);
-            return;
+    // Get the message for the collector
+    let message;
+    try {
+        if (interaction.replied || interaction.deferred) {
+            message = await interaction.fetchReply();
+        } else {
+            message = interaction.message;
         }
+    } catch (error) {
+        console.error('Error getting message for quest collector:', error);
+        return;
+    }
 
-        const startCollector = message.createMessageComponentCollector({ filter, time: 1800000 });
+    const startCollector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
-        startCollector.on('collect', async (i) => {
-            if (i.customId === 'quest_start_first') {
-                questData.currentQuest = randomQuest;
-
-                switch (randomQuest) {
-                    case 'monster':
-                        await startMonsterQuest(i, userId, activeQuests);
-                        break;
-                    case 'riddle':
-                        await startRiddleQuest(i, userId, activeQuests);
-                        break;
-                    case 'maze':
-                        await startMazeQuest(i, userId, activeQuests);
-                        break;
-                    case 'trolley':
-                        await startTrolleyQuest(i, userId, activeQuests);
-                        break;
-                    case 'mystery':
-                        await startMysteryQuest(i, userId, activeQuests);
-                        break;
-                    case 'chest':
-                        await startChestQuest(i, userId, activeQuests);
-                        break;
-                }
-                startCollector.stop();
+    startCollector.on('collect', async (i) => {
+        if (i.customId === 'quest_start_first') {
+            switch (randomQuest) {
+                case 'monster':
+                    await startMonsterQuest(i, userId, activeQuests);
+                    break;
+                case 'riddle':
+                    await startRiddleQuest(i, userId, activeQuests);
+                    break;
+                case 'maze':
+                    await startMazeQuest(i, userId, activeQuests);
+                    break;
+                case 'trolley':
+                    await startTrolleyQuest(i, userId, activeQuests);
+                    break;
+                case 'mystery':
+                    await startMysteryQuest(i, userId, activeQuests);
+                    break;
+                case 'chest':
+                    await startChestQuest(i, userId, activeQuests);
+                    break;
             }
-        });
-    }, 2000);
+            startCollector.stop();
+        }
+    });
 }
 
 async function completeQuest(interaction, userId, activeQuests, trolleyMessage = null) {
