@@ -223,10 +223,63 @@ module.exports.run = async (client, message, args) => {
             return;
         }
 
+        if (interaction.customId === 'quest_start_first') {
+            const quest = activeQuests.get(userId);
+            if (quest && quest.questType) {
+                switch (quest.questType) {
+                    case 'monster':
+                        await startMonsterQuest(interaction, userId, activeQuests);
+                        break;
+                    case 'riddle':
+                        await startRiddleQuest(interaction, userId, activeQuests);
+                        break;
+                    case 'maze':
+                        await startMazeQuest(interaction, userId, activeQuests);
+                        break;
+                    case 'trolley':
+                        await startTrolleyQuest(interaction, userId, activeQuests);
+                        break;
+                    case 'mystery':
+                        await startMysteryQuest(interaction, userId, activeQuests);
+                        break;
+                    case 'chest':
+                        await startChestQuest(interaction, userId, activeQuests);
+                        break;
+                }
+            }
+            return;
+        }
+
+        if (interaction.customId === 'quest_start_second') {
+            const quest = activeQuests.get(userId);
+            if (quest && quest.questType) {
+                switch (quest.questType) {
+                    case 'monster':
+                        await startMonsterQuest(interaction, userId, activeQuests);
+                        break;
+                    case 'riddle':
+                        await startRiddleQuest(interaction, userId, activeQuests);
+                        break;
+                    case 'maze':
+                        await startMazeQuest(interaction, userId, activeQuests);
+                        break;
+                    case 'trolley':
+                        await startTrolleyQuest(interaction, userId, activeQuests);
+                        break;
+                    case 'mystery':
+                        await startMysteryQuest(interaction, userId, activeQuests);
+                        break;
+                    case 'chest':
+                        await startChestQuest(interaction, userId, activeQuests);
+                        break;
+                }
+            }
+            return;
+        }
+
         // Start the selected location
         const location = interaction.customId.replace('location_', '');
         await startLocationQuest(interaction, location, userId);
-        collector.stop();
     });
 
     collector.on('end', (collected, reason) => {
@@ -306,51 +359,10 @@ async function startLocationQuest(interaction, location, userId) {
                 .setStyle(ButtonStyle.Primary)
         );
 
+    // Store the quest type in the quest data for the collector
+    questData.questType = randomQuest;
+
     await CombatSystem.updateInteractionSafely(interaction, { embeds: [continueEmbed], components: [continueRow] });
-
-    // Set up collector for start button
-    const filter = (i) => i.user.id === userId;
-
-    // Get the message for the collector
-    let message;
-    try {
-        if (interaction.replied || interaction.deferred) {
-            message = await interaction.fetchReply();
-        } else {
-            message = interaction.message;
-        }
-    } catch (error) {
-        console.error('Error getting message for quest collector:', error);
-        return;
-    }
-
-    const startCollector = message.createMessageComponentCollector({ filter, time: 1800000 });
-
-    startCollector.on('collect', async (i) => {
-        if (i.customId === 'quest_start_first') {
-            switch (randomQuest) {
-                case 'monster':
-                    await startMonsterQuest(i, userId, activeQuests);
-                    break;
-                case 'riddle':
-                    await startRiddleQuest(i, userId, activeQuests);
-                    break;
-                case 'maze':
-                    await startMazeQuest(i, userId, activeQuests);
-                    break;
-                case 'trolley':
-                    await startTrolleyQuest(i, userId, activeQuests);
-                    break;
-                case 'mystery':
-                    await startMysteryQuest(i, userId, activeQuests);
-                    break;
-                case 'chest':
-                    await startChestQuest(i, userId, activeQuests);
-                    break;
-            }
-            startCollector.stop();
-        }
-    });
 }
 
 async function completeQuest(interaction, userId, activeQuests, trolleyMessage = null) {
@@ -464,6 +476,9 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
 
         await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
 
+        // Store the second quest type for the collector to handle
+        quest.questType = randomQuest;
+
         // Add a continue button for better pacing
         setTimeout(async () => {
             const continueEmbed = new EmbedBuilder()
@@ -483,55 +498,7 @@ async function completeQuest(interaction, userId, activeQuests, trolleyMessage =
                         .setStyle(ButtonStyle.Primary)
                 );
 
-            interaction.editReply({ embeds: [continueEmbed], components: [continueRow] }).catch(() => {
-                interaction.followUp({ embeds: [continueEmbed], components: [continueRow] });
-            });
-
-            // Set up collector for start button
-            const filter = (i) => i.user.id === userId;
-
-            // Get the message for the collector
-            let message;
-            try {
-                if (interaction.replied || interaction.deferred) {
-                    message = await interaction.fetchReply();
-                } else {
-                    message = interaction.message;
-                }
-            } catch (error) {
-                console.error('Error getting message for second quest collector:', error);
-                return;
-            }
-
-            const startCollector = message.createMessageComponentCollector({ filter, time: 1800000 });
-
-            startCollector.on('collect', async (i) => {
-                if (i.customId === 'quest_start_second') {
-                    quest.currentQuest = randomQuest;
-
-                    switch (randomQuest) {
-                        case 'monster':
-                            await startMonsterQuest(i, userId, activeQuests);
-                            break;
-                        case 'riddle':
-                            await startRiddleQuest(i, userId, activeQuests);
-                            break;
-                        case 'maze':
-                            await startMazeQuest(i, userId, activeQuests);
-                            break;
-                        case 'trolley':
-                            await startTrolleyQuest(i, userId, activeQuests);
-                            break;
-                        case 'mystery':
-                            await startMysteryQuest(i, userId, activeQuests);
-                            break;
-                        case 'chest':
-                            await startChestQuest(i, userId, activeQuests);
-                            break;
-                    }
-                    startCollector.stop();
-                }
-            });
+            await CombatSystem.updateInteractionSafely(interaction, { embeds: [continueEmbed], components: [continueRow] });
         }, 2000);
     }
 }
