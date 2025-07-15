@@ -2,6 +2,8 @@ const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const Discord = require("discord.js");
 const ptt = require("../../utility/protectTheTavern.js");
+// Import the config file
+const config = require("../../config.json");
 
 module.exports.run = async (client, message, args) => {
 
@@ -12,14 +14,14 @@ module.exports.run = async (client, message, args) => {
     console.error("Failed to import parse-ms", error);
     return;
   }
-  
+
       var user = message.author;
       var item = args[0];
       var amount = args[1];
       var location = args[2];
       var money = await db.get(`money_${message.author.id}`);
-      
-  
+
+
       if(item == null || !amount == null ){
         let buyMessage = "**Buy Castle Walls, Army Troops, and Defensive Traps.**\n" +
         "**Just type =buy [wall, army, or trap] [amount] [Traps and Army: Choose Rampart, Wall, or Castle].**\n" +
@@ -34,9 +36,9 @@ module.exports.run = async (client, message, args) => {
 
       } else {
         var mtype = null;
-        
 
-        
+
+
         if(ptt.troopArray.includes(item) && ptt.wallArray.includes(location)) {
           ptt.rmArmy(item, amount, location, user, message);
           return;
@@ -49,16 +51,16 @@ module.exports.run = async (client, message, args) => {
         } else {
           message.channel.send("Make sure you set the location! Ex: =buy boiling_oil 1 castle"); 
         }
-        
-       
-        
+
+
+
         //ptt.monsterArray.includes(item) mtype = "monster";
-        
-        
-        
+
+
+
       }
 
-  
+
 }
 
 module.exports.help = {

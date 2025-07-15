@@ -1,5 +1,6 @@
 
 const QuestCleanup = require('../../utility/questCleanup.js');
+const config = require('../../config.json');
 
 module.exports = {
     help: {
@@ -7,8 +8,8 @@ module.exports = {
         description: "Clean up quest system and database (Admin only)"
     },
     run: async (client, message, args) => {
-        // Check if user is admin (replace with your admin ID)
-        if (message.author.id !== '203964725076180992') {
+        // Check if user is admin
+        if (message.author.id !== config.ownerID) {
             return message.channel.send("❌ This command is for administrators only.");
         }
         

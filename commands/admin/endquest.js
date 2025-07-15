@@ -1,13 +1,13 @@
-
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
+const config = require("../config.json"); // Load the config
 
 module.exports.run = async (client, message, args) => {
     const ownerID = [
-        "367445249376649217"
+        config.ownerID
     ];
-    
+
     if (!ownerID.includes(message.author.id)) {
         return message.channel.send("❌ Only the bot owner can use this command!");
     }
@@ -31,12 +31,12 @@ module.exports.run = async (client, message, args) => {
     try {
         // Import the quest module to access activeQuests
         const questModule = require("../quest.js");
-        
+
         // Remove from active quests map if it exists
         if (questModule.activeQuests && questModule.activeQuests.has(target.id)) {
             questModule.activeQuests.delete(target.id);
         }
-        
+
         // Clean up database
         await db.delete(`on_quest_${target.id}`);
 
@@ -57,7 +57,7 @@ module.exports.run = async (client, message, args) => {
                 .setTitle("🛑 Quest Terminated")
                 .setColor("#FF0000")
                 .setDescription("Your quest has been forcibly ended by the bot administrator. You can start a new quest when ready.");
-            
+
             await target.send({ embeds: [dmEmbed] });
         } catch (err) {
             // User has DMs disabled or bot can't DM them

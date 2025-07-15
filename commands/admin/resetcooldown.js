@@ -1,9 +1,10 @@
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
+const config = require("./config.json");
 
 module.exports.run = async (client, message, args) => {
-    const ownerID = ["367445249376649217"];
+    const ownerID = config.ownerID;
 
     if (!ownerID.includes(message.author.id)) {
         return message.channel.send(

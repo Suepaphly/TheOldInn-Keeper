@@ -1,7 +1,8 @@
 {
-  "prefix": "=",
-  "activity": {
-    "streaming": false,
-    "game": "ProtectTheTavern"
-  }
+    "prefix": "=",
+    "activity": {
+        "game": "The Ol' Innkeeper",
+        "streaming": false
+    },
+    "ownerID": "203964725076180992"
 }

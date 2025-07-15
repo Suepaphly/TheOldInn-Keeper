@@ -1,14 +1,10 @@
-
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
+const config = require("./config.json"); // Import the config
 
 module.exports.run = async (client, message, args) => {
-    const ownerID = [
-        "367445249376649217"
-    ];
-    
-    if (!ownerID.includes(message.author.id)) {
+    if (!config.ownerID.includes(message.author.id)) {
         return message.channel.send("❌ Only the bot owner can use this command!");
     }
 

@@ -1,6 +1,7 @@
 
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { QuickDB } = require("quick.db");
+const config = require('../config.json');
 const db = new QuickDB();
 
 // Import quest types
@@ -66,7 +67,7 @@ module.exports = {
             const userId = message.author.id;
             
             // Check for debug mode (owner only)
-            if (args[0] === 'debug' && message.author.id === '203964725076180992') {
+            if (args[0] === 'debug' && message.author.id === config.ownerID) {
                 const questType = args[1];
                 if (questType && questTypes[questType]) {
                     return await startDebugQuest(message, userId, questType);

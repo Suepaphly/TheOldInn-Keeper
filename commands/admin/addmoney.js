@@ -1,12 +1,11 @@
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
-const db = new QuickDB(); 
+const db = new QuickDB();
+const config = require("../config.json"); // Assuming config.json is in the parent directory
 
 exports.run = async (client, message, args) => {
-    const ownerID = [
-        "367445249376649217" // Ensure this is your actual Discord user ID.
-    ];
-    if (!ownerID.includes(message.author.id)) {
+    const ownerID = config.ownerID;
+    if (!config.ownerID.includes(message.author.id)) {
         message.channel.send("You do not have permission to use this command.");
         return;
     }

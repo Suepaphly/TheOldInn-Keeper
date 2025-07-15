@@ -1,6 +1,7 @@
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const Discord = require("discord.js");
+const Discord = require('discord.js');
+const config = require('../config.json');
 
 // Utility function to check if the user can add to their backpack
 async function canAddToBackpack(userId) {
@@ -35,9 +36,9 @@ module.exports.run = async (client, message, args) => {
 
     const user = message.author;
     const money = (await db.get(`money_${user.id}`)) || 0;
-    
+
     // Owner ID for restricted purchases
-    const ownerID = "367445249376649217";
+    const ownerID = config.ownerID;
 
     if (!args[0]) {
         // Show shop items

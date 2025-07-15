@@ -1,14 +1,11 @@
-
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
+const config = require("./config.json"); // Import the config file
 
 module.exports.run = async (client, message, args) => {
-    const ownerID = [
-        "367445249376649217"
-    ];
-    
-    if (!ownerID.includes(message.author.id)) {
+
+    if (!config.ownerID.includes(message.author.id)) {
         return message.channel.send("❌ Only the bot owner can use this command!");
     }
 
@@ -82,7 +79,7 @@ module.exports.run = async (client, message, args) => {
                 .setTitle("🔄 Skills & Feats Reset")
                 .setColor("#FF6600")
                 .setDescription("Your skills and feats have been reset by the bot administrator. You can re-level and purchase feats again using `=lvl`.");
-            
+
             await target.send({ embeds: [dmEmbed] });
         } catch (err) {
             // User has DMs disabled or bot can't DM them
