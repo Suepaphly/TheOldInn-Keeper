@@ -261,6 +261,13 @@ class SimpleCombat {
 
         return { type: "none", name: "No Armor", defense: 0 };
     }
+
+    async refreshEquipment() {
+        // Refresh player equipment after melt ability destroys items
+        this.player.weapon = await this.getBestWeapon();
+        this.player.armor = await this.getBestArmor();
+        this.player.defense = this.player.armor.defense || 0;
+    }
 }
 
 function create(userId, questType) {

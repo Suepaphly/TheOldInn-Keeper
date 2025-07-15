@@ -136,16 +136,16 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
         const { hasCrystal } = require('../../utility/crystalUtils.js');
         const hasRedCrystal = await hasCrystal(this.userId, 'red');
         const redCrystalAttackBonus = hasRedCrystal ? 2 : 0;
-        
+
         const baseDamage = 1 + (this.player.combatLevel || 0) + redCrystalAttackBonus;
         let weaponDamage = 0;
-        
+
         if (this.player.weapon.minDamage !== undefined && this.player.weapon.maxDamage !== undefined) {
             const minDmg = this.player.weapon.minDamage || 0;
             const maxDmg = this.player.weapon.maxDamage || 0;
             weaponDamage = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
         }
-        
+
         const playerTotalDamage = baseDamage + weaponDamage;
         const enemyDefense = this.enemy.defense || 0;
         const playerFinalDamage = Math.max(1, playerTotalDamage - enemyDefense);
@@ -215,15 +215,21 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
                     return `Tiamat's black head casts Death, but you resist its dark magic!`;
                 }
 
-            case 'melt': // Red head - Melt
-                const items = await this.getBackpackItems();
-                if (items.length > 0) {
-                    const randomItem = items[Math.floor(Math.random() * items.length)];
-                    await db.sub(randomItem.key, 1);
-                    return `Tiamat's red head casts Melt! Your ${randomItem.name} is destroyed by the intense heat!`;
-                } else {
+            case 'melt': // Red head - Melt (destroy items)
+                const backpackItems = await this.getBackpackItems();
+                if (backpackItems.length === 0) {
                     return `Tiamat's red head casts Melt, but you have no items to destroy!`;
                 }
+
+                // Destroy a random item (50% chance for weapons, 50% for armor)
+                const randomItem = backpackItems[Math.floor(Math.random() * backpackItems.length)];
+                const destroyCount = Math.min(randomItem.count, Math.floor(Math.random() * 3) + 1); // 1-3 items
+                await db.sub(randomItem.key, destroyCount);
+
+                // Refresh equipment after destroying items
+                await this.refreshEquipment();
+
+                return `Tiamat's red head casts Melt! Your ${randomItem.name} ${destroyCount > 1 ? `(x${destroyCount}) ` : ''}melts away into nothing!`;
 
             case 'freeze': // Blue head - Freeze
                 this.playerFrozen = true;
@@ -430,7 +436,7 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
         // Player attacks first using correct damage formula: 1 (Base) + (Combat Level) + (Weapon Roll)
         const baseDamage = 1 + (this.player.combatLevel || 0);
         let weaponDamage = 0;
-        
+
         if (this.player.weapon.isDual) {
             // Dual pistols - two separate rolls
             const minDmg = this.player.weapon.minDamage || 0;
@@ -447,7 +453,7 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
             // Fists or no weapon
             weaponDamage = 0;
         }
-        
+
         const playerTotalDamage = baseDamage + weaponDamage;
         const enemyDefense = this.enemy.defense || 0;
         const playerFinalDamage = Math.max(1, playerTotalDamage - enemyDefense);
@@ -527,6 +533,9 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
                         }
 
                         await db.sub(randomItem.key, 1);
+                        // Refresh equipment after destroying items
+                        await this.refreshEquipment();
+
                         return `The Red Dragon casts Melt! Your ${randomItem.name} is destroyed by the intense heat!`;
                     } else {
                         return `The Red Dragon casts Melt, but you have no items to destroy!`;
