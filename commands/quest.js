@@ -90,8 +90,21 @@ module.exports = {
             // Check death cooldown
             const deathCooldown = await db.get(`death_cooldown_${userId}`);
             if (deathCooldown && Date.now() - deathCooldown < 86400000) { // 24 hours in milliseconds
-                const timeLeft = Math.ceil((86400000 - (Date.now() - deathCooldown)) / 1000 / 60);
-                return message.channel.send(`💀 You're still recovering from death! Wait ${timeLeft} more minutes.`);
+                const timeLeftMs = 86400000 - (Date.now() - deathCooldown);
+                const hoursLeft = Math.floor(timeLeftMs / 1000 / 60 / 60);
+                const minutesLeft = Math.ceil((timeLeftMs % (1000 * 60 * 60)) / 1000 / 60);
+                
+                let timeMessage = '';
+                if (hoursLeft > 0) {
+                    timeMessage = `${hoursLeft} hour${hoursLeft === 1 ? '' : 's'}`;
+                    if (minutesLeft > 0) {
+                        timeMessage += ` and ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}`;
+                    }
+                } else {
+                    timeMessage = `${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}`;
+                }
+                
+                return message.channel.send(`💀 You're still recovering from death! Wait ${timeMessage} more.`);
             }
             
             // Create location selection embed
