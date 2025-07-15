@@ -152,9 +152,9 @@ class SimpleCombat {
         }
 
         // Enemy attacks
-        const baseDamage = this.enemy.damage || 1;
+        const enemyBaseDamage = this.enemy.damage || 1;
         const variation = Math.floor(Math.random() * 4) - 2; // -2 to +1 variation
-        const enemyDamage = Math.max(1, baseDamage + variation);
+        const enemyDamage = Math.max(1, enemyBaseDamage + variation);
         const playerDefense = this.player.defense || 0;
         const playerDamageReceived = Math.max(1, enemyDamage - playerDefense);
         this.player.health = Math.max(0, this.player.health - playerDamageReceived);
