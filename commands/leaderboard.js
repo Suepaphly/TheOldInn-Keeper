@@ -27,24 +27,19 @@ module.exports.run = async (bot, message, args) => {
         const [key, amount] = bankEntries[i];
         const userId = key.split('_')[1];
         
+        // Check if user is in the current server
+        const member = message.guild.members.cache.get(userId);
+        if (!member) {
+            continue; // Skip users not in this server
+        }
+        
         let displayName = "Unknown User";
         
         try {
-            // Try cache first, then fetch from Discord API
-            let user = bot.users.cache.get(userId);
-            if (!user) {
-                user = await bot.users.fetch(userId);
-            }
-            displayName = user.tag;
+            displayName = member.user.tag;
         } catch (error) {
-            // If user can't be fetched, try to get a partial name from cache or use ID
-            console.log(`Could not fetch user ${userId} for leaderboard:`, error.message);
-            const cachedUser = bot.users.cache.get(userId);
-            if (cachedUser) {
-                displayName = cachedUser.tag;
-            } else {
-                displayName = `User ${userId}`;
-            }
+            console.log(`Could not get user info for ${userId}:`, error.message);
+            displayName = `User ${userId}`;
         }
         
         const formattedAmount = amount.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");

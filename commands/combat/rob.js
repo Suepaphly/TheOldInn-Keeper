@@ -22,14 +22,22 @@ module.exports.run = async (bot, message, args) => {
                 .slice(0, 5);
 
             let leaderboardStrings = [];
+            let position = 1;
             for (let i = 0; i < topWallets.length; i++) {
                 try {
                     let userId = topWallets[i].id.split('_')[1];
-                    let user = await bot.users.fetch(userId);
+                    
+                    // Check if user is in the current server
+                    const member = message.guild.members.cache.get(userId);
+                    if (!member) {
+                        continue; // Skip users not in this server
+                    }
+                    
                     let formattedAmount = topWallets[i].value.toLocaleString();
-                    leaderboardStrings.push(`${i + 1}. **${user.tag}** => ${formattedAmount}\n`);
+                    leaderboardStrings.push(`${position}. **${member.user.tag}** => ${formattedAmount}\n`);
+                    position++;
                 } catch (error) {
-                    console.error(`Failed to fetch user ${topWallets[i].id}:`, error);
+                    console.error(`Failed to process user ${topWallets[i].id}:`, error);
                 }
             }
 
