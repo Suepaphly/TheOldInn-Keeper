@@ -195,8 +195,9 @@ class SimpleCombat {
     }
 
     async handleDefeat() {
-        // In quests, defeat should end the quest without setting health
-        return `💀 You have been defeated in combat!`;
+        // Set death cooldown (24 hours) and end quest
+        await db.set(`death_cooldown_${this.userId}`, Date.now());
+        return `💀 You have been defeated in combat! You must wait 24 hours before starting another quest.`;
     }
 
     async getBestWeapon() {
