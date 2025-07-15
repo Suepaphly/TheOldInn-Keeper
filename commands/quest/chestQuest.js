@@ -338,19 +338,7 @@ async function startMimicEncounter(interaction, userId, activeQuests) {
                 .setStyle(ButtonStyle.Secondary)
         );
 
-    // Reply to the interaction first if not already replied
-    try {
-        if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ embeds: [embed], components: [row] });
-        } else {
-            await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
-        }
-    } catch (error) {
-        console.error('Error in chest quest interaction:', error);
-        if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ embeds: [embed], components: [row] });
-        }
-    }
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     // Set up combat collector
     const filter = (i) => i.user.id === userId;
@@ -430,19 +418,7 @@ async function handleMimicCombat(interaction, userId, combat, collector, activeQ
 
         // Update combat display
         const { embed, row } = combat.createCombatEmbed(battleText);
-        // Reply to the interaction first if not already replied
-    try {
-        if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ embeds: [embed], components: [row] });
-        } else {
-            await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
-        }
-    } catch (error) {
-        console.error('Error in chest quest interaction:', error);
-        if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ embeds: [embed], components: [row] });
-        }
-    }
+        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     } catch (error) {
         console.error('Error in mimic combat:', error);
