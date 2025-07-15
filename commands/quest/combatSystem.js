@@ -50,10 +50,8 @@ class SimpleCombat {
         // Get player stats using equipment calculations like main combat system
         const combatLevel = await db.get(`combatlevel_${this.userId}`) || 0;
 
-        // Calculate health using formula: 5 (Base) + (Combat Lvl * 2) + (Red crystal bonus if applicable)
-        const redCrystalCount = await db.get(`crystal_red_${this.userId}`) || 0;
-        const redCrystalBonus = redCrystalCount > 0 ? 10 : 0; // Red crystal gives +10 health
-        const calculatedHealth = 5 + (combatLevel * 2) + redCrystalBonus;
+        // Calculate health using formula: 5 (Base) + (Combat Lvl * 2)
+        const calculatedHealth = 5 + (combatLevel * 2);
 
         // Get equipped weapon and armor
         const equippedWeapon = await this.getBestWeapon();
@@ -118,14 +116,16 @@ class SimpleCombat {
         let weaponDamage = 0;
         let attackDescription = "";
 
-        if (this.player.weapon.isDual) {
-            // Dual pistols - two separate rolls
-            const minDmg = this.player.weapon.minDamage || 0;
-            const maxDmg = this.player.weapon.maxDamage || 0;
-            const firstRoll = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
-            const secondRoll = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
-            weaponDamage = firstRoll + secondRoll;
-            attackDescription = ` with dual pistols (${firstRoll} + ${secondRoll})`;
+        // Check for dual pistols (Guns Akimbo feat)
+        const hasGunsAkimbo = await db.get(`feat_guns_akimbo_${this.userId}`) || false;
+        const pistolCount = await db.get(`weapon_pistol_${this.userId}`) || 0;
+        
+        if (hasGunsAkimbo && pistolCount >= 2 && this.player.weapon.name === "Dual Pistols") {
+            // Dual pistols - two separate rolls like in attackplayer.js
+            const firstWeaponDamage = Math.floor(Math.random() * (5 - 3 + 1)) + 3; // 3-5 damage
+            const secondWeaponDamage = Math.floor(Math.random() * (5 - 3 + 1)) + 3; // 3-5 damage
+            weaponDamage = firstWeaponDamage + secondWeaponDamage;
+            attackDescription = ` with dual pistols (${firstWeaponDamage} + ${secondWeaponDamage})`;
         } else if (this.player.weapon.minDamage !== undefined && this.player.weapon.maxDamage !== undefined) {
             // Regular weapon with damage range
             const minDmg = this.player.weapon.minDamage || 0;
@@ -192,58 +192,65 @@ class SimpleCombat {
 
     async getBestWeapon() {
         const weapons = [
-            { id: 'rifle', name: 'Rifle', minDamage: 6, maxDamage: 12, priority: 6 },
-            { id: 'shotgun', name: 'Shotgun', minDamage: 4, maxDamage: 10, priority: 5 },
-            { id: 'pistol', name: 'Pistol', minDamage: 3, maxDamage: 5, priority: 3 },
-            { id: 'sword', name: 'Sword', minDamage: 2, maxDamage: 4, priority: 2 },
-            { id: 'knife', name: 'Knife', minDamage: 1, maxDamage: 2, priority: 1 }
+            { type: "rifle", name: "Rifle", minDamage: 6, maxDamage: 12 },
+            { type: "shotgun", name: "Shotgun", minDamage: 4, maxDamage: 10 },
+            { type: "pistol", name: "Pistol", minDamage: 3, maxDamage: 5 },
+            { type: "sword", name: "Sword", minDamage: 2, maxDamage: 4 },
+            { type: "knife", name: "Knife", minDamage: 1, maxDamage: 3 }
         ];
 
-        let bestWeapon = { name: "Fists", priority: 0 };
-
-        // Check for dual pistols first (guns akimbo feat)
+        // Check for dual pistols first (Guns Akimbo feat) - matches attackplayer.js logic
+        const hasGunsAkimbo = await db.get(`feat_guns_akimbo_${this.userId}`) || false;
         const pistolCount = await db.get(`weapon_pistol_${this.userId}`) || 0;
-        if (pistolCount >= 2) {
-            bestWeapon = {
-                name: "Dual Pistols",
-                minDamage: 3,
-                maxDamage: 5,
-                priority: 4, // Between shotgun and single pistol
-                isDual: true
-            };
-        }
 
-        // Check other weapons only if dual pistols aren't available or we find something better
-        for (const weapon of weapons) {
-            const count = await db.get(`weapon_${weapon.id}_${this.userId}`) || 0;
-            if (count > 0 && weapon.priority > bestWeapon.priority) {
-                bestWeapon = weapon;
+        if (hasGunsAkimbo && pistolCount >= 2) {
+            // Check if dual pistols are the best weapon by comparing max potential damage
+            const dualPistolMaxDamage = 5 * 2; // 5 max damage per pistol * 2 pistols
+
+            // Check if any better weapon exists
+            const rifleCount = await db.get(`weapon_rifle_${this.userId}`) || 0;
+            const shotgunCount = await db.get(`weapon_shotgun_${this.userId}`) || 0;
+
+            if (rifleCount === 0 && shotgunCount === 0) {
+                return { 
+                    type: "pistol", 
+                    name: "Dual Pistols", 
+                    minDamage: 3, 
+                    maxDamage: 5
+                };
             }
         }
 
-        return bestWeapon;
+        // Check weapons in priority order (like attackplayer.js)
+        for (const weapon of weapons) {
+            const count = await db.get(`weapon_${weapon.type}_${this.userId}`) || 0;
+            if (count > 0) {
+                return weapon;
+            }
+        }
+
+        return { type: "none", name: "Fists", minDamage: 0, maxDamage: 0 };
     }
 
     async getBestArmor() {
         const armors = [
-            { id: 'cloth', name: 'Cloth Armor', defense: 1 },
-            { id: 'leather', name: 'Leather Armor', defense: 2 },
-            { id: 'chainmail', name: 'Chainmail Armor', defense: 3 },
-            { id: 'studded', name: 'Studded Armor', defense: 5 },
-            { id: 'plate', name: 'Plate Armor', defense: 10 },
-            { id: 'dragonscale', name: 'Dragonscale Armor', defense: 20 }
+            { type: "dragonscale", name: "Dragonscale Armor", defense: 20 },
+            { type: "plate", name: "Plate Armor", defense: 10 },
+            { type: "studded", name: "Studded Armor", defense: 5 },
+            { type: "chainmail", name: "Chainmail Armor", defense: 3 },
+            { type: "leather", name: "Leather Armor", defense: 2 },
+            { type: "cloth", name: "Cloth Armor", defense: 1 }
         ];
 
-        let bestArmor = { name: "No Armor", defense: 0 };
-
+        // Check armors in priority order (like attackplayer.js)
         for (const armor of armors) {
-            const count = await db.get(`armor_${armor.id}_${this.userId}`) || 0;
-            if (count > 0 && armor.defense > bestArmor.defense) {
-                bestArmor = armor;
+            const count = await db.get(`armor_${armor.type}_${this.userId}`) || 0;
+            if (count > 0) {
+                return armor;
             }
         }
 
-        return bestArmor;
+        return { type: "none", name: "No Armor", defense: 0 };
     }
 }
 
