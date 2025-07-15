@@ -83,8 +83,8 @@ module.exports = {
             
             // Check death cooldown
             const deathCooldown = await db.get(`death_cooldown_${userId}`);
-            if (deathCooldown && Date.now() < deathCooldown) {
-                const timeLeft = Math.ceil((deathCooldown - Date.now()) / 1000 / 60);
+            if (deathCooldown && Date.now() - deathCooldown < 86400000) { // 24 hours in milliseconds
+                const timeLeft = Math.ceil((86400000 - (Date.now() - deathCooldown)) / 1000 / 60);
                 return message.channel.send(`💀 You're still recovering from death! Wait ${timeLeft} more minutes.`);
             }
             
