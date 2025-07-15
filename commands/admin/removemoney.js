@@ -1,13 +1,10 @@
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const config = require("./config.json");
+const config = require("../../config.json");
 
 module.exports.run = async (bot, message, args) => {
-  const ownerID = [
-    "367445249376649217"
-  ];
-  if (!ownerID.includes(message.author.id)) return;
+  if (message.author.id !== config.ownerID) return;
 
   let user = message.mentions.members.first() || message.author;
 

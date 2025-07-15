@@ -1,4 +1,3 @@
-
 const QuestCleanup = require('../../utility/questCleanup.js');
 const config = require('../../config.json');
 
@@ -12,10 +11,10 @@ module.exports = {
         if (message.author.id !== config.ownerID) {
             return message.channel.send("❌ This command is for administrators only.");
         }
-        
+
         try {
             const action = args[0]?.toLowerCase();
-            
+
             switch (action) {
                 case 'all':
                     const allResult = await QuestCleanup.clearAllQuestStates();
@@ -25,13 +24,13 @@ module.exports = {
                         message.channel.send(`❌ **Cleanup failed:** ${allResult.error}`);
                     }
                     break;
-                    
+
                 case 'user':
                     const userId = args[1];
                     if (!userId) {
                         return message.channel.send("❌ Please provide a user ID: `=cleanup user <userid>`");
                     }
-                    
+
                     const userResult = await QuestCleanup.clearUserQuest(userId);
                     if (userResult.success) {
                         message.channel.send(`✅ **User cleanup completed!**\nCleared ${userResult.cleanedCount} entries for user ${userId}.`);
@@ -39,7 +38,7 @@ module.exports = {
                         message.channel.send(`❌ **User cleanup failed:** ${userResult.error}`);
                     }
                     break;
-                    
+
                 case 'death':
                     const deathResult = await QuestCleanup.clearExpiredDeathCooldowns();
                     if (deathResult.success) {
@@ -48,7 +47,7 @@ module.exports = {
                         message.channel.send(`❌ **Death cleanup failed:** ${deathResult.error}`);
                     }
                     break;
-                    
+
                 case 'report':
                 case 'diagnostic':
                     const report = await QuestCleanup.diagnosticReport();
@@ -70,7 +69,7 @@ module.exports = {
                         message.channel.send("❌ Failed to generate diagnostic report.");
                     }
                     break;
-                    
+
                 default:
                     message.channel.send(
                         `🧹 **Quest Cleanup Commands**\n` +
@@ -82,7 +81,7 @@ module.exports = {
                     );
                     break;
             }
-            
+
         } catch (error) {
             console.error('Cleanup command error:', error);
             message.channel.send("❌ An error occurred during cleanup.");

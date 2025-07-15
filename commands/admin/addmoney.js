@@ -4,8 +4,7 @@ const db = new QuickDB();
 const config = require("../config.json"); // Assuming config.json is in the parent directory
 
 exports.run = async (client, message, args) => {
-    const ownerID = config.ownerID;
-    if (!config.ownerID.includes(message.author.id)) {
+    if (message.author.id !== config.ownerID) {
         message.channel.send("You do not have permission to use this command.");
         return;
     }
