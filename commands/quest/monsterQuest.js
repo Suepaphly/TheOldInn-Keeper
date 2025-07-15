@@ -2,7 +2,8 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const { CombatSystem, COMBAT_PRESETS } = require('./combatSystem.js');
+const CombatSystem = require('./combatSystem.js');
+const { COMBAT_PRESETS } = CombatSystem;
 
 async function startMonsterQuest(interaction, userId, activeQuests) {
     const quest = activeQuests.get(userId);
@@ -36,8 +37,19 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
 
     const { embed, row } = combat.createCombatEmbed(`You are ambushed by a **${enemyData.name}**! (${round}/2)`);
 
-    // Use the safe update method from CombatSystem
-    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+    // Reply to the interaction first if not already replied
+    try {
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ embeds: [embed], components: [row] });
+        } else {
+            await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+        }
+    } catch (error) {
+        console.error('Error in monster quest interaction:', error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ embeds: [embed], components: [row] });
+        }
+    }
 
     // Set up combat collector
     const filter = (i) => i.user.id === userId;

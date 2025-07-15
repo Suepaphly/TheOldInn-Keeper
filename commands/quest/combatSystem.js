@@ -144,8 +144,32 @@ function create(userId, questType) {
     return new SimpleCombat(userId, questType);
 }
 
+// Static utility method for safe interaction updates
+async function updateInteractionSafely(interaction, options) {
+    try {
+        if (interaction.replied) {
+            return await interaction.editReply(options);
+        } else if (interaction.deferred) {
+            return await interaction.editReply(options);
+        } else {
+            await interaction.deferUpdate();
+            return await interaction.editReply(options);
+        }
+    } catch (error) {
+        console.error('Error updating interaction safely:', error);
+        try {
+            if (!interaction.replied && !interaction.deferred) {
+                return await interaction.reply({ ...options, ephemeral: true });
+            }
+        } catch (fallbackError) {
+            console.error('Fallback interaction update failed:', fallbackError);
+        }
+    }
+}
+
 module.exports = {
     SimpleCombat,
     COMBAT_PRESETS,
-    create
+    create,
+    updateInteractionSafely
 };

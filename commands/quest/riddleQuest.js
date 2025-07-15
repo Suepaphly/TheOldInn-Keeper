@@ -1,7 +1,8 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const { CombatSystem, COMBAT_PRESETS } = require('./combatSystem.js');
+const CombatSystem = require('./combatSystem.js');
+const { COMBAT_PRESETS } = CombatSystem;
 
 // Riddle data
 const riddles = [

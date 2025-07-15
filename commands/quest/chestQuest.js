@@ -14,7 +14,8 @@ const colors = [
 
 async function startChestQuest(interaction, userId, activeQuests) {
     const { completeQuest, endQuest } = require('../quest.js');
-    const { CombatSystem } = require('./combatSystem.js');
+    const CombatSystem = require('./combatSystem.js');
+    const { COMBAT_PRESETS } = CombatSystem;
 
     // Generate a random 4-color code
     const secretCode = [];
@@ -121,7 +122,8 @@ async function startChestQuest(interaction, userId, activeQuests) {
 
 async function handleGuessSubmission(interaction, questData, userId, activeQuests, collector) {
     const { completeQuest, endQuest } = require('../quest.js');
-    const { CombatSystem } = require('./combatSystem.js');
+    const CombatSystem = require('./combatSystem.js');
+    const { COMBAT_PRESETS } = CombatSystem;
 
     questData.attempts++;
     const guess = [...questData.currentGuess];
@@ -208,7 +210,8 @@ function generateFeedback(guess, secretCode) {
 }
 
 async function updateChestDisplay(interaction, questData) {
-    const { CombatSystem } = require('./combatSystem.js');
+    const CombatSystem = require('./combatSystem.js');
+    const { COMBAT_PRESETS } = CombatSystem;
 
     const currentGuessDisplay = questData.currentGuess.map(colorId => 
         colors.find(c => c.id === colorId).emoji
@@ -283,7 +286,8 @@ async function updateChestDisplay(interaction, questData) {
 }
 
 async function startMimicEncounter(interaction, userId, activeQuests) {
-    const { CombatSystem } = require('./combatSystem.js');
+    const CombatSystem = require('./combatSystem.js');
+    const { COMBAT_PRESETS } = CombatSystem;
     const { completeQuest, endQuest } = require('../quest.js');
 
     const mimicData = {
@@ -321,7 +325,19 @@ async function startMimicEncounter(interaction, userId, activeQuests) {
                 .setStyle(ButtonStyle.Secondary)
         );
 
-    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+    // Reply to the interaction first if not already replied
+    try {
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ embeds: [embed], components: [row] });
+        } else {
+            await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+        }
+    } catch (error) {
+        console.error('Error in chest quest interaction:', error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ embeds: [embed], components: [row] });
+        }
+    }
 
     // Set up combat collector
     const filter = (i) => i.user.id === userId;
@@ -361,7 +377,8 @@ async function startMimicEncounter(interaction, userId, activeQuests) {
 
 async function handleMimicCombat(interaction, userId, combat, collector, activeQuests) {
     const { completeQuest, endQuest } = require('../quest.js');
-    const { CombatSystem } = require('./combatSystem.js');
+    const CombatSystem = require('./combatSystem.js');
+    const { COMBAT_PRESETS } = CombatSystem;
     const { QuickDB } = require("quick.db");
     const db = new QuickDB();
 
@@ -400,7 +417,19 @@ async function handleMimicCombat(interaction, userId, combat, collector, activeQ
 
         // Update combat display
         const { embed, row } = combat.createCombatEmbed(battleText);
-        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+        // Reply to the interaction first if not already replied
+    try {
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ embeds: [embed], components: [row] });
+        } else {
+            await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
+        }
+    } catch (error) {
+        console.error('Error in chest quest interaction:', error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ embeds: [embed], components: [row] });
+        }
+    }
 
     } catch (error) {
         console.error('Error in mimic combat:', error);

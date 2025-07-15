@@ -1,7 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const { CombatSystem } = require('./combatSystem.js');
+const CombatSystem = require('./combatSystem.js');
 
 const mysteryScenarios = [
     {
