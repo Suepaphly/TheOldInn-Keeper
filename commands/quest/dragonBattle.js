@@ -287,6 +287,11 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
             return `🔧 **DEBUG VICTORY!** 🔧\n\nYou have achieved the impossible - slaying Tiamat, the Mother of Dragons! In normal mode, you would receive 100,000 kopeks and Dragonscale Armor (sells for 6,000 kopeks), and all crystals would be removed from your inventory.\n\n*Debug mode - no actual rewards given or crystals removed.*`;
         }
 
+        // Check if this is a no-reward practice fight
+        if (quest && quest.data && quest.data.tiamatNoReward) {
+            return `🌟 **PRACTICE VICTORY!** 🌟\n\nYou have defeated Tiamat in practice combat! While you've proven your skill once again, you cannot claim her legendary rewards more than once per day.\n\n*Your previous victory within 24 hours already claimed the ultimate prize.*\n\nTiamat acknowledges your continued prowess but offers no additional treasures.`;
+        }
+
         const kopeksReward = 100000;
         const dragonscaleArmorReward = 6000;
 
@@ -299,11 +304,11 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
             await db.set(`crystal_${crystal}_${this.userId}`, 0);
         }
 
-        // Set Tiamat daily cooldown (24 hours from now)
+        // Set Tiamat victory cooldown (24 hours from now) - only on actual reward victory
         const tomorrow = Date.now() + (24 * 60 * 60 * 1000);
         await db.set(`tiamat_cooldown_${this.userId}`, tomorrow);
 
-        return `🌟 **LEGENDARY VICTORY!** 🌟\n\nYou have achieved the impossible - slaying Tiamat, the Mother of Dragons! As her five heads collapse, the very fabric of reality trembles. You are now a legend among legends, having conquered the ultimate draconic threat!\n\n*The other dragons across all realms bow their heads in respect for your incredible feat.*\n\nYou receive 100,000 kopeks and Dragonscale Armor (sells for 6,000 kopeks)! All crystals have been removed from your inventory.\n\n⏰ Tiamat can only be defeated once per day. You must wait 24 hours before facing her again.`;
+        return `🌟 **LEGENDARY VICTORY!** 🌟\n\nYou have achieved the impossible - slaying Tiamat, the Mother of Dragons! As her five heads collapse, the very fabric of reality trembles. You are now a legend among legends, having conquered the ultimate draconic threat!\n\n*The other dragons across all realms bow their heads in respect for your incredible feat.*\n\nYou receive 100,000 kopeks and Dragonscale Armor (sells for 6,000 kopeks)! All crystals have been removed from your inventory.\n\n⏰ Tiamat can only be defeated for rewards once per day. You may challenge her again for practice, but no rewards will be given until 24 hours pass.`;
     }
 
     async handleDefeat() {
@@ -619,19 +624,21 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
 }
 
 async function startTiamatBattle(interaction, userId, activeQuests) {
-    // Check if Tiamat is on cooldown
+    // Check if Tiamat victory is on cooldown (can challenge but not defeat twice in 24h)
     const tiamatCooldown = await db.get(`tiamat_cooldown_${userId}`);
     if (tiamatCooldown && Date.now() < tiamatCooldown) {
         const timeRemaining = tiamatCooldown - Date.now();
         const hoursRemaining = Math.ceil(timeRemaining / (60 * 60 * 1000));
 
         const embed = new EmbedBuilder()
-            .setTitle("⏰ Tiamat is Recovering")
+            .setTitle("⚠️ Tiamat Cannot Be Defeated Again Today")
             .setColor("#FF6600")
-            .setDescription(`Tiamat, Mother of Dragons, is still recovering from your previous battle. She can only be challenged once per day.\n\nTime remaining: ${hoursRemaining} hours`);
+            .setDescription(`You can challenge Tiamat, but she cannot be defeated again today. You already claimed victory within the last 24 hours.\n\nTime until you can defeat her again: ${hoursRemaining} hours\n\n*You may still fight her for practice, but no rewards will be given.*`);
 
-        await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
-        return;
+        // Allow the fight to continue but mark it as no-reward
+        const questData = activeQuests.get(userId) || {};
+        questData.data = questData.data || {};
+        questData.data.tiamatNoReward = true;
     }
 
     // Create a new quest for Tiamat battle
