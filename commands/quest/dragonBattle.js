@@ -2,7 +2,6 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const CombatSystem = require('./combatSystem.js');
-const { CombatSystem } = require('./combatSystem.js');
 const { canAddToBackpack, getBackpackFullMessage } = require('../../utility/backpackUtils.js');
 
 // Dragon data for each location
@@ -21,21 +20,21 @@ const dragonData = {
         specialMove: "Death",
         specialDescription: "has a 10% chance to instantly kill you"
     },
-    redlands: {
+    badlands: {
         name: "Ancient Red Dragon",
         color: "red",
         crystal: "Red Crystal", 
         specialMove: "Melt",
         specialDescription: "destroys a random item in your backpack"
     },
-    frostlands: {
+    wastelands: {
         name: "Ancient Blue Dragon",
         color: "blue",
         crystal: "Blue Crystal",
         specialMove: "Freeze", 
         specialDescription: "you skip your next turn"
     },
-    emeraldlands: {
+    highlands: {
         name: "Ancient Green Dragon",
         color: "green",
         crystal: "Green Crystal",
@@ -502,7 +501,7 @@ class DragonCombatSystem extends CombatSystem {
                         return `The Black Dragon casts Death, but you resist its dark magic!`;
                     }
 
-                case 'redlands': // Red Dragon - Melt
+                case 'badlands': // Red Dragon - Melt
                     const items = await this.getBackpackItems();
                     if (items.length > 0) {
                         const randomItem = items[Math.floor(Math.random() * items.length)];
@@ -517,7 +516,7 @@ class DragonCombatSystem extends CombatSystem {
                         return `The Red Dragon casts Melt, but you have no items to destroy!`;
                     }
 
-                case 'frostlands': // Blue Dragon - Freeze
+                case 'wastelands': // Blue Dragon - Freeze
                     if (Math.random() < 0.7) { // 70% chance to freeze
                         this.playerFrozen = true;
                         return `The Blue Dragon casts Freeze! You are encased in ice and will skip your next turn!`;
@@ -525,7 +524,7 @@ class DragonCombatSystem extends CombatSystem {
                         return `The Blue Dragon attempts to freeze you, but you resist the icy magic!`;
                     }
 
-                case 'emeraldlands': // Green Dragon - Heal
+                case 'highlands': // Green Dragon - Heal
                     const healAmount = Math.floor(Math.random() * 7) + 2; // 2-8 healing
                     this.combatData.enemyHealth = Math.min(this.combatData.enemyMaxHealth, this.combatData.enemyHealth + healAmount);
                     return `The Green Dragon casts Heal! It recovers ${healAmount} health!`;
