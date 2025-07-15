@@ -247,7 +247,11 @@ async function startDebugQuest(message, userId, questType) {
             message: sentMessage,
             deferUpdate: async () => {},
             editReply: async (options) => await sentMessage.edit(options),
-            channel: message.channel
+            reply: async (options) => await sentMessage.edit(options),
+            update: async (options) => await sentMessage.edit(options),
+            channel: message.channel,
+            replied: false,
+            deferred: false
         };
 
         await questTypes[questType].handler(mockInteraction, userId, activeQuests);
