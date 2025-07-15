@@ -9,10 +9,10 @@ module.exports.run = async (client, message, args) => {
     }
 
     const user = message.author;
-    const targetUser = message.mentions.members.first();
+    const targetUser = message.mentions.members.first() || message.member;
 
     if (!targetUser) {
-        return message.channel.send("❌ You must mention a user to revive! Usage: `=revive @username`");
+        return message.channel.send("❌ Could not find target user to revive!");
     }
 
     // Check if user has enough money
@@ -77,14 +77,27 @@ module.exports.run = async (client, message, args) => {
     if (usingGreenCrystal) {
         await db.set(`green_crystal_revive_${user.id}`, Date.now());
         await db.delete(`death_cooldown_${targetUser.id}`);
-        message.channel.send(
-            `✅ ${targetUser.user.username} was revived with your Green Crystal for free! Welcome back to the land of the living! 🟢`,
-        );
+        
+        if (targetUser.id === user.id) {
+            message.channel.send(
+                `✅ You revived yourself with your Green Crystal for free! Welcome back to the land of the living! 🟢`,
+            );
+        } else {
+            message.channel.send(
+                `✅ ${targetUser.user.username} was revived with your Green Crystal for free! Welcome back to the land of the living! 🟢`,
+            );
+        }
     } else {
         await db.sub(`money_${user.id}`, cost);
         await db.delete(`death_cooldown_${targetUser.id}`);
         
-        let reviveMessage = `✨ ${user.username} spent ${cost.toLocaleString()} kopeks to revive ${targetUser.user.username}! They can now participate in combat again.`;
+        let reviveMessage;
+        if (targetUser.id === user.id) {
+            reviveMessage = `✨ ${user.username} spent ${cost.toLocaleString()} kopeks to revive themselves! You can now participate in combat again.`;
+        } else {
+            reviveMessage = `✨ ${user.username} spent ${cost.toLocaleString()} kopeks to revive ${targetUser.user.username}! They can now participate in combat again.`;
+        }
+        
         if (hasHealerFeat) {
             reviveMessage += ` 🩺 **Healer feat** reduced the cost by 50%!`;
         }
