@@ -1,7 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const { CombatSystem } = require('./combatSystem.js');
+const CombatSystem = require('./combatSystem.js');
 const { canAddToBackpack, getBackpackFullMessage } = require('../../utility/backpackUtils.js');
 
 // Dragon data for each location
@@ -43,7 +43,7 @@ const dragonData = {
     }
 };
 
-class TiamatCombatSystem extends CombatSystem {
+class TiamatCombatSystem extends CombatSystem.SimpleCombat {
     constructor(userId) {
         super(userId, 'tiamat');
         this.playerFrozen = false;
@@ -333,7 +333,7 @@ class TiamatCombatSystem extends CombatSystem {
     }
 }
 
-class DragonCombatSystem extends CombatSystem {
+class DragonCombatSystem extends CombatSystem.SimpleCombat {
     constructor(userId, location) {
         super(userId, 'dragon');
         this.location = location;
