@@ -358,10 +358,10 @@ async function completeQuest(interaction, userId, questReward, activeQuests, cus
         const quest = activeQuests.get(userId);
         if (!quest) return;
 
-        // Check if this is any debug mode
-        if (quest.data && (quest.data.isDebug || quest.data.debugSingleQuest)) {
-            // End debug quest immediately without dragons or second quest
-            const debugMessage = customMessage || `🔧 **DEBUG QUEST COMPLETE!** 🔧\n\nDebug quest finished successfully!\n\n*Debug mode - no actual rewards given.*`;
+        // Check if this is debug single quest mode first
+        if (quest.data && quest.data.debugSingleQuest) {
+            // End debug single quest immediately
+            const debugMessage = customMessage || `🔧 **DEBUG SINGLE QUEST COMPLETE!** 🔧\n\nDebug quest finished successfully!\n\n*Debug mode - no actual rewards given.*`;
             await endQuest(interaction, userId, true, debugMessage, activeQuests);
             return;
         }
