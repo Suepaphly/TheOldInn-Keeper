@@ -139,7 +139,7 @@ async function handleMazeChoice(interaction, userId, collector, activeQuests) {
                 // White crystal protects from death and money loss
                 await endQuest(interaction, userId, false, `You chose poorly, but your White Crystal protects you from the deadly trap! You escape the maze completely unharmed. ⚪`, activeQuests);
             } else {
-                await db.set(`death_cooldown_${userId}`, Date.now() + (24 * 60 * 60 * 1000));
+                await db.set(`death_cooldown_${userId}`, Date.now());
                 await endQuest(interaction, userId, false, `You chose poorly. The maze's deadly trap claims your life. You are now dead for 24 hours.`, activeQuests);
             }
             collector.stop();
