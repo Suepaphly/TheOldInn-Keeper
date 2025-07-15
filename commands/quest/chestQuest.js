@@ -153,15 +153,28 @@ async function handleGuessSubmission(interaction, questData, userId, activeQuest
 
         // No mimic - normal chest reward
         const reward = Math.floor(Math.random() * 401) + 100; // 100-500 kopeks
-        await db.add(`money_${userId}`, reward);
+        
+        // Check for debug mode
+        const quest = activeQuests.get(userId);
+        if (quest && quest.data && quest.data.isDebug) {
+            let successMessage = `🔧 **DEBUG CHEST UNLOCKED!** 🔧\n\nYou cracked the code in ${questData.attempts} attempt${questData.attempts === 1 ? '' : 's'}! In normal mode, the chest would contain **${reward} kopeks**!\n\n*Debug mode - no actual rewards given.*`;
+            
+            if (questData.attempts === 1) {
+                successMessage += "\n\n🏆 **Perfect!** You solved it on the first try!";
+            }
+            
+            await completeQuest(interaction, userId, 0, activeQuests, successMessage);
+        } else {
+            await db.add(`money_${userId}`, reward);
 
-        let successMessage = `🎉 **CHEST UNLOCKED!** 🎉\n\nYou cracked the code in ${questData.attempts} attempt${questData.attempts === 1 ? '' : 's'}! The chest creaks open, revealing **${reward} kopeks** inside!`;
+            let successMessage = `🎉 **CHEST UNLOCKED!** 🎉\n\nYou cracked the code in ${questData.attempts} attempt${questData.attempts === 1 ? '' : 's'}! The chest creaks open, revealing **${reward} kopeks** inside!`;
 
-        if (questData.attempts === 1) {
-            successMessage += "\n\n🏆 **Perfect!** You solved it on the first try!";
+            if (questData.attempts === 1) {
+                successMessage += "\n\n🏆 **Perfect!** You solved it on the first try!";
+            }
+
+            await completeQuest(interaction, userId, 0, activeQuests, successMessage);
         }
-
-        await completeQuest(interaction, userId, 0, activeQuests, successMessage);
         collector.stop();
         return;
     }

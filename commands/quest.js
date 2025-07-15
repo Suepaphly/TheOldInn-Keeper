@@ -324,49 +324,66 @@ async function completeQuest(interaction, userId, questReward, activeQuests, cus
             
             await endQuest(interaction, userId, true, message, activeQuests);
         } else {
-            // Start second quest
-            const randomQuest = questTypeNames[Math.floor(Math.random() * questTypeNames.length)];
-            const locationData = locations[quest.location];
-            
-            const embed = new EmbedBuilder()
-                .setTitle(`${locationData.nextLocation} - Quest 2/2`)
-                .setColor("#4169E1")
-                .setDescription(`You journey deeper to ${locationData.nextLocation}.\n\nA ${questTypes[randomQuest].name} blocks your path!`)
-                .addFields({ name: "Progress", value: "1/2 quests completed", inline: false });
-
-            await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
-
-            setTimeout(async () => {
-                const continueEmbed = new EmbedBuilder()
-                    .setTitle(`${locationData.nextLocation} - Ready`)
-                    .setColor("#4169E1")
-                    .setDescription(`A ${questTypes[randomQuest].name} awaits!`)
+            // Check if this is debug mode
+            if (quest.location === "debug") {
+                // Debug mode - just show completion message for first quest
+                const embed = new EmbedBuilder()
+                    .setTitle("🔧 DEBUG: First Quest Complete")
+                    .setColor("#FF0000")
+                    .setDescription("First debug quest completed. Starting second quest...")
                     .addFields({ name: "Progress", value: "1/2 quests completed", inline: false });
 
-                const continueRow = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('start_second_quest')
-                            .setLabel('▶️ Begin Second Quest')
-                            .setStyle(ButtonStyle.Primary)
-                    );
+                await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
 
-                await CombatSystem.updateInteractionSafely(interaction, { embeds: [continueEmbed], components: [continueRow] });
+                setTimeout(async () => {
+                    const randomQuest = questTypeNames[Math.floor(Math.random() * questTypeNames.length)];
+                    await questTypes[randomQuest].handler(interaction, userId, activeQuests);
+                }, 3000);
+            } else {
+                // Normal mode - start second quest
+                const randomQuest = questTypeNames[Math.floor(Math.random() * questTypeNames.length)];
+                const locationData = locations[quest.location];
+                
+                const embed = new EmbedBuilder()
+                    .setTitle(`${locationData.nextLocation} - Quest 2/2`)
+                    .setColor("#4169E1")
+                    .setDescription(`You journey deeper to ${locationData.nextLocation}.\n\nA ${questTypes[randomQuest].name} blocks your path!`)
+                    .addFields({ name: "Progress", value: "1/2 quests completed", inline: false });
 
-                const filter = (i) => i.user.id === userId && i.customId === 'start_second_quest';
-                const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+                await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
 
-                collector.on('collect', async (i) => {
-                    await questTypes[randomQuest].handler(i, userId, activeQuests);
-                    collector.stop();
-                });
+                setTimeout(async () => {
+                    const continueEmbed = new EmbedBuilder()
+                        .setTitle(`${locationData.nextLocation} - Ready`)
+                        .setColor("#4169E1")
+                        .setDescription(`A ${questTypes[randomQuest].name} awaits!`)
+                        .addFields({ name: "Progress", value: "1/2 quests completed", inline: false });
 
-                collector.on('end', async (collected, reason) => {
-                    if (reason === 'time') {
-                        await endQuest(interaction, userId, false, "⏰ Quest timed out!", activeQuests);
-                    }
-                });
-            }, 3000);
+                    const continueRow = new ActionRowBuilder()
+                        .addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('start_second_quest')
+                                .setLabel('▶️ Begin Second Quest')
+                                .setStyle(ButtonStyle.Primary)
+                        );
+
+                    await CombatSystem.updateInteractionSafely(interaction, { embeds: [continueEmbed], components: [continueRow] });
+
+                    const filter = (i) => i.user.id === userId && i.customId === 'start_second_quest';
+                    const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
+
+                    collector.on('collect', async (i) => {
+                        await questTypes[randomQuest].handler(i, userId, activeQuests);
+                        collector.stop();
+                    });
+
+                    collector.on('end', async (collected, reason) => {
+                        if (reason === 'time') {
+                            await endQuest(interaction, userId, false, "⏰ Quest timed out!", activeQuests);
+                        }
+                    });
+                }, 3000);
+            }
         }
     } catch (error) {
         console.error('Error completing quest:', error);
