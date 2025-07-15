@@ -50,8 +50,13 @@ class SimpleCombat {
         // Get player stats using equipment calculations like main combat system
         const combatLevel = await db.get(`combatlevel_${this.userId}`) || 0;
 
-        // Calculate health using formula: 5 (Base) + (Combat Lvl * 2)
-        const calculatedHealth = 5 + (combatLevel * 2);
+        // Check for red crystal bonus
+        const { hasCrystal } = require('../../utility/crystalUtils.js');
+        const hasRedCrystal = await hasCrystal(this.userId, 'red');
+        const redCrystalHealthBonus = hasRedCrystal ? 4 : 0;
+
+        // Calculate health using formula: 5 (Base) + (Combat Lvl * 2) + (Red crystal bonus if applicable)
+        const calculatedHealth = 5 + (combatLevel * 2) + redCrystalHealthBonus;
 
         // Get equipped weapon and armor
         const equippedWeapon = await this.getBestWeapon();
@@ -111,8 +116,12 @@ class SimpleCombat {
     }
 
     async processCombatRound() {
-        // Player attacks first using correct damage formula: 1 (Base) + (Combat Level) + (Weapon Roll)
-        const baseDamage = 1 + (this.player.combatLevel || 0);
+        // Player attacks first using correct damage formula: 1 (Base) + (Combat Level) + (Weapon Roll) + (Red crystal bonus)
+        const { hasCrystal } = require('../../utility/crystalUtils.js');
+        const hasRedCrystal = await hasCrystal(this.userId, 'red');
+        const redCrystalAttackBonus = hasRedCrystal ? 2 : 0;
+        
+        const baseDamage = 1 + (this.player.combatLevel || 0) + redCrystalAttackBonus;
         let weaponDamage = 0;
         let attackDescription = "";
 

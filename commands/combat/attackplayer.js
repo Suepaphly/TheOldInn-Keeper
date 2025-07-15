@@ -84,12 +84,19 @@ async function startPlayerBattle(message, attacker, target, client) {
     const attackerCombatLevel = await db.get(`combatlevel_${attacker.id}`) || 0;
     const targetCombatLevel = await db.get(`combatlevel_${target.id}`) || 0;
 
+    // Check for red crystal health bonuses
+    const { hasCrystal } = require('../../utility/crystalUtils.js');
+    const attackerHasRedCrystal = await hasCrystal(attacker.id, 'red');
+    const targetHasRedCrystal = await hasCrystal(target.id, 'red');
+    const attackerRedBonus = attackerHasRedCrystal ? 4 : 0;
+    const targetRedBonus = targetHasRedCrystal ? 4 : 0;
+
     const battleData = {
         attacker: {
             id: attacker.id,
             username: attacker.username,
-            health: 5 + (attackerCombatLevel * 2),
-            maxHealth: 5 + (attackerCombatLevel * 2),
+            health: 5 + (attackerCombatLevel * 2) + attackerRedBonus,
+            maxHealth: 5 + (attackerCombatLevel * 2) + attackerRedBonus,
             weapon: await getBestWeapon(attacker.id),
             armor: await getBestArmor(attacker.id),
             combatLevel: attackerCombatLevel
@@ -97,8 +104,8 @@ async function startPlayerBattle(message, attacker, target, client) {
         target: {
             id: target.id,
             username: target.username,
-            health: 5 + (targetCombatLevel * 2),
-            maxHealth: 5 + (targetCombatLevel * 2),
+            health: 5 + (targetCombatLevel * 2) + targetRedBonus,
+            maxHealth: 5 + (targetCombatLevel * 2) + targetRedBonus,
             weapon: await getBestWeapon(target.id),
             armor: await getBestArmor(target.id),
             combatLevel: targetCombatLevel
@@ -168,8 +175,10 @@ async function runBattleRounds(message, battleData, players, currentPlayerIndex,
     const currentPlayer = players[currentPlayerIndex];
     const otherPlayer = players[1 - currentPlayerIndex];
 
-    // Calculate damage - check for dual pistols
-    const combatDamage = currentPlayer.combatLevel + 1;
+    // Calculate damage - check for dual pistols and red crystal bonus
+    const currentPlayerHasRedCrystal = await hasCrystal(currentPlayer.id, 'red');
+    const redCrystalAttackBonus = currentPlayerHasRedCrystal ? 2 : 0;
+    const combatDamage = currentPlayer.combatLevel + 1 + redCrystalAttackBonus;
     let finalDamage = 0;
     let attackDescription = "";
 
