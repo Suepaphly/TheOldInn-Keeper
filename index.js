@@ -93,7 +93,12 @@ client.on("messageCreate", async message => {
 });
 
 const ptt = require("./utility/protectTheTavern.js");
-const { startCooldownCleanup } = require("./utility/cooldownCleanup.js");
+const { startCooldownCleanup } = require('./utility/cooldownCleanup.js');
+const memoryManager = require('./utility/memoryManager.js');
+
+// Start cleanup schedulers
+startCooldownCleanup();
+memoryManager.startCleanupScheduler();
 
 client.on("ready", () => {
     console.log(`The Ol' Innkeeper is ready for action!`);

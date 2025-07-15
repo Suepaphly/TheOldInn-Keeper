@@ -26,6 +26,10 @@ module.exports.run = async (client, message, args) => {
 
         // Clean up database
         await db.delete(`on_quest_${userId}`);
+        
+        // Clean up any related quest data
+        const memoryManager = require("../../utility/memoryManager.js");
+        await memoryManager.syncActiveQuests();
 
         const embed = new Discord.EmbedBuilder()
             .setTitle("🛑 Quest Ended")
