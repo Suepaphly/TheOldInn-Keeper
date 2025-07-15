@@ -20,7 +20,7 @@ client.commands = new Collection();
 client.aliases = new Collection();
 
 // Load command files from all directories
-const commandDirs = ['./commands/', './commands/economy/', './commands/gambling/', './commands/skills/', './commands/defense/', './commands/combat/', './commands/admin/', './commands/quest/'];
+const commandDirs = ['./commands/', './commands/economy/', './commands/gambling/', './commands/skills/', './commands/defense/', './commands/combat/', './commands/admin/'];
 
 commandDirs.forEach(dir => {
   fs.readdir(dir, (err, files) => {
