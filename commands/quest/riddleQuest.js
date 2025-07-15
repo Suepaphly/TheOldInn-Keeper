@@ -1,6 +1,3 @@
-Fixing the parameter order in the completeQuest function call within the riddle quest logic.
-```
-```replit_final_file
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -296,7 +293,7 @@ async function presentRiddle(interaction, userId, activeQuests, riddleNumber) {
                 if (quest.data.riddlesCompleted >= 2) {
                     // Both riddles completed
                     const { completeQuest } = require('../quest.js');
-                    await completeQuest(interaction, userId, activeQuests, "🧩 You have solved both ancient riddles! The sphinx nods approvingly and vanishes.");
+                    await completeQuest(interaction, userId, 0, activeQuests, "🧩 You have solved both ancient riddles! The sphinx nods approvingly and vanishes.");
                 } else {
                     // Move to next riddle - update the same message
                     const successEmbed = new EmbedBuilder()
@@ -426,7 +423,7 @@ async function startSphinxCombat(interaction, userId, collector, activeQuests) {
                 if (combatResult.result === 'victory') {
                     // Victory - complete the quest successfully
                     const { completeQuest } = require('../quest.js');
-                    await completeQuest(i, userId, activeQuests, `${combatResult.battleText}\n\nYou have defeated the ancient sphinx! The guardian of riddles falls before your might. Your quest ends in glorious victory!`);
+                    await completeQuest(i, userId, 0, activeQuests, `${combatResult.battleText}\n\nYou have defeated the ancient sphinx! The guardian of riddles falls before your might. Your quest ends in glorious victory!`);
                     combatCollector.stop();
                 } else if (combatResult.result === 'defeat') {
                     const { endQuest } = require('../quest.js');
