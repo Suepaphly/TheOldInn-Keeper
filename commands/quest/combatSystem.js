@@ -72,7 +72,15 @@ class SimpleCombat {
             armor: equippedArmor
         };
 
-        this.enemy = { ...enemyData };
+        // Ensure enemy data has all required properties with defaults
+        this.enemy = {
+            name: enemyData.name || "Unknown Enemy",
+            health: enemyData.health || 10,
+            maxHealth: enemyData.maxHealth || enemyData.health || 10,
+            damage: enemyData.damage || 1,
+            defense: enemyData.defense || 0,
+            value: enemyData.value || 0
+        };
     }
 
     createCombatEmbed(message = "") {
@@ -106,25 +114,34 @@ class SimpleCombat {
 
     async processCombatRound() {
         // Player attacks first using correct damage formula: 1 (Base) + (Combat Level) + (Weapon Roll)
-        const baseDamage = 1 + this.player.combatLevel;
+        const baseDamage = 1 + (this.player.combatLevel || 0);
         let weaponDamage = 0;
         let attackDescription = "";
 
         if (this.player.weapon.isDual) {
             // Dual pistols - two separate rolls
-            const firstRoll = Math.floor(Math.random() * (this.player.weapon.maxDamage - this.player.weapon.minDamage + 1)) + this.player.weapon.minDamage;
-            const secondRoll = Math.floor(Math.random() * (this.player.weapon.maxDamage - this.player.weapon.minDamage + 1)) + this.player.weapon.minDamage;
+            const minDmg = this.player.weapon.minDamage || 0;
+            const maxDmg = this.player.weapon.maxDamage || 0;
+            const firstRoll = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
+            const secondRoll = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
             weaponDamage = firstRoll + secondRoll;
             attackDescription = ` with dual pistols (${firstRoll} + ${secondRoll})`;
-        } else if (this.player.weapon.minDamage) {
+        } else if (this.player.weapon.minDamage !== undefined && this.player.weapon.maxDamage !== undefined) {
             // Regular weapon with damage range
-            weaponDamage = Math.floor(Math.random() * (this.player.weapon.maxDamage - this.player.weapon.minDamage + 1)) + this.player.weapon.minDamage;
+            const minDmg = this.player.weapon.minDamage || 0;
+            const maxDmg = this.player.weapon.maxDamage || 0;
+            weaponDamage = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
             attackDescription = ` with ${this.player.weapon.name}`;
+        } else {
+            // Fists or no weapon
+            weaponDamage = 0;
+            attackDescription = ` with fists`;
         }
 
         const totalPlayerDamage = baseDamage + weaponDamage;
-        const damageDealt = Math.max(1, totalPlayerDamage - this.enemy.defense);
-        this.enemy.health -= damageDealt;
+        const enemyDefense = this.enemy.defense || 0;
+        const damageDealt = Math.max(1, totalPlayerDamage - enemyDefense);
+        this.enemy.health = Math.max(0, this.enemy.health - damageDealt);
 
         let battleText = `You attack${attackDescription} for ${damageDealt} damage!`;
 
@@ -135,9 +152,12 @@ class SimpleCombat {
         }
 
         // Enemy attacks
-        const enemyDamage = Math.max(1, this.enemy.damage + Math.floor(Math.random() * 4) - 2);
-        const playerDamageReceived = Math.max(1, enemyDamage - this.player.defense);
-        this.player.health -= playerDamageReceived;
+        const baseDamage = this.enemy.damage || 1;
+        const variation = Math.floor(Math.random() * 4) - 2; // -2 to +1 variation
+        const enemyDamage = Math.max(1, baseDamage + variation);
+        const playerDefense = this.player.defense || 0;
+        const playerDamageReceived = Math.max(1, enemyDamage - playerDefense);
+        this.player.health = Math.max(0, this.player.health - playerDamageReceived);
 
         battleText += `\n${this.enemy.name} attacks you for ${playerDamageReceived} damage!`;
 

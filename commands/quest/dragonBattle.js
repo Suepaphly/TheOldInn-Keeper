@@ -138,16 +138,21 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
         }
 
         // Player attacks first (same as base combat system)
-        const playerCombatDamage = this.combatData.combatLevel + 1;
-        const playerWeaponDamage = Math.floor(Math.random() * 
-            (this.combatData.playerWeapon.maxDamage - this.combatData.playerWeapon.minDamage + 1)) + 
-            this.combatData.playerWeapon.minDamage;
+        const playerCombatDamage = (this.combatData.combatLevel || 0) + 1;
+        let playerWeaponDamage = 0;
+        
+        if (this.combatData.playerWeapon.minDamage !== undefined && this.combatData.playerWeapon.maxDamage !== undefined) {
+            const minDmg = this.combatData.playerWeapon.minDamage || 0;
+            const maxDmg = this.combatData.playerWeapon.maxDamage || 0;
+            playerWeaponDamage = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
+        }
+        
         const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
-        const playerFinalDamage = Math.max(1, playerTotalDamage - this.combatData.enemyDefense);
+        const enemyDefense = this.combatData.enemyDefense || 0;
+        const playerFinalDamage = Math.max(1, playerTotalDamage - enemyDefense);
 
         // Apply damage to Tiamat
-        this.combatData.enemyHealth -= playerFinalDamage;
-        this.combatData.enemyHealth = Math.max(0, this.combatData.enemyHealth);
+        this.combatData.enemyHealth = Math.max(0, this.combatData.enemyHealth - playerFinalDamage);
 
         let battleText = `You strike Tiamat for ${playerFinalDamage} damage!`;
 
@@ -424,25 +429,32 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
         }
 
         // Player attacks first using correct damage formula: 1 (Base) + (Combat Level) + (Weapon Roll)
-        const baseDamage = 1 + this.player.combatLevel;
+        const baseDamage = 1 + (this.player.combatLevel || 0);
         let weaponDamage = 0;
         
         if (this.player.weapon.isDual) {
             // Dual pistols - two separate rolls
-            const firstRoll = Math.floor(Math.random() * (this.player.weapon.maxDamage - this.player.weapon.minDamage + 1)) + this.player.weapon.minDamage;
-            const secondRoll = Math.floor(Math.random() * (this.player.weapon.maxDamage - this.player.weapon.minDamage + 1)) + this.player.weapon.minDamage;
+            const minDmg = this.player.weapon.minDamage || 0;
+            const maxDmg = this.player.weapon.maxDamage || 0;
+            const firstRoll = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
+            const secondRoll = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
             weaponDamage = firstRoll + secondRoll;
-        } else if (this.player.weapon.minDamage) {
+        } else if (this.player.weapon.minDamage !== undefined && this.player.weapon.maxDamage !== undefined) {
             // Regular weapon with damage range
-            weaponDamage = Math.floor(Math.random() * (this.player.weapon.maxDamage - this.player.weapon.minDamage + 1)) + this.player.weapon.minDamage;
+            const minDmg = this.player.weapon.minDamage || 0;
+            const maxDmg = this.player.weapon.maxDamage || 0;
+            weaponDamage = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
+        } else {
+            // Fists or no weapon
+            weaponDamage = 0;
         }
         
         const playerTotalDamage = baseDamage + weaponDamage;
-        const playerFinalDamage = Math.max(1, playerTotalDamage - this.enemy.defense);
+        const enemyDefense = this.enemy.defense || 0;
+        const playerFinalDamage = Math.max(1, playerTotalDamage - enemyDefense);
 
         // Apply damage to dragon
-        this.enemy.health -= playerFinalDamage;
-        this.enemy.health = Math.max(0, this.enemy.health);
+        this.enemy.health = Math.max(0, this.enemy.health - playerFinalDamage);
 
         let battleText = `You attack the ${this.dragon.name} for ${playerFinalDamage} damage!`;
 
