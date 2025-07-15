@@ -212,9 +212,10 @@ async function handleGuessSubmission(interaction, questData, userId, activeQuest
 
     // Check if player failed
     if (questData.attempts >= questData.maxAttempts) {
-        const secretEmojis = questData.secretCode.map(colorId => 
-            colors.find(c => c.id === colorId).emoji
-        ).join(' ');
+        const secretEmojis = questData.secretCode.map(colorId => {
+            const color = colors.find(c => c.id === colorId);
+            return color ? color.emoji : '❓';
+        }).join(' ');
 
         await endQuest(interaction, userId, false, `💀 **CHEST REMAINS SEALED!**\n\nYou've used all 5 attempts! The chest's magic grows stronger and it disappears forever.\n\n🔑 The correct code was: ${secretEmojis}`, activeQuests);
         collector.stop();
@@ -257,15 +258,17 @@ async function updateChestDisplay(interaction, questData) {
     const CombatSystem = require('./combatSystem.js');
     const { COMBAT_PRESETS } = CombatSystem;
 
-    const currentGuessDisplay = questData.currentGuess.map(colorId => 
-        colors.find(c => c.id === colorId).emoji
-    ).join(' ') + ' '.repeat(Math.max(0, (4 - questData.currentGuess.length) * 2 - 1)) + 
+    const currentGuessDisplay = questData.currentGuess.map(colorId => {
+        const color = colors.find(c => c.id === colorId);
+        return color ? color.emoji : '❓';
+    }).join(' ') + ' '.repeat(Math.max(0, (4 - questData.currentGuess.length) * 2 - 1)) + 
     '_ '.repeat(4 - questData.currentGuess.length).trim();
 
     const historyText = questData.guessHistory.map((entry, index) => {
-        const guessEmojis = entry.guess.map(colorId => 
-            colors.find(c => c.id === colorId).emoji
-        ).join(' ');
+        const guessEmojis = entry.guess.map(colorId => {
+            const color = colors.find(c => c.id === colorId);
+            return color ? color.emoji : '❓';
+        }).join(' ');
         const feedbackStr = entry.feedback.join(' ');
         return `**${index + 1}.** ${guessEmojis} → ${feedbackStr}`;
     }).join('\n') || 'No attempts yet';
