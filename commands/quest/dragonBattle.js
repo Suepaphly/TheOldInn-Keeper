@@ -281,6 +281,13 @@ class TiamatCombatSystem extends CombatSystem {
     }
 
     async handleVictory() {
+        // Check if this is debug mode
+        const { activeQuests } = require('../quest.js');
+        const quest = activeQuests.get(this.userId);
+        if (quest && quest.data && (quest.data.isDebug || quest.data.debugDragon)) {
+            return `🔧 **DEBUG VICTORY!** 🔧\n\nYou have achieved the impossible - slaying Tiamat, the Mother of Dragons! In normal mode, you would receive 100,000 kopeks and Dragonscale Armor (sells for 6,000 kopeks), and all crystals would be removed from your inventory.\n\n*Debug mode - no actual rewards given or crystals removed.*`;
+        }
+
         const kopeksReward = 100000;
         const dragonscaleArmorReward = 6000;
 
@@ -584,7 +591,7 @@ class DragonCombatSystem extends CombatSystem {
         // Check if this is debug mode
         const { activeQuests } = require('../quest.js');
         const quest = activeQuests.get(this.userId);
-        if (quest && quest.isDebug) {
+        if (quest && quest.data && (quest.data.isDebug || quest.data.debugDragon)) {
             return `🔧 **DEBUG VICTORY!**\n\nYou have slain the mighty ${dragon.name}! In normal mode, a ${dragon.crystal} would materialize and fly into your backpack. This rare artifact would pulse with ancient power...\n\n*Debug mode - no actual rewards given.*`;
         }
 

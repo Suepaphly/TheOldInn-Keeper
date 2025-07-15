@@ -69,10 +69,16 @@ module.exports = {
             // Check for debug mode (owner only)
             if (args[0] === 'debug' && message.author.id === config.ownerID) {
                 const questType = args[1];
+                
+                // Handle dragon debug
+                if (questType === 'dragon') {
+                    return await startDragonDebug(message, userId);
+                }
+                
                 if (questType && questTypes[questType]) {
                     return await startDebugQuest(message, userId, questType);
                 } else {
-                    return message.channel.send("Valid quest types: " + questTypeNames.join(", "));
+                    return message.channel.send("Valid quest types: " + questTypeNames.join(", ") + ", dragon");
                 }
             }
             
@@ -252,22 +258,109 @@ async function startDebugQuest(message, userId, questType) {
     }
 }
 
+async function startDragonDebug(message, userId) {
+    try {
+        if (await isOnQuest(userId)) {
+            return message.channel.send("❌ You're already on a quest!");
+        }
+
+        const dragonLocations = ['plains', 'forest', 'badlands', 'wastelands', 'highlands'];
+        
+        const embed = new EmbedBuilder()
+            .setTitle("🐛 DEBUG: Dragon Battle Selection")
+            .setColor("#FF0000")
+            .setDescription("Choose which dragon to debug:")
+            .addFields(
+                { name: "🌾 Plains", value: "Ancient White Dragon (Tax)", inline: true },
+                { name: "🌲 Forest", value: "Ancient Black Dragon (Death)", inline: true },
+                { name: "🔥 Badlands", value: "Ancient Red Dragon (Melt)", inline: true },
+                { name: "❄️ Wastelands", value: "Ancient Blue Dragon (Freeze)", inline: true },
+                { name: "🌿 Highlands", value: "Ancient Green Dragon (Heal)", inline: true },
+                { name: "🌟 Tiamat", value: "Mother of Dragons (All abilities)", inline: true }
+            );
+
+        const row1 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('debug_dragon_plains')
+                    .setLabel('🌾 White Dragon')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('debug_dragon_forest')
+                    .setLabel('🌲 Black Dragon')
+                    .setStyle(ButtonStyle.Success),
+                new ButtonBuilder()
+                    .setCustomId('debug_dragon_badlands')
+                    .setLabel('🔥 Red Dragon')
+                    .setStyle(ButtonStyle.Danger)
+            );
+
+        const row2 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('debug_dragon_wastelands')
+                    .setLabel('❄️ Blue Dragon')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('debug_dragon_highlands')
+                    .setLabel('🌿 Green Dragon')
+                    .setStyle(ButtonStyle.Success),
+                new ButtonBuilder()
+                    .setCustomId('debug_dragon_tiamat')
+                    .setLabel('🌟 Tiamat')
+                    .setStyle(ButtonStyle.Primary)
+            );
+
+        const sentMessage = await message.channel.send({ embeds: [embed], components: [row1, row2] });
+
+        const filter = (i) => i.user.id === userId && i.customId.startsWith('debug_dragon_');
+        const collector = sentMessage.createMessageComponentCollector({ filter, time: 300000 });
+
+        collector.on('collect', async (i) => {
+            const dragonType = i.customId.replace('debug_dragon_', '');
+            
+            activeQuests.set(userId, {
+                location: dragonType,
+                startTime: Date.now(),
+                questsCompleted: 2, // Set to 2 so dragon triggers immediately
+                totalMonsterValue: 0,
+                currentQuest: 'dragon',
+                data: { isDebug: true, debugDragon: true }
+            });
+
+            await db.set(`on_quest_${userId}`, true);
+
+            if (dragonType === 'tiamat') {
+                const { startTiamatBattle } = require('./quest/dragonBattle.js');
+                await startTiamatBattle(i, userId, activeQuests);
+            } else {
+                const { startDragonBattle } = require('./quest/dragonBattle.js');
+                await startDragonBattle(i, userId, dragonType, activeQuests);
+            }
+            
+            collector.stop();
+        });
+
+        collector.on('end', async (collected, reason) => {
+            if (reason === 'time') {
+                await sentMessage.edit({ components: [] });
+            }
+        });
+
+    } catch (error) {
+        console.error('Dragon debug error:', error);
+        message.channel.send("❌ Dragon debug failed.");
+    }
+}
+
 async function completeQuest(interaction, userId, questReward, activeQuests, customMessage = null) {
     try {
         const quest = activeQuests.get(userId);
         if (!quest) return;
 
-        // Check if this is debug single quest mode
-        if (quest.data && quest.data.debugSingleQuest) {
-            // End the debug quest immediately without starting second quest
-            const debugMessage = customMessage || `🔧 **DEBUG QUEST COMPLETE!** 🔧\n\nDebug quest finished successfully!\n\n*Debug mode - no actual rewards given.*`;
-            await endQuest(interaction, userId, true, debugMessage, activeQuests);
-            return;
-        }
-
-        // Check if this is regular debug mode (not single quest)
-        if (quest.data && quest.data.isDebug) {
-            // End debug quest without dragons
+        // Check if this is any debug mode
+        if (quest.data && (quest.data.isDebug || quest.data.debugSingleQuest)) {
+            // End debug quest immediately without dragons or second quest
             const debugMessage = customMessage || `🔧 **DEBUG QUEST COMPLETE!** 🔧\n\nDebug quest finished successfully!\n\n*Debug mode - no actual rewards given.*`;
             await endQuest(interaction, userId, true, debugMessage, activeQuests);
             return;
