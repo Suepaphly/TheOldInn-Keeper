@@ -669,12 +669,14 @@ async function startTiamatBattle(interaction, userId, activeQuests) {
         value: 0
     };
 
+    // Initialize combat first before creating embed
     await tiamatCombat.initializeCombat({}, tiamatStats);
 
     // Store combat instance in quest data
     quest.data = quest.data || {};
     quest.data.combat = tiamatCombat;
 
+    // Now create the combat embed after initialization
     const { embed, row } = tiamatCombat.createCombatEmbed("The Mother of Dragons spreads her mighty wings and prepares to unleash devastation!");
     await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
