@@ -45,10 +45,22 @@ async function startMazeQuest(interaction, userId, activeQuests) {
     // Get the message from the interaction response
     let message;
     try {
-        message = await interaction.fetchReply();
+        if (interaction.fetchReply && typeof interaction.fetchReply === 'function') {
+            message = await interaction.fetchReply();
+        } else if (interaction.message) {
+            message = interaction.message;
+        } else {
+            console.error('Cannot get message for collector - no valid message source');
+            return;
+        }
     } catch (error) {
         console.error('Error getting message for collector:', error);
-        return;
+        // Fallback to interaction.message if available
+        if (interaction.message) {
+            message = interaction.message;
+        } else {
+            return;
+        }
     }
 
     const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
