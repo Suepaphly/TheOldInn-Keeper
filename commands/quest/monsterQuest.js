@@ -130,8 +130,12 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
                         collector.stop();
                     }
                 } else if (combatResult.result === 'defeat') {
+                    // Set death cooldown (24 hours)
+                    await db.set(`death_cooldown_${userId}`, Date.now());
+                    
                     const { endQuest } = require('../quest.js');
-                    await endQuest(i, userId, false, await quest.data.combat.handleDefeat(), activeQuests);
+                    const defeatMessage = `💀 **YOU HAVE DIED!**\n\nYou have been defeated by the ${quest.data.combat.enemy.name}! Your body lies broken on the battlefield.\n\n⏰ You must wait 24 hours before attempting another quest.`;
+                    await endQuest(i, userId, false, defeatMessage, activeQuests);
                     collector.stop();
                 } else {
                     // Combat continues

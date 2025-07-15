@@ -166,9 +166,8 @@ class SimpleCombat {
     }
 
     async handleDefeat() {
-        // Set player health to 1 to prevent actual death in quests
-        await db.set(`health_${this.userId}`, 1);
-        return `💀 You have been defeated! Your health has been reduced to 1.`;
+        // In quests, defeat should end the quest without setting health
+        return `💀 You have been defeated in combat!`;
     }
 
     async getBestWeapon() {
