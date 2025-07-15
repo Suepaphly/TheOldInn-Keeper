@@ -1,4 +1,3 @@
-
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -15,6 +14,7 @@ const colors = [
 
 async function startChestQuest(interaction, userId, activeQuests) {
     const { completeQuest, endQuest } = require('../quest.js');
+    const { CombatSystem } = require('./combatSystem.js');
 
     // Generate a random 4-color code
     const secretCode = [];
@@ -86,7 +86,7 @@ async function startChestQuest(interaction, userId, activeQuests) {
                 .setDisabled(true)
         );
 
-    await interaction.update({ embeds: [embed], components: [colorRow1, colorRow2, actionRow] });
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [colorRow1, colorRow2, actionRow] });
 
     const filter = (i) => i.user.id === userId && i.customId.startsWith('chest_');
     const collector = interaction.message.createMessageComponentCollector({ filter, time: 1800000 });
@@ -121,6 +121,7 @@ async function startChestQuest(interaction, userId, activeQuests) {
 
 async function handleGuessSubmission(interaction, questData, userId, activeQuests, collector) {
     const { completeQuest, endQuest } = require('../quest.js');
+    const { CombatSystem } = require('./combatSystem.js');
 
     questData.attempts++;
     const guess = [...questData.currentGuess];
@@ -139,7 +140,7 @@ async function handleGuessSubmission(interaction, questData, userId, activeQuest
     if (feedback.every(f => f === '✅')) {
         // Success! Check for mimic (25% chance)
         const isMimic = Math.random() < 0.25;
-        
+
         if (isMimic) {
             // Store the reward for after mimic defeat
             interaction.chestReward = Math.floor(Math.random() * 401) + 100; // 100-500 kopeks
@@ -168,7 +169,7 @@ async function handleGuessSubmission(interaction, questData, userId, activeQuest
         const secretEmojis = questData.secretCode.map(colorId => 
             colors.find(c => c.id === colorId).emoji
         ).join(' ');
-        
+
         await endQuest(interaction, userId, false, `💀 **CHEST REMAINS SEALED!**\n\nYou've used all 5 attempts! The chest's magic grows stronger and it disappears forever.\n\n🔑 The correct code was: ${secretEmojis}`, activeQuests);
         collector.stop();
         return;
@@ -207,6 +208,8 @@ function generateFeedback(guess, secretCode) {
 }
 
 async function updateChestDisplay(interaction, questData) {
+    const { CombatSystem } = require('./combatSystem.js');
+
     const currentGuessDisplay = questData.currentGuess.map(colorId => 
         colors.find(c => c.id === colorId).emoji
     ).join(' ') + ' '.repeat(Math.max(0, (4 - questData.currentGuess.length) * 2 - 1)) + 
@@ -276,7 +279,7 @@ async function updateChestDisplay(interaction, questData) {
                 .setDisabled(questData.currentGuess.length !== 4)
         );
 
-    await interaction.update({ embeds: [embed], components: [colorRow1, colorRow2, actionRow] });
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [colorRow1, colorRow2, actionRow] });
 }
 
 async function startMimicEncounter(interaction, userId, activeQuests) {
@@ -322,7 +325,7 @@ async function startMimicEncounter(interaction, userId, activeQuests) {
 
     // Set up combat collector
     const filter = (i) => i.user.id === userId;
-    
+
     let message;
     try {
         if (interaction.replied || interaction.deferred) {

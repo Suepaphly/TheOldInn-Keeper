@@ -2,7 +2,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const { SimpleCombat, COMBAT_PRESETS } = require('./combatSystem.js');
+const { CombatSystem, COMBAT_PRESETS } = require('./combatSystem.js');
 
 async function startMonsterQuest(interaction, userId, activeQuests) {
     const quest = activeQuests.get(userId);
@@ -27,7 +27,7 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
     const enemyData = COMBAT_PRESETS[monsterType](combatLevel);
 
     // Create combat instance
-    const combat = new SimpleCombat(userId, 'monster');
+    const combat = CombatSystem.create(userId, 'monster');
     await combat.initializeCombat({}, enemyData);
 
     // Store combat data
@@ -36,16 +36,29 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
 
     const { embed, row } = combat.createCombatEmbed(`You are ambushed by a **${enemyData.name}**! (${round}/2)`);
 
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    // Use the safe update method from CombatSystem
+    await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [row] });
 
     // Set up combat collector
     const filter = (i) => i.user.id === userId;
-    const collector = interaction.channel.createMessageComponentCollector({ filter, time: 1800000 });
+    
+    // Get the message for the collector
+    let message;
+    try {
+        if (interaction.replied || interaction.deferred) {
+            message = await interaction.fetchReply();
+        } else {
+            message = interaction.message;
+        }
+    } catch (error) {
+        console.error('Error getting message for monster combat collector:', error);
+        return;
+    }
+    
+    const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
         try {
-            await i.deferReply();
-            
             if (i.customId === 'monster_run') {
                 const { endQuest } = require('../quest.js');
                 await endQuest(i, userId, false, "You fled from combat! Your quest ends in cowardly retreat.", activeQuests);
@@ -81,7 +94,7 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
                                     .setStyle(ButtonStyle.Primary)
                             );
 
-                        await i.editReply({ embeds: [embed], components: [continueRow] });
+                        await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
                         collector.stop();
                         
                         // Set up continue collector
@@ -91,7 +104,6 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
                         continueCollector.on('collect', async (continueI) => {
                             try {
                                 if (continueI.customId === 'monster_continue') {
-                                    await continueI.deferReply();
                                     await startMonsterCombat(continueI, userId, activeQuests, quest.data.currentRound);
                                     continueCollector.stop();
                                 }
@@ -113,7 +125,7 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
                 } else {
                     // Combat continues
                     const { embed, row } = quest.data.combat.createCombatEmbed(combatResult.battleText);
-                    await i.editReply({ embeds: [embed], components: [row] });
+                    await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [row] });
                 }
             }
         } catch (error) {
