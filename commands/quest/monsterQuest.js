@@ -1,4 +1,3 @@
-
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -53,7 +52,7 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
 
     // Set up combat collector
     const filter = (i) => i.user.id === userId;
-    
+
     // Get the message for the collector
     let message;
     try {
@@ -66,7 +65,7 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
         console.error('Error getting message for monster combat collector:', error);
         return;
     }
-    
+
     const collector = message.createMessageComponentCollector({ filter, time: 1800000 });
 
     collector.on('collect', async (i) => {
@@ -89,7 +88,7 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
                     if (quest.data.currentRound < quest.data.maxRounds) {
                         // Move to next monster
                         quest.data.currentRound++;
-                        
+
                         const embed = new EmbedBuilder()
                             .setTitle("⚔️ MONSTER DEFEATED!")
                             .setColor("#00FF00")
@@ -108,11 +107,11 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
 
                         await CombatSystem.updateInteractionSafely(i, { embeds: [embed], components: [continueRow] });
                         collector.stop();
-                        
+
                         // Set up continue collector
                         const continueFilter = (continueI) => continueI.user.id === userId;
                         const continueCollector = i.channel.createMessageComponentCollector({ filter: continueFilter, time: 1800000 });
-                        
+
                         continueCollector.on('collect', async (continueI) => {
                             try {
                                 if (continueI.customId === 'monster_continue') {
@@ -127,7 +126,7 @@ async function startMonsterCombat(interaction, userId, activeQuests, round) {
                     } else {
                         // All monsters defeated, complete quest
                         const { completeQuest } = require('../quest.js');
-                        await completeQuest(i, userId, activeQuests, `${combatResult.battleText}\n\nAll monsters defeated! You have survived the ambush!`);
+                        await completeQuest(i, userId, quest.totalMonsterValue, activeQuests);
                         collector.stop();
                     }
                 } else if (combatResult.result === 'defeat') {

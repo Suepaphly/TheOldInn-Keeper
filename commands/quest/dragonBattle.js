@@ -762,7 +762,7 @@ async function handleTiamatCombat(interaction, userId, collector, activeQuests) 
 
             if (combatResult.result === 'victory') {
                 const victoryMessage = await tiamatCombat.handleVictory();
-                await endQuest(interaction, userId, true, victoryMessage, activeQuests);
+                await completeQuest(interaction, userId, 1000, activeQuests);
                 collector.stop();
             } else if (combatResult.result === 'defeat') {
                 const defeatMessage = await tiamatCombat.handleDefeat();
@@ -811,7 +811,7 @@ async function handleDragonCombat(interaction, userId, collector, activeQuests) 
 
             if (combatResult.result === 'victory') {
                 const victoryMessage = await dragonCombat.handleVictory();
-                await endQuest(interaction, userId, true, victoryMessage, activeQuests);
+                await completeQuest(interaction, userId, 500, activeQuests);
                 collector.stop();
             } else if (combatResult.result === 'defeat') {
                 const defeatMessage = await dragonCombat.handleDefeat();

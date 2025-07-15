@@ -1,3 +1,6 @@
+Fixing the parameter order in the completeQuest function call within the riddle quest logic.
+```
+```replit_final_file
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();

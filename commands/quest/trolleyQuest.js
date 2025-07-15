@@ -122,14 +122,14 @@ async function startTrolleyQuest(interaction, userId, activeQuests) {
     collector.on('collect', async (i) => {
         if (i.customId === 'trolley_continue') {
             const { completeQuest } = require('../quest.js');
-            await completeQuest(i, userId, activeQuests);
+            await completeQuest(i, userId, 0, activeQuests);
             collector.stop();
             return;
         }
 
         if (i.customId === 'trolley_vengeance_continue') {
             const { completeQuest } = require('../quest.js');
-            await completeQuest(i, userId, activeQuests);
+            await completeQuest(i, userId, 0, activeQuests);
             collector.stop();
             return;
         }
@@ -269,7 +269,7 @@ async function startVengeanceCombat(interaction, userId, parentCollector, active
                     continueCollector.on('collect', async (continueI) => {
                         if (continueI.customId === 'trolley_vengeance_continue') {
                             const { completeQuest } = require('../quest.js');
-                            await completeQuest(continueI, userId, activeQuests);
+                            await completeQuest(continueI, userId, 0, activeQuests);
                             continueCollector.stop();
                         }
                     });
