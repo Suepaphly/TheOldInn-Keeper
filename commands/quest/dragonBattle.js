@@ -247,10 +247,10 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
             // Get all weapons (matching main combat system)
             const weapons = ['knife', 'sword', 'pistol', 'shotgun', 'rifle'];
             for (const weapon of weapons) {
-                const count = await db.get(`${weapon}_${this.userId}`) || 0;
+                const count = await db.get(`weapon_${weapon}_${this.userId}`) || 0;
                 if (count > 0) {
                     items.push({ 
-                        key: `${weapon}_${this.userId}`, 
+                        key: `weapon_${weapon}_${this.userId}`, 
                         name: weapon, 
                         type: 'weapon',
                         count: count 
@@ -259,12 +259,12 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
             }
 
             // Get all armor (excluding dragonscale - it's protected)
-            const armors = ['leather', 'chainmail', 'platemail'];
+            const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate'];
             for (const armor of armors) {
-                const count = await db.get(`${armor}_${this.userId}`) || 0;
+                const count = await db.get(`armor_${armor}_${this.userId}`) || 0;
                 if (count > 0) {
                     items.push({ 
-                        key: `${armor}_${this.userId}`, 
+                        key: `armor_${armor}_${this.userId}`, 
                         name: `${armor} armor`, 
                         type: 'armor',
                         count: count 
@@ -423,9 +423,22 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
             };
         }
 
-        // Player attacks first
-        const playerDamage = Math.max(1, this.player.damage + Math.floor(Math.random() * 4) - 2);
-        const playerFinalDamage = Math.max(1, playerDamage - this.enemy.defense);
+        // Player attacks first using correct damage formula: 1 (Base) + (Combat Level) + (Weapon Roll)
+        const baseDamage = 1 + this.player.combatLevel;
+        let weaponDamage = 0;
+        
+        if (this.player.weapon.isDual) {
+            // Dual pistols - two separate rolls
+            const firstRoll = Math.floor(Math.random() * (this.player.weapon.maxDamage - this.player.weapon.minDamage + 1)) + this.player.weapon.minDamage;
+            const secondRoll = Math.floor(Math.random() * (this.player.weapon.maxDamage - this.player.weapon.minDamage + 1)) + this.player.weapon.minDamage;
+            weaponDamage = firstRoll + secondRoll;
+        } else if (this.player.weapon.minDamage) {
+            // Regular weapon with damage range
+            weaponDamage = Math.floor(Math.random() * (this.player.weapon.maxDamage - this.player.weapon.minDamage + 1)) + this.player.weapon.minDamage;
+        }
+        
+        const playerTotalDamage = baseDamage + weaponDamage;
+        const playerFinalDamage = Math.max(1, playerTotalDamage - this.enemy.defense);
 
         // Apply damage to dragon
         this.enemy.health -= playerFinalDamage;

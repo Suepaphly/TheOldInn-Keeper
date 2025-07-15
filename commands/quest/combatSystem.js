@@ -49,16 +49,16 @@ class SimpleCombat {
     async initializeCombat(playerData, enemyData) {
         // Get player stats using equipment calculations like main combat system
         const combatLevel = await db.get(`combatlevel_${this.userId}`) || 0;
-        
+
         // Calculate health using formula: 5 (Base) + (Combat Lvl * 2) + (Red crystal bonus if applicable)
         const redCrystalCount = await db.get(`crystal_red_${this.userId}`) || 0;
         const redCrystalBonus = redCrystalCount > 0 ? 10 : 0; // Red crystal gives +10 health
         const calculatedHealth = 5 + (combatLevel * 2) + redCrystalBonus;
-        
+
         // Get equipped weapon and armor
         const equippedWeapon = await this.getBestWeapon();
         const equippedArmor = await this.getBestArmor();
-        
+
         // Calculate defense from armor
         const armorDefense = equippedArmor.defense || 0;
 
@@ -105,7 +105,7 @@ class SimpleCombat {
     }
 
     async processCombatRound() {
-        // Calculate player damage: 1 (Base) + (Combat Lvl) + (Weapon Roll if applicable)
+        // Player attacks first using correct damage formula: 1 (Base) + (Combat Level) + (Weapon Roll)
         const baseDamage = 1 + this.player.combatLevel;
         let weaponDamage = 0;
         let attackDescription = "";
@@ -180,7 +180,7 @@ class SimpleCombat {
         ];
 
         let bestWeapon = { name: "Fists", priority: 0 };
-        
+
         // Check for dual pistols first (guns akimbo feat)
         const pistolCount = await db.get(`weapon_pistol_${this.userId}`) || 0;
         if (pistolCount >= 2) {
@@ -192,7 +192,7 @@ class SimpleCombat {
                 isDual: true
             };
         }
-        
+
         // Check other weapons only if dual pistols aren't available or we find something better
         for (const weapon of weapons) {
             const count = await db.get(`weapon_${weapon.id}_${this.userId}`) || 0;
@@ -200,7 +200,7 @@ class SimpleCombat {
                 bestWeapon = weapon;
             }
         }
-        
+
         return bestWeapon;
     }
 
@@ -215,14 +215,14 @@ class SimpleCombat {
         ];
 
         let bestArmor = { name: "No Armor", defense: 0 };
-        
+
         for (const armor of armors) {
             const count = await db.get(`armor_${armor.id}_${this.userId}`) || 0;
             if (count > 0 && armor.defense > bestArmor.defense) {
                 bestArmor = armor;
             }
         }
-        
+
         return bestArmor;
     }
 }
