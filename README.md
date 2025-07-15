@@ -5,19 +5,21 @@ A cooperative defense Discord bot game where players work together to defend the
 
 ## 🎮 Game Overview
 
-**Protect the Tavern** is an interactive Discord bot that creates a persistent multiplayer defense game. Players earn money, build defenses, fight together against waves of monsters that automatically attack the town every few hours, embark on solo quests, and engage in PvP combat.
+**Protect the Tavern** is an interactive Discord bot that creates a persistent multiplayer defense game. Players earn kopeks, build defenses, fight together against waves of monsters that automatically attack the town every few hours, embark on solo quests, and engage in PvP combat.
 
 ### Key Features
 - **Cooperative Gameplay**: Players must work together to survive monster invasions
-- **Quest System**: Solo adventures with dragons, mazes, riddles, and treasure hunts
-- **Economy System**: Earn kopeks through daily rewards, gathering, fishing, hunting, and crafting
-- **Defense Building**: Purchase walls, troops, and traps to protect your town
-- **Combat System**: Fight monsters with weapons and armor, plus PvP battles
-- **Gambling Mini-Games**: Blackjack, craps, slots, poker, and roulette
+- **Advanced Quest System**: Solo adventures with dragons, mazes, riddles, treasure hunts, and moral dilemmas
+- **Comprehensive Economy**: Earn kopeks through daily rewards, gathering, fishing, hunting, crafting, and working
+- **Defense Building**: Interactive UI for purchasing walls, troops, and traps to protect your town
+- **Combat System**: Fight monsters with weapons and armor, plus extensive PvP battles
+- **Gambling Mini-Games**: Blackjack, craps, slots, poker, and roulette with full betting systems
 - **Automated Events**: Monsters attack automatically on scheduled intervals
-- **Banking System**: Keep your kopeks safe from monster raids
-- **Skill Progression**: Level up gathering, fishing, hunting, and crafting skills
-- **Character Development**: Equipment system with weapons, armor, and items
+- **Banking System**: Keep your kopeks safe from monster raids with deposit/withdrawal
+- **Skill Progression**: Level up gathering, fishing, hunting, crafting, and combat skills
+- **Character Development**: Equipment system with weapons, armor, and special crystals
+- **Memory Management**: Automatic cleanup and optimization systems
+- **Admin Tools**: Comprehensive administration commands for game management
 
 ## 🚀 Quick Start
 
@@ -54,19 +56,21 @@ A cooperative defense Discord bot game where players work together to defend the
 
 ### Getting Started
 1. **Earn Money**: Use `=daily` for 100 kopeks, `=gather` to earn more
-2. **Build Defenses**: Buy walls with `=buy 10 rampart`, troops with `=buy 5 rampart town_guard`
+2. **Build Defenses**: Use `=protect` for interactive defense building
 3. **Check Status**: Use `=showmap` to see town defenses, `=balance` for balance
 4. **Join Combat**: Use `=attack` to fight monsters during invasions
-5. **Go on Quests**: Use `=quest` to embark on solo adventures
+5. **Go on Quests**: Use `=quest` to embark on solo adventures for 250+ kopeks
 
 ### Core Commands
 
 #### Economy & Banking
 - `=balance` / `=wallet` - Check your kopek balance
-- `=bank [amount]` - Deposit kopeks safely
+- `=bank [amount]` - Deposit kopeks safely (no arguments shows balance)
 - `=withdraw [amount]` - Withdraw from bank
 - `=daily` - Get daily kopek reward (100 kopeks)
 - `=pay @user [amount]` - Send kopeks to another player
+- `=beg` - Beg for small amounts of kopeks
+- `=stimmy` - Government stimulus (admin only)
 
 #### Skills & Gathering
 - `=gather` - Earn money gathering resources
@@ -75,60 +79,79 @@ A cooperative defense Discord bot game where players work together to defend the
 - `=craft [item]` - Craft items from materials
 - `=work` - Work for steady income
 - `=checklvl` - View your skill levels
+- `=levelup [skill]` - Spend kopeks to increase skill levels
+- `=cooldown` - Check activity cooldowns
 
 #### Defense & Town
+- `=protect` - Interactive defense building system with buttons
+- `=showmap` / `=map` - View town defenses and monster locations
 - `=buy [amount] [item]` - Purchase defenses or items
-- `=showmap` / `=map` - View town defenses
-- `=protect` - Interactive defense building menu
 - `=freeze` - Freeze monster attacks (admin)
 - `=summon [monster]` - Summon monsters for testing
 
 #### Combat & PvP
 - `=attack` - Fight monsters in battle
-- `=attackplayer @user` - Challenge another player
+- `=attackplayer @user` - Challenge another player to PvP
 - `=defend` - Defend against attacks
 - `=backpack` - View your equipment and items
-- `=rob @user` - Attempt to rob another player
-- `=steal @user` - Try to steal from someone
-- `=violate @user` - PvP combat command
+- `=rob @user` - Attempt to rob another player's wallet
+- `=steal @user` - Try to steal items from someone
+- `=violate @user` - Humiliate other players in combat
+- `=snoop @user` - Spy on other players
+- `=revive @user` - Revive dead players (costs kopeks)
+- `=startBattle` - Force start monster battles
 
-#### Quests
-- `=quest` - Start a new quest adventure
-- Quest types: Dragon battles, mazes, riddles, treasure hunts, mysteries, trolley problems
+#### Quest System
+- `=quest` - Start a new quest adventure (choose location, complete 2 quests)
+- `=endquest @user` - Admin command to end player quests
+- Quest types include:
+  - **Dragon Battles**: Epic boss fights with crystals and massive rewards
+  - **Maze Adventures**: Navigate complex puzzles
+  - **Riddle Challenges**: Test your wit and knowledge
+  - **Treasure Hunts**: Locked chest puzzles
+  - **Mystery Quests**: Solve supernatural mysteries
+  - **Trolley Problems**: Make difficult moral choices
+  - **Monster Hunts**: Fight quest monsters for rewards
 
 #### Gambling
 - `=bj [bet]` - Play blackjack
 - `=craps [bet]` - Play craps
 - `=slots [bet]` - Play slot machines
-- `=poker [bet]` - Play poker
-- `=roulette` / `=rbet [amount] [bet]` - Play roulette
+- `=poker [bet]` - Play 5-card draw poker
+- `=roulette` - Start roulette games
+- `=rbet [amount] [bet]` - Place roulette bets
+- `=rhelp` - Roulette help and rules
+- `=rlast` - Last roulette result
 
-#### Utility
-- `=help` - Complete command guide
-- `=shop` - Browse weapons and armor
-- `=leaderboard` - View top players
-- `=send @user [item] [amount]` - Send items to players
+#### Utility & Social
+- `=help` - Interactive help system with categorized commands
+- `=shop` - Browse and purchase weapons and armor
+- `=sell [item] [amount]` - Sell items for kopeks
+- `=send @user [item] [amount]` - Send items to other players
+- `=leaderboard` - View top players by banked kopeks
 
 ### Defense System
 - **Walls**: rampart (100k), wall (500k), castle (5000k)
 - **Troops**: town_guard, mercenary, soldier, knight, royal_guard
 - **Traps**: spikes, boiling_oil, repeater, ballista, cannon
 - **Rule**: Every 5 walls = 1 troop slot + 1 trap slot per player
+- **Interactive UI**: Button-based building system via `=protect`
 
-### Monster Types
-- **Goblin** - Weakest, attacks frequently (every 6 hours)
-- **Mephit** - Moderate threat (every 12 hours)
-- **Broodling** - Dangerous swarm creature (every 24 hours)
-- **Ogre** - Strong individual threat (every 48 hours)
-- **Automaton** - Strongest, rare attacks (every 72 hours)
+### Monster Types & Spawn Schedule
+- **Goblin** - Weakest, attacks every 6 hours
+- **Mephit** - Moderate threat, attacks every 12 hours
+- **Broodling** - Dangerous swarm, attacks every 24 hours
+- **Ogre** - Strong individual, attacks every 48 hours
+- **Automaton** - Strongest, attacks every 72 hours
 
-### Quest System
-- **Dragon Battles** - Epic boss fights with massive rewards
-- **Maze Adventures** - Navigate complex puzzles
-- **Riddle Challenges** - Test your wit and knowledge
-- **Treasure Hunts** - Collect valuable chest rewards
-- **Mystery Quests** - Solve supernatural puzzles
-- **Trolley Problems** - Make difficult moral choices
+### Quest System Details
+- **Location-Based**: Choose from 5 different locations (Plains, Forest, Badlands, Wastelands, Highlands)
+- **Two-Quest Structure**: Complete 2 quests per adventure for 250+ kopek reward
+- **Dragon Encounters**: 50% chance to fight Ancient Dragons after quest completion
+- **Crystal System**: Collect colored crystals from dragons for combat bonuses
+- **Tiamat Boss**: Ultimate challenge when all 5 crystals are collected
+- **30-Minute Timer**: Complete quests within time limit or face failure
+- **Quest Restrictions**: Cannot engage in combat/gambling/economy while questing
 
 ## 🔧 Bot Configuration
 
@@ -137,9 +160,10 @@ A cooperative defense Discord bot game where players work together to defend the
 {
   "prefix": "=",
   "activity": {
-    "streaming": false,
-    "game": "ProtectTheTavern"
-  }
+    "game": "The Ol' Innkeeper",
+    "streaming": false
+  },
+  "ownerID": "your_discord_id_here"
 }
 ```
 
@@ -156,80 +180,84 @@ A cooperative defense Discord bot game where players work together to defend the
 ```
 ├── commands/
 │   ├── admin/          # Admin-only commands
-│   │   ├── addmoney.js
-│   │   ├── endquest.js
-│   │   ├── removeitem.js
-│   │   ├── removemoney.js
-│   │   ├── removestuff.js
-│   │   ├── resetcooldown.js
-│   │   ├── resetskills.js
-│   │   └── startNewGame.js
+│   │   ├── addmoney.js         # Add kopeks to players
+│   │   ├── cleanup.js          # Database cleanup
+│   │   ├── memorystats.js      # Memory usage statistics
+│   │   ├── removeitem.js       # Remove items from players
+│   │   ├── removemoney.js      # Remove kopeks from players
+│   │   ├── removestuff.js      # Remove player data
+│   │   ├── resetcooldown.js    # Reset activity cooldowns
+│   │   ├── resetskills.js      # Reset player skill levels
+│   │   └── startNewGame.js     # Reset entire game state
 │   ├── combat/         # Combat and PvP commands
-│   │   ├── attack.js
-│   │   ├── attackplayer.js
-│   │   ├── backpack.js
-│   │   ├── defend.js
-│   │   ├── revive.js
-│   │   ├── rob.js
-│   │   ├── snoop.js
-│   │   ├── startBattle.js
-│   │   ├── steal.js
-│   │   └── violate.js
+│   │   ├── attack.js           # Attack monsters
+│   │   ├── attackplayer.js     # PvP combat
+│   │   ├── backpack.js         # View inventory
+│   │   ├── defend.js           # Defensive actions
+│   │   ├── revive.js           # Revive dead players
+│   │   ├── rob.js              # Rob other players
+│   │   ├── snoop.js            # Spy on players
+│   │   ├── startBattle.js      # Force monster battles
+│   │   ├── steal.js            # Steal items
+│   │   └── violate.js          # Humiliate players
 │   ├── defense/        # Defense building commands
-│   │   ├── freeze.js
-│   │   ├── protect.js
-│   │   ├── showmap.js
-│   │   └── summon.js
+│   │   ├── freeze.js           # Freeze game activities
+│   │   ├── protect.js          # Interactive defense building
+│   │   ├── showmap.js          # Display town map
+│   │   └── summon.js           # Summon monsters
 │   ├── economy/        # Economy and banking commands
-│   │   ├── balance.js
-│   │   ├── bank.js
-│   │   ├── beg.js
-│   │   ├── buy.js
-│   │   ├── daily.js
-│   │   ├── pay.js
-│   │   ├── sell.js
-│   │   ├── stimmy.js
-│   │   └── withdraw.js
+│   │   ├── balance.js          # Check kopek balance
+│   │   ├── bank.js             # Banking system
+│   │   ├── beg.js              # Beg for kopeks
+│   │   ├── buy.js              # Purchase items
+│   │   ├── daily.js            # Daily rewards
+│   │   ├── pay.js              # Transfer kopeks
+│   │   ├── sell.js             # Sell items
+│   │   ├── stimmy.js           # Government stimulus
+│   │   └── withdraw.js         # Bank withdrawals
 │   ├── gambling/       # Mini-game commands
-│   │   ├── bj.js (Blackjack)
-│   │   ├── craps.js
-│   │   ├── poker.js
-│   │   ├── rbet.js
-│   │   ├── rhelp.js
-│   │   ├── rlast.js
-│   │   ├── roulette.js
-│   │   └── slots.js
+│   │   ├── bj.js               # Blackjack
+│   │   ├── craps.js            # Craps
+│   │   ├── poker.js            # 5-card draw poker
+│   │   ├── rbet.js             # Roulette betting
+│   │   ├── rhelp.js            # Roulette help
+│   │   ├── rlast.js            # Last roulette result
+│   │   ├── roulette.js         # Roulette games
+│   │   └── slots.js            # Slot machines
 │   ├── quest/          # Quest system modules
-│   │   ├── chestQuest.js
-│   │   ├── combatSystem.js
-│   │   ├── dragonBattle.js
-│   │   ├── mazeQuest.js
-│   │   ├── monsterQuest.js
-│   │   ├── mysteryQuest.js
-│   │   ├── riddleQuest.js
-│   │   └── trolleyQuest.js
+│   │   ├── chestQuest.js       # Locked chest puzzles
+│   │   ├── combatSystem.js     # Quest combat mechanics
+│   │   ├── dragonBattle.js     # Dragon boss encounters
+│   │   ├── endquest.js         # End quests (admin)
+│   │   ├── mazeQuest.js        # Maze navigation
+│   │   ├── monsterQuest.js     # Monster hunting
+│   │   ├── mysteryQuest.js     # Mystery box interactions
+│   │   ├── riddleQuest.js      # Riddle solving
+│   │   └── trolleyQuest.js     # Moral dilemmas
 │   ├── skills/         # Resource gathering commands
-│   │   ├── checklvl.js
-│   │   ├── cooldown.js
-│   │   ├── craft.js
-│   │   ├── fish.js
-│   │   ├── gather.js
-│   │   ├── hunt.js
-│   │   ├── levelup.js
-│   │   └── work.js
-│   ├── help.js         # Help system
+│   │   ├── checklvl.js         # View skill levels
+│   │   ├── cooldown.js         # Check cooldowns
+│   │   ├── craft.js            # Crafting system
+│   │   ├── fish.js             # Fishing activities
+│   │   ├── gather.js           # Resource gathering
+│   │   ├── hunt.js             # Animal hunting
+│   │   ├── levelup.js          # Skill progression
+│   │   └── work.js             # Job system
+│   ├── help.js         # Interactive help system
 │   ├── leaderboard.js  # Player rankings
 │   ├── quest.js        # Main quest handler
 │   ├── send.js         # Item transfer system
-│   └── shop.js         # Item purchasing
+│   └── shop.js         # Weapon/armor purchasing
 ├── utility/
-│   ├── backpackUtils.js     # Inventory management
-│   ├── combatUtils.js       # Combat calculations
-│   ├── cooldownCleanup.js   # Cleanup scheduled tasks
-│   ├── crystalUtils.js      # Special item handling
-│   ├── protectTheTavern.js  # Monster attack scheduler
-│   ├── protectionButtons.js # Interactive UI handling
-│   └── utility.js           # Shared utility functions
+│   ├── backpackUtils.js        # Inventory management
+│   ├── combatUtils.js          # Combat calculations
+│   ├── cooldownCleanup.js      # Cooldown cleanup scheduler
+│   ├── crystalUtils.js         # Crystal system handling
+│   ├── memoryManager.js        # Memory optimization
+│   ├── protectTheTavern.js     # Monster attack scheduler
+│   ├── protectionButtons.js    # Interactive UI handling
+│   ├── questCleanup.js         # Quest cleanup utilities
+│   └── utility.js              # Shared utility functions
 ├── index.js            # Main bot file
 ├── config.json         # Bot configuration
 └── json.sqlite         # Game database
@@ -240,43 +268,79 @@ A cooperative defense Discord bot game where players work together to defend the
 ### Economy
 - **Banking**: Deposited kopeks are safe from monster raids
 - **Risk vs Reward**: Higher-risk activities offer better rewards
-- **Daily Rewards**: Consistent income source for all players
+- **Daily Rewards**: Consistent 100 kopek income for all players
 - **Skill-based Income**: Leveling skills increases earning potential
+- **Item Trading**: Send items between players with backpack limits
 
 ### Combat
 - **Cooperative**: Players fight together against monsters
-- **PvP System**: Challenge other players to duels
+- **PvP System**: Challenge other players to duels with full combat mechanics
 - **Equipment**: Weapons and armor improve combat effectiveness
-- **Strategy**: Different monsters require different approaches
+- **Crystal Bonuses**: Special crystals provide combat advantages
+- **Death Penalties**: 24-hour cooldown when killed
+- **Health System**: 5 base health + 2 per combat level
 
 ### Defense
 - **Shared Responsibility**: All players contribute to town defenses
+- **Interactive UI**: Button-based defense building system
 - **Scalable**: Defense requirements increase with player count
 - **Persistent**: Defenses remain between gaming sessions
-- **Interactive UI**: Button-based defense building system
+- **Strategic**: Different defense types for different strategies
 
-### Quests
-- **Solo Adventures**: Individual quest experiences
-- **Varied Challenges**: Multiple quest types with unique mechanics
-- **Progression**: Quests provide experience and valuable rewards
-- **Cooldown System**: Prevents quest spam while encouraging regular play
+### Quest System
+- **Location-Based**: 5 unique locations with different themes
+- **Progressive**: Two quests per adventure with increasing difficulty
+- **Timed**: 30-minute completion window
+- **Rewarding**: 250+ kopeks plus monster value bonuses
+- **Challenging**: Dragon encounters and ultimate Tiamat boss
+- **Restrictive**: Prevents other activities during quests
+
+### Skills & Progression
+- **Multiple Skills**: Gathering, fishing, hunting, crafting, working, combat
+- **Cooldown System**: Prevents spam with decreasing cooldowns as skills improve
+- **Purchasable Levels**: Spend kopeks to advance skills
+- **Practical Benefits**: Higher skills = better income and shorter cooldowns
 
 ## 🛠️ Admin Commands
 
+**Owner Only** (configured in config.json):
 - `=addmoney @user [amount]` - Add kopeks to a player
 - `=removemoney @user [amount]` - Remove kopeks from a player
 - `=endquest @user` - Force end a player's quest
-- `=removeitem @user [item]` - Remove items from player
-- `=resetcooldown @user [skill]` - Reset skill cooldowns
-- `=resetskills @user` - Reset player skill levels
+- `=removeitem @user [item]` - Remove items from player inventory
+- `=resetcooldown @user [skill]` - Reset specific skill cooldowns
+- `=resetskills @user` - Reset all player skill levels
 - `=startNewGame` - Reset the entire game state
+- `=stimmy` - Government stimulus payments
+- `=freeze` - Freeze monster attacks
+- `=summon [monster]` - Summon specific monsters
+- `=memorystats` - View memory usage statistics
+- `=cleanup` - Database cleanup operations
+
+## 🔄 Automated Systems
+
+### Monster Attacks
+- **Scheduled**: Automatic monster spawns based on type timers
+- **Escalating**: Different monsters spawn at different intervals
+- **Persistent**: Continues running even when bot restarts
+- **Channel-Specific**: Attacks occur in designated channels
+
+### Cleanup Systems
+- **Cooldown Cleanup**: Removes expired cooldowns every 15 minutes
+- **Memory Management**: Optimizes memory usage every 15 minutes
+- **Quest Cleanup**: Manages quest timeouts and cleanup
+
+### Interactive Features
+- **Button-Based UI**: Most complex interactions use Discord buttons
+- **Collector Systems**: Timed interactions with automatic cleanup
+- **State Management**: Persistent game state across restarts
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly
+4. Test thoroughly with the bot
 5. Submit a pull request
 
 ## 📄 License
@@ -285,4 +349,6 @@ This project is licensed under the ISC License.
 
 ---
 
-*Join the fight, embark on quests, and help protect the tavern! 🍺⚔️🐲*
+*Join the fight, complete quests, build your skills, and help protect the tavern! 🍺⚔️🐲*
+
+**Bot Status**: Active development with regular updates and new features. The bot maintains persistent state and continues monster attacks automatically.
