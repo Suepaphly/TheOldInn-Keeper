@@ -470,6 +470,13 @@ async function completeQuest(interaction, userId, questReward, activeQuests, cus
                 const randomQuest = questTypeNames[Math.floor(Math.random() * questTypeNames.length)];
                 const locationData = locations[quest.location];
                 
+                // Handle special case for Tiamat realm
+                if (!locationData) {
+                    console.error(`Location data not found for: ${quest.location}`);
+                    await endQuest(interaction, userId, false, "❌ Quest location error!", activeQuests);
+                    return;
+                }
+                
                 const embed = new EmbedBuilder()
                     .setTitle(`${locationData.nextLocation} - Quest 2/2`)
                     .setColor("#4169E1")
