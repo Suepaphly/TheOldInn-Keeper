@@ -396,7 +396,7 @@ async function startMysteryQuest(interaction, userId, activeQuests) {
             await revealSolution(i, userId, activeQuests, collector);
         } else if (i.customId === 'mystery_continue') {
             const { completeQuest } = require('../quest.js');
-            await completeQuest(i, userId, activeQuests, 0);
+            await completeQuest(i, userId, 0, activeQuests);
             collector.stop();
         }
     });
