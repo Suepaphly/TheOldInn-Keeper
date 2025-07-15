@@ -161,7 +161,7 @@ async function handleGuessSubmission(interaction, questData, userId, activeQuest
             successMessage += "\n\n🏆 **Perfect!** You solved it on the first try!";
         }
 
-        await completeQuest(interaction, userId, activeQuests, successMessage);
+        await completeQuest(interaction, userId, 0, activeQuests, successMessage);
         collector.stop();
         return;
     }
@@ -406,7 +406,7 @@ async function handleMimicCombat(interaction, userId, combat, collector, activeQ
 
             const successMessage = `🎉 **MIMIC DEFEATED!** 🎉\n\nYou've slain the chest mimic! As it dissolves, it reveals the original chest contents: **${reward} kopeks**!\n\n⚔️ Your combat prowess has earned you a well-deserved reward!`;
 
-            await completeQuest(interaction, userId, activeQuests, successMessage);
+            await completeQuest(interaction, userId, 0, activeQuests, successMessage);
             collector.stop();
             return;
         } else if (combatResult.result === 'defeat') {

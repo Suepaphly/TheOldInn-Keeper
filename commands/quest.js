@@ -252,7 +252,7 @@ async function startDebugQuest(message, userId, questType) {
     }
 }
 
-async function completeQuest(interaction, userId, questReward, activeQuests) {
+async function completeQuest(interaction, userId, questReward, activeQuests, customMessage = null) {
     try {
         const quest = activeQuests.get(userId);
         if (!quest) return;
@@ -265,10 +265,11 @@ async function completeQuest(interaction, userId, questReward, activeQuests) {
             const totalReward = 250 + Math.floor(quest.totalMonsterValue * 0.5);
             await db.add(`money_${userId}`, totalReward);
             
-            await endQuest(interaction, userId, true, 
+            const message = customMessage || 
                 `🎉 **QUEST COMPLETE!** You've earned ${totalReward} kopeks!\n` +
-                `Base reward: 250 kopeks\nMonster bonus: ${Math.floor(quest.totalMonsterValue * 0.5)} kopeks`, 
-                activeQuests);
+                `Base reward: 250 kopeks\nMonster bonus: ${Math.floor(quest.totalMonsterValue * 0.5)} kopeks`;
+            
+            await endQuest(interaction, userId, true, message, activeQuests);
         } else {
             // Start second quest
             const randomQuest = questTypeNames[Math.floor(Math.random() * questTypeNames.length)];
