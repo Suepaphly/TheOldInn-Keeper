@@ -6,9 +6,11 @@ const db = new QuickDB();
 module.exports.run = async (client, message, args) => {
     const userId = message.author.id;
 
+    // Import the quest module to access activeQuests and functions
+    const questModule = require("../quest.js");
+    
     // Check if user is on a quest
-    const { isOnQuest } = require("../quest.js");
-    const onQuest = await isOnQuest(userId);
+    const onQuest = await questModule.isOnQuest(userId);
 
     if (!onQuest) {
         return message.channel.send(`❌ You are not currently on a quest!`);
@@ -16,8 +18,6 @@ module.exports.run = async (client, message, args) => {
 
     // End the user's own quest
     try {
-        // Import the quest module to access activeQuests
-        const questModule = require("../quest.js");
 
         // Remove from active quests map if it exists
         if (questModule.activeQuests && questModule.activeQuests.has(userId)) {
