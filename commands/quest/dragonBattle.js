@@ -50,17 +50,17 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
     }
 
     createCombatEmbed(battleText = "") {
-        if (!this.combatData) throw new Error("Tiamat combat not initialized");
+        if (!this.player || !this.enemy) throw new Error("Tiamat combat not initialized");
 
         const embed = new EmbedBuilder()
             .setTitle(`🌟 ULTIMATE BOSS - TIAMAT, MOTHER OF DRAGONS`)
             .setColor("#4B0082")
             .setDescription(battleText || "The five-headed dragon goddess prepares her devastating assault!")
             .addFields(
-                { name: "Your Health", value: `${this.combatData.playerHealth}/${this.combatData.playerMaxHealth} HP`, inline: true },
-                { name: "Your Weapon", value: this.combatData.playerWeapon.name, inline: true },
-                { name: "Your Armor", value: this.combatData.playerArmor.name, inline: true },
-                { name: "Tiamat's Health", value: `${this.combatData.enemyHealth}/${this.combatData.enemyMaxHealth} HP`, inline: true },
+                { name: "Your Health", value: `${this.player.health}/${this.player.maxHealth} HP`, inline: true },
+                { name: "Your Weapon", value: this.player.weapon.name, inline: true },
+                { name: "Your Armor", value: this.player.armor.name, inline: true },
+                { name: "Tiamat's Health", value: `${this.enemy.health}/${this.enemy.maxHealth} HP`, inline: true },
                 { name: "Dragon Heads", value: "⚪ White ⚫ Black 🔴 Red 🔵 Blue 🟢 Green", inline: true },
                 { name: "Abilities", value: "Tax, Death, Melt, Freeze, Heal + Breath Weapons", inline: true }
             );
@@ -94,9 +94,7 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
     }
 
     async processCombatRound() {
-        if (!this.combatData || !this.combatData.isActive) return null;
-
-        this.combatData.round++;
+        if (!this.player || !this.enemy) return null;
 
         // If player is frozen, unfreeze them for next turn but Tiamat gets free attack
         if (this.playerFrozen) {
@@ -110,9 +108,9 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
             if (chosenAbility === 'breath') {
                 // Breath weapon attack (8-15 damage - stronger than regular dragons)
                 const breathDamage = Math.floor(Math.random() * 8) + 8; // 8-15 damage
-                const finalBreathDamage = Math.max(1, breathDamage - this.combatData.playerArmor.defense);
-                this.combatData.playerHealth -= finalBreathDamage;
-                this.combatData.playerHealth = Math.max(0, this.combatData.playerHealth);
+                const finalBreathDamage = Math.max(1, breathDamage - this.player.armor.defense);
+                this.player.health -= finalBreathDamage;
+                this.player.health = Math.max(0, this.player.health);
 
                 battleText += `Tiamat takes advantage of your recovery and unleashes a devastating breath attack for ${finalBreathDamage} damage!`;
             } else {
@@ -121,48 +119,47 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
             }
 
             // Check if player died from the free attack
-            if (this.combatData.playerHealth <= 0) {
-                this.combatData.isActive = false;
+            if (this.player.health <= 0) {
                 return {
                     result: 'defeat',
-                    battleText: battleText,
-                    combatData: this.combatData
+                    battleText: battleText
                 };
             }
 
             return {
                 result: 'continue',
-                battleText: battleText,
-                combatData: this.combatData
+                battleText: battleText
             };
         }
 
-        // Player attacks first (same as base combat system)
-        const playerCombatDamage = (this.combatData.combatLevel || 0) + 1;
-        let playerWeaponDamage = 0;
+        // Player attacks first - use the same logic as base SimpleCombat class
+        const { hasCrystal } = require('../../utility/crystalUtils.js');
+        const hasRedCrystal = await hasCrystal(this.userId, 'red');
+        const redCrystalAttackBonus = hasRedCrystal ? 2 : 0;
         
-        if (this.combatData.playerWeapon.minDamage !== undefined && this.combatData.playerWeapon.maxDamage !== undefined) {
-            const minDmg = this.combatData.playerWeapon.minDamage || 0;
-            const maxDmg = this.combatData.playerWeapon.maxDamage || 0;
-            playerWeaponDamage = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
+        const baseDamage = 1 + (this.player.combatLevel || 0) + redCrystalAttackBonus;
+        let weaponDamage = 0;
+        
+        if (this.player.weapon.minDamage !== undefined && this.player.weapon.maxDamage !== undefined) {
+            const minDmg = this.player.weapon.minDamage || 0;
+            const maxDmg = this.player.weapon.maxDamage || 0;
+            weaponDamage = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
         }
         
-        const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
-        const enemyDefense = this.combatData.enemyDefense || 0;
+        const playerTotalDamage = baseDamage + weaponDamage;
+        const enemyDefense = this.enemy.defense || 0;
         const playerFinalDamage = Math.max(1, playerTotalDamage - enemyDefense);
 
         // Apply damage to Tiamat
-        this.combatData.enemyHealth = Math.max(0, this.combatData.enemyHealth - playerFinalDamage);
+        this.enemy.health = Math.max(0, this.enemy.health - playerFinalDamage);
 
         let battleText = `You strike Tiamat for ${playerFinalDamage} damage!`;
 
         // Check if Tiamat is defeated
-        if (this.combatData.enemyHealth <= 0) {
-            this.combatData.isActive = false;
+        if (this.enemy.health <= 0) {
             return {
                 result: 'victory',
-                battleText: battleText,
-                combatData: this.combatData
+                battleText: battleText
             };
         }
 
@@ -173,9 +170,9 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
         if (chosenAbility === 'breath') {
             // Breath weapon attack (8-15 damage - stronger than regular dragons)
             const breathDamage = Math.floor(Math.random() * 8) + 8; // 8-15 damage
-            const finalBreathDamage = Math.max(1, breathDamage - this.combatData.playerArmor.defense);
-            this.combatData.playerHealth -= finalBreathDamage;
-            this.combatData.playerHealth = Math.max(0, this.combatData.playerHealth);
+            const finalBreathDamage = Math.max(1, breathDamage - this.player.armor.defense);
+            this.player.health -= finalBreathDamage;
+            this.player.health = Math.max(0, this.player.health);
 
             battleText += `\nTiamat's five heads unleash a devastating breath attack for ${finalBreathDamage} damage!`;
         } else {
@@ -184,20 +181,17 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
         }
 
         // Check if player died
-        if (this.combatData.playerHealth <= 0) {
-            this.combatData.isActive = false;
+        if (this.player.health <= 0) {
             return {
                 result: 'defeat',
-                battleText: battleText,
-                combatData: this.combatData
+                battleText: battleText
             };
         }
 
         // Combat continues
         return {
             result: 'continue',
-            battleText: battleText,
-            combatData: this.combatData
+            battleText: battleText
         };
     }
 
@@ -215,7 +209,7 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
 
             case 'death': // Black head - Death
                 if (Math.random() < 0.1) { // 10% chance
-                    this.combatData.playerHealth = 0;
+                    this.player.health = 0;
                     return `Tiamat's black head casts Death! You feel your life force drain away instantly!`;
                 } else {
                     return `Tiamat's black head casts Death, but you resist its dark magic!`;
@@ -237,7 +231,7 @@ class TiamatCombatSystem extends CombatSystem.SimpleCombat {
 
             case 'heal': // Green head - Heal
                 const healAmount = Math.floor(Math.random() * 7) + 2; // 2-8 healing
-                this.combatData.enemyHealth = Math.min(this.combatData.enemyMaxHealth, this.combatData.enemyHealth + healAmount);
+                this.enemy.health = Math.min(this.enemy.maxHealth, this.enemy.health + healAmount);
                 return `Tiamat's green head casts Heal! She recovers ${healAmount} health!`;
 
             default:
