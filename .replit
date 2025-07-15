@@ -6,6 +6,8 @@ channel = "stable-24_05"
 
 [deployment]
 run = ["sh", "-c", "node index.js"]
+deploymentTarget = "gce"
+ignorePorts = true
 
 [workflows]
 runButton = "Discord Bot"
