@@ -342,18 +342,18 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
     }
 
     createCombatEmbed(battleText = "") {
-        if (!this.combatData) throw new Error("Dragon combat not initialized");
+        if (!this.enemy || !this.player) throw new Error("Dragon combat not initialized");
 
         const embed = new EmbedBuilder()
-            .setTitle(`🐲 BOSS BATTLE - ${this.combatData.enemyName}`)
+            .setTitle(`🐲 BOSS BATTLE - ${this.enemy.name}`)
             .setColor("#8B0000")
             .setDescription(battleText || "The ancient dragon prepares to strike!")
             .addFields(
-                { name: "Your Health", value: `${this.combatData.playerHealth}/${this.combatData.playerMaxHealth} HP`, inline: true },
-                { name: "Your Weapon", value: this.combatData.playerWeapon.name, inline: true },
-                { name: "Your Armor", value: this.combatData.playerArmor.name, inline: true },
-                { name: "Dragon Health", value: `${this.combatData.enemyHealth}/${this.combatData.enemyMaxHealth} HP`, inline: true },
-                { name: "Dragon", value: this.combatData.enemyName, inline: true },
+                { name: "Your Health", value: `${this.player.health}/${this.player.maxHealth} HP`, inline: true },
+                { name: "Your Weapon", value: this.player.weapon.name, inline: true },
+                { name: "Your Armor", value: this.player.armor.name, inline: true },
+                { name: "Dragon Health", value: `${this.enemy.health}/${this.enemy.maxHealth} HP`, inline: true },
+                { name: "Dragon", value: this.enemy.name, inline: true },
                 { name: "Special Ability", value: `${this.dragon.specialMove} - ${this.dragon.specialDescription}`, inline: true }
             );
 
@@ -386,9 +386,7 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
     }
 
     async processCombatRound() {
-        if (!this.combatData || !this.combatData.isActive) return null;
-
-        this.combatData.round++;
+        if (!this.enemy || !this.player) return null;
 
         // If player is frozen, unfreeze them for next turn but dragon gets free attack
         if (this.playerFrozen) {
@@ -404,51 +402,42 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
             } else {
                 // Breath weapon attack (6-12 damage)
                 const breathDamage = Math.floor(Math.random() * 7) + 6; // 6-12 damage
-                const finalBreathDamage = Math.max(1, breathDamage - this.combatData.playerArmor.defense);
-                this.combatData.playerHealth -= finalBreathDamage;
-                this.combatData.playerHealth = Math.max(0, this.combatData.playerHealth);
+                const finalBreathDamage = Math.max(1, breathDamage - this.player.armor.defense);
+                this.player.health -= finalBreathDamage;
+                this.player.health = Math.max(0, this.player.health);
 
                 battleText += `The ${this.dragon.name} takes advantage of your recovery and unleashes its breath weapon for ${finalBreathDamage} damage!`;
             }
 
             // Check if player died from the free attack
-            if (this.combatData.playerHealth <= 0) {
-                this.combatData.isActive = false;
+            if (this.player.health <= 0) {
                 return {
                     result: 'defeat',
-                    battleText: battleText,
-                    combatData: this.combatData
+                    battleText: battleText
                 };
             }
 
             return {
                 result: 'continue',
-                battleText: battleText,
-                combatData: this.combatData
+                battleText: battleText
             };
         }
 
-        // Player attacks first (same as base combat system)
-        const playerCombatDamage = this.combatData.combatLevel + 1;
-        const playerWeaponDamage = Math.floor(Math.random() * 
-            (this.combatData.playerWeapon.maxDamage - this.combatData.playerWeapon.minDamage + 1)) + 
-            this.combatData.playerWeapon.minDamage;
-        const playerTotalDamage = playerCombatDamage + playerWeaponDamage;
-        const playerFinalDamage = Math.max(1, playerTotalDamage - this.combatData.enemyDefense);
+        // Player attacks first
+        const playerDamage = Math.max(1, this.player.damage + Math.floor(Math.random() * 4) - 2);
+        const playerFinalDamage = Math.max(1, playerDamage - this.enemy.defense);
 
         // Apply damage to dragon
-        this.combatData.enemyHealth -= playerFinalDamage;
-        this.combatData.enemyHealth = Math.max(0, this.combatData.enemyHealth);
+        this.enemy.health -= playerFinalDamage;
+        this.enemy.health = Math.max(0, this.enemy.health);
 
         let battleText = `You attack the ${this.dragon.name} for ${playerFinalDamage} damage!`;
 
         // Check if dragon is defeated
-        if (this.combatData.enemyHealth <= 0) {
-            this.combatData.isActive = false;
+        if (this.enemy.health <= 0) {
             return {
                 result: 'victory',
-                battleText: battleText,
-                combatData: this.combatData
+                battleText: battleText
             };
         }
 
@@ -461,28 +450,25 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
         } else {
             // Breath weapon attack (6-12 damage)
             const breathDamage = Math.floor(Math.random() * 7) + 6; // 6-12 damage
-            const finalBreathDamage = Math.max(1, breathDamage - this.combatData.playerArmor.defense);
-            this.combatData.playerHealth -= finalBreathDamage;
-            this.combatData.playerHealth = Math.max(0, this.combatData.playerHealth);
+            const finalBreathDamage = Math.max(1, breathDamage - this.player.armor.defense);
+            this.player.health -= finalBreathDamage;
+            this.player.health = Math.max(0, this.player.health);
 
             battleText += `\nThe ${this.dragon.name} unleashes its breath weapon for ${finalBreathDamage} damage!`;
         }
 
         // Check if player died
-        if (this.combatData.playerHealth <= 0) {
-            this.combatData.isActive = false;
+        if (this.player.health <= 0) {
             return {
                 result: 'defeat',
-                battleText: battleText,
-                combatData: this.combatData
+                battleText: battleText
             };
         }
 
         // Combat continues
         return {
             result: 'continue',
-            battleText: battleText,
-            combatData: this.combatData
+            battleText: battleText
         };
     }
 
@@ -501,8 +487,7 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
 
                 case 'forest': // Black Dragon - Death
                     if (Math.random() < 0.1) { // 10% chance of instant death
-                        this.combatData.playerHealth = 0;
-                        this.combatData.isActive = false;
+                        this.player.health = 0;
                         return `The Black Dragon casts Death! You feel your life force drain away completely!`;
                     } else {
                         return `The Black Dragon casts Death, but you resist its dark magic!`;
@@ -533,7 +518,7 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
 
                 case 'highlands': // Green Dragon - Heal
                     const healAmount = Math.floor(Math.random() * 7) + 2; // 2-8 healing
-                    this.combatData.enemyHealth = Math.min(this.combatData.enemyMaxHealth, this.combatData.enemyHealth + healAmount);
+                    this.enemy.health = Math.min(this.enemy.maxHealth, this.enemy.health + healAmount);
                     return `The Green Dragon casts Heal! It recovers ${healAmount} health!`;
 
                 default:
