@@ -47,16 +47,30 @@ class SimpleCombat {
     }
 
     async initializeCombat(playerData, enemyData) {
-        // Get player stats
+        // Get player stats using equipment calculations like main combat system
         const combatLevel = await db.get(`combatlevel_${this.userId}`) || 0;
         const health = await db.get(`health_${this.userId}`) || 100;
+        
+        // Get equipped weapon and armor
+        const equippedWeapon = await this.getBestWeapon();
+        const equippedArmor = await this.getBestArmor();
+        
+        // Calculate damage (base + combat level + weapon damage)
+        const baseDamage = 5 + combatLevel;
+        const weaponDamage = equippedWeapon.damage || 0;
+        const totalDamage = baseDamage + weaponDamage;
+        
+        // Calculate defense from armor
+        const armorDefense = equippedArmor.defense || 0;
 
         this.player = {
             name: "You",
             health: health,
             maxHealth: health,
-            damage: 5 + combatLevel,
-            defense: 0
+            damage: totalDamage,
+            defense: armorDefense,
+            weapon: equippedWeapon,
+            armor: equippedArmor
         };
 
         this.enemy = { ...enemyData };
@@ -70,6 +84,9 @@ class SimpleCombat {
             .addFields(
                 { name: "Your Health", value: `${this.player.health}/${this.player.maxHealth} HP`, inline: true },
                 { name: `${this.enemy.name}`, value: `${this.enemy.health}/${this.enemy.maxHealth} HP`, inline: true },
+                { name: "\u200B", value: "\u200B", inline: true },
+                { name: "Your Weapon", value: `${this.player.weapon.name} (+${this.player.weapon.damage} damage)`, inline: true },
+                { name: "Your Armor", value: `${this.player.armor.name} (+${this.player.armor.defense} defense)`, inline: true },
                 { name: "\u200B", value: "\u200B", inline: true }
             );
 
@@ -137,6 +154,47 @@ class SimpleCombat {
         // Set player health to 1 to prevent actual death in quests
         await db.set(`health_${this.userId}`, 1);
         return `💀 You have been defeated! Your health has been reduced to 1.`;
+    }
+
+    async getBestWeapon() {
+        const weapons = [
+            { id: 'knife', name: 'Knife', damage: 2 },
+            { id: 'sword', name: 'Sword', damage: 5 },
+            { id: 'pistol', name: 'Pistol', damage: 8 },
+            { id: 'shotgun', name: 'Shotgun', damage: 12 },
+            { id: 'rifle', name: 'Rifle', damage: 15 }
+        ];
+
+        let bestWeapon = { name: "Fists", damage: 0 };
+        
+        for (const weapon of weapons) {
+            const count = await db.get(`${weapon.id}_${this.userId}`) || 0;
+            if (count > 0 && weapon.damage > bestWeapon.damage) {
+                bestWeapon = weapon;
+            }
+        }
+        
+        return bestWeapon;
+    }
+
+    async getBestArmor() {
+        const armors = [
+            { id: 'leather', name: 'Leather Armor', defense: 1 },
+            { id: 'chainmail', name: 'Chainmail Armor', defense: 2 },
+            { id: 'platemail', name: 'Platemail Armor', defense: 3 },
+            { id: 'dragonscale', name: 'Dragonscale Armor', defense: 5 }
+        ];
+
+        let bestArmor = { name: "No Armor", defense: 0 };
+        
+        for (const armor of armors) {
+            const count = await db.get(`${armor.id}_${this.userId}`) || 0;
+            if (count > 0 && armor.defense > bestArmor.defense) {
+                bestArmor = armor;
+            }
+        }
+        
+        return bestArmor;
     }
 }
 
