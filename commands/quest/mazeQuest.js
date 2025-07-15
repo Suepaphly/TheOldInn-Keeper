@@ -128,7 +128,8 @@ async function handleMazeChoice(interaction, userId, collector, activeQuests) {
         // Final stage
         if (result === 1) {
             // Success!
-            await completeQuest(interaction, userId, activeQuests);
+            const { completeQuest } = require('../quest.js');
+            await completeQuest(interaction, userId, 100, activeQuests);
             collector.stop();
         } else {
             // Death - check for white crystal protection
