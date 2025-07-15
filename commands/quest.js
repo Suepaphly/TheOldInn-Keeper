@@ -261,7 +261,60 @@ async function completeQuest(interaction, userId, questReward, activeQuests, cus
         quest.totalMonsterValue += questReward;
 
         if (quest.questsCompleted >= 2) {
-            // Both quests completed - award final reward
+            // Both quests completed - check for dragon spawn or Tiamat
+            const { getCrystals } = require('../utility/crystalUtils.js');
+            const { startDragonBattle, startTiamatBattle } = require('./quest/dragonBattle.js');
+            
+            const crystals = await getCrystals(userId);
+            const hasAllCrystals = crystals.white > 0 && crystals.black > 0 && crystals.red > 0 && crystals.blue > 0 && crystals.green > 0;
+            
+            if (hasAllCrystals) {
+                // Player has all crystals - trigger Tiamat
+                const embed = new EmbedBuilder()
+                    .setTitle("🌟 THE CRYSTALS RESONATE!")
+                    .setColor("#4B0082")
+                    .setDescription("The five crystals in your backpack begin to glow with an ominous light! They are summoning something ancient and terrible...\n\n**TIAMAT, MOTHER OF DRAGONS, HAS AWAKENED!**")
+                    .addFields(
+                        { name: "⚠️ WARNING", value: "You are about to face the ultimate draconic threat!", inline: false },
+                        { name: "💀 Risk", value: "Death means 24-hour cooldown", inline: true },
+                        { name: "🏆 Reward", value: "100,000 kopeks + Dragonscale Armor", inline: true }
+                    );
+                
+                await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
+                
+                setTimeout(async () => {
+                    await startTiamatBattle(interaction, userId, activeQuests);
+                }, 5000);
+                
+                return;
+            }
+            
+            // Check if dragon should spawn (50% chance)
+            const shouldSpawnDragon = Math.random() < 0.5;
+            
+            if (shouldSpawnDragon && quest.location !== "debug") {
+                // Dragon encounter
+                const locationData = locations[quest.location];
+                const embed = new EmbedBuilder()
+                    .setTitle("🐲 ANCIENT DRAGON AWAKENS!")
+                    .setColor("#8B0000")
+                    .setDescription(`As you prepare to leave ${locationData.nextLocation}, the ground trembles! An Ancient Dragon has been disturbed by your quest completion!`)
+                    .addFields(
+                        { name: "⚠️ WARNING", value: "You must face this dragon before leaving!", inline: false },
+                        { name: "💀 Risk", value: "Death means 24-hour cooldown", inline: true },
+                        { name: "🎁 Reward", value: "Dragon Crystal", inline: true }
+                    );
+                
+                await CombatSystem.updateInteractionSafely(interaction, { embeds: [embed], components: [] });
+                
+                setTimeout(async () => {
+                    await startDragonBattle(interaction, userId, quest.location, activeQuests);
+                }, 3000);
+                
+                return;
+            }
+            
+            // Normal quest completion - award final reward
             const totalReward = 250 + Math.floor(quest.totalMonsterValue * 0.5);
             await db.add(`money_${userId}`, totalReward);
             
