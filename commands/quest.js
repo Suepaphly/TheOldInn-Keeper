@@ -62,7 +62,7 @@ module.exports = {
         name: "quest",
         description: "Embark on a dangerous quest for rewards!"
     },
-    run: async (message, args) => {
+    run: async (client, message, args) => {
         try {
             const userId = message.author.id;
             

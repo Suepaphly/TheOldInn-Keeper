@@ -6,6 +6,10 @@ const ptt = require("../../utility/protectTheTavern.js");
 const config = require("../../config.json");
 
 module.exports.run = async (client, message, args) => {
+  // Check if user is admin
+  if (message.author.id !== config.ownerID) {
+    return message.channel.send("❌ Only the bot owner can use this command!");
+  }
 
   let ms;
   try {

@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const config = require("../config.json"); // Load the config
+const config = require("../../config.json");
 
 module.exports.run = async (client, message, args) => {
     const ownerID = [

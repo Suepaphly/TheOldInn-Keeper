@@ -5,7 +5,7 @@ const ptt = require("../../utility/protectTheTavern.js");
 const config = require("../../config.json"); // Import the config
 
 exports.run = async (client, message, args) => {
-   if (!config.ownerID.includes(message.author.id)) return;
+   if (message.author.id !== config.ownerID) return;
 
    await ptt.setupNewGame();
 
