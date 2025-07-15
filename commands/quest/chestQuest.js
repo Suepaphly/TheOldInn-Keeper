@@ -173,7 +173,38 @@ async function handleGuessSubmission(interaction, questData, userId, activeQuest
                 successMessage += "\n\n🏆 **Perfect!** You solved it on the first try!";
             }
 
-            await completeQuest(interaction, userId, 0, activeQuests, successMessage);
+            // Create completion embed with continue button
+            const completionEmbed = new EmbedBuilder()
+                .setTitle("🎉 Chest Quest Complete!")
+                .setColor("#00FF00")
+                .setDescription(successMessage);
+
+            const continueRow = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('chest_continue_quest')
+                        .setLabel('▶️ Continue Quest')
+                        .setStyle(ButtonStyle.Primary)
+                );
+
+            await CombatSystem.updateInteractionSafely(interaction, { embeds: [completionEmbed], components: [continueRow] });
+
+            // Set up continue collector
+            const continueFilter = (i) => i.user.id === userId && i.customId === 'chest_continue_quest';
+            const continueCollector = interaction.message.createMessageComponentCollector({ continueFilter, time: 300000 });
+
+            continueCollector.on('collect', async (i) => {
+                await completeQuest(i, userId, 0, activeQuests, successMessage);
+                continueCollector.stop();
+            });
+
+            continueCollector.on('end', async (collected, reason) => {
+                if (reason === 'time') {
+                    await completeQuest(interaction, userId, 0, activeQuests, successMessage);
+                }
+            });
+
+            return; // Don't call completeQuest immediately
         }
         collector.stop();
         return;

@@ -223,7 +223,7 @@ async function startDebugQuest(message, userId, questType) {
             questsCompleted: 0,
             totalMonsterValue: 0,
             currentQuest: questType,
-            data: { isDebug: true }
+            data: { isDebug: true, debugSingleQuest: true }
         });
 
         await db.set(`on_quest_${userId}`, true);
@@ -256,6 +256,14 @@ async function completeQuest(interaction, userId, questReward, activeQuests, cus
     try {
         const quest = activeQuests.get(userId);
         if (!quest) return;
+
+        // Check if this is debug single quest mode
+        if (quest.data && quest.data.debugSingleQuest) {
+            // End the debug quest immediately without starting second quest
+            const debugMessage = customMessage || `🔧 **DEBUG QUEST COMPLETE!** 🔧\n\nDebug quest finished successfully!\n\n*Debug mode - no actual rewards given.*`;
+            await endQuest(interaction, userId, true, debugMessage, activeQuests);
+            return;
+        }
 
         quest.questsCompleted++;
         quest.totalMonsterValue += questReward;
