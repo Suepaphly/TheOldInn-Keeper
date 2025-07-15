@@ -176,6 +176,7 @@ async function runBattleRounds(message, battleData, players, currentPlayerIndex,
     const otherPlayer = players[1 - currentPlayerIndex];
 
     // Calculate damage - check for dual pistols and red crystal bonus
+    const { hasCrystal } = require('../../utility/crystalUtils.js');
     const currentPlayerHasRedCrystal = await hasCrystal(currentPlayer.id, 'red');
     const redCrystalAttackBonus = currentPlayerHasRedCrystal ? 2 : 0;
     const combatDamage = currentPlayer.combatLevel + 1 + redCrystalAttackBonus;
