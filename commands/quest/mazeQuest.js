@@ -59,7 +59,7 @@ async function startMazeQuest(interaction, userId, activeQuests) {
 }
 
 async function handleMazeChoice(interaction, userId, collector, activeQuests) {
-    const { endQuest, completeQuest } = require('../quest.js');
+    const { endQuest } = require('../quest.js');
     const quest = activeQuests.get(userId);
     if (!quest) return;
 
@@ -128,8 +128,8 @@ async function handleMazeChoice(interaction, userId, collector, activeQuests) {
         // Final stage
         if (result === 1) {
             // Success!
-            const { completeQuest } = require('../quest.js');
-            await completeQuest(interaction, userId, 100, activeQuests);
+            const questModule = require('../quest.js');
+            await questModule.completeQuest(interaction, userId, 100, activeQuests);
             collector.stop();
         } else {
             // Death - check for white crystal protection
