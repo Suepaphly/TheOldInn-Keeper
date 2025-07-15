@@ -265,6 +265,14 @@ async function completeQuest(interaction, userId, questReward, activeQuests, cus
             return;
         }
 
+        // Check if this is regular debug mode (not single quest)
+        if (quest.data && quest.data.isDebug) {
+            // End debug quest without dragons
+            const debugMessage = customMessage || `🔧 **DEBUG QUEST COMPLETE!** 🔧\n\nDebug quest finished successfully!\n\n*Debug mode - no actual rewards given.*`;
+            await endQuest(interaction, userId, true, debugMessage, activeQuests);
+            return;
+        }
+
         quest.questsCompleted++;
         quest.totalMonsterValue += questReward;
 
