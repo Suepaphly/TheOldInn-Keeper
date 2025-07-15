@@ -182,7 +182,7 @@ class SimpleCombat {
         let bestWeapon = { name: "Fists", priority: 0 };
         
         // Check for dual pistols first (guns akimbo feat)
-        const pistolCount = await db.get(`pistol_${this.userId}`) || 0;
+        const pistolCount = await db.get(`weapon_pistol_${this.userId}`) || 0;
         if (pistolCount >= 2) {
             bestWeapon = {
                 name: "Dual Pistols",
@@ -195,7 +195,7 @@ class SimpleCombat {
         
         // Check other weapons only if dual pistols aren't available or we find something better
         for (const weapon of weapons) {
-            const count = await db.get(`${weapon.id}_${this.userId}`) || 0;
+            const count = await db.get(`weapon_${weapon.id}_${this.userId}`) || 0;
             if (count > 0 && weapon.priority > bestWeapon.priority) {
                 bestWeapon = weapon;
             }
@@ -206,16 +206,18 @@ class SimpleCombat {
 
     async getBestArmor() {
         const armors = [
-            { id: 'leather', name: 'Leather Armor', defense: 1 },
-            { id: 'chainmail', name: 'Chainmail Armor', defense: 2 },
-            { id: 'platemail', name: 'Platemail Armor', defense: 3 },
-            { id: 'dragonscale', name: 'Dragonscale Armor', defense: 5 }
+            { id: 'cloth', name: 'Cloth Armor', defense: 1 },
+            { id: 'leather', name: 'Leather Armor', defense: 2 },
+            { id: 'chainmail', name: 'Chainmail Armor', defense: 3 },
+            { id: 'studded', name: 'Studded Armor', defense: 5 },
+            { id: 'plate', name: 'Plate Armor', defense: 10 },
+            { id: 'dragonscale', name: 'Dragonscale Armor', defense: 20 }
         ];
 
         let bestArmor = { name: "No Armor", defense: 0 };
         
         for (const armor of armors) {
-            const count = await db.get(`${armor.id}_${this.userId}`) || 0;
+            const count = await db.get(`armor_${armor.id}_${this.userId}`) || 0;
             if (count > 0 && armor.defense > bestArmor.defense) {
                 bestArmor = armor;
             }

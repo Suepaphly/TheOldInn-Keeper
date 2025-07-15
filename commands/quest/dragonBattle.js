@@ -537,10 +537,10 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
             // Get all weapons (matching main combat system)
             const weapons = ['knife', 'sword', 'pistol', 'shotgun', 'rifle'];
             for (const weapon of weapons) {
-                const count = await db.get(`${weapon}_${this.userId}`) || 0;
+                const count = await db.get(`weapon_${weapon}_${this.userId}`) || 0;
                 if (count > 0) {
                     items.push({ 
-                        key: `${weapon}_${this.userId}`, 
+                        key: `weapon_${weapon}_${this.userId}`, 
                         name: weapon, 
                         type: 'weapon',
                         count: count 
@@ -549,12 +549,12 @@ class DragonCombatSystem extends CombatSystem.SimpleCombat {
             }
 
             // Get all armor (excluding dragonscale - it's protected)
-            const armors = ['leather', 'chainmail', 'platemail'];
+            const armors = ['cloth', 'leather', 'chainmail', 'studded', 'plate'];
             for (const armor of armors) {
-                const count = await db.get(`${armor}_${this.userId}`) || 0;
+                const count = await db.get(`armor_${armor}_${this.userId}`) || 0;
                 if (count > 0) {
                     items.push({ 
-                        key: `${armor}_${this.userId}`, 
+                        key: `armor_${armor}_${this.userId}`, 
                         name: `${armor} armor`, 
                         type: 'armor',
                         count: count 
