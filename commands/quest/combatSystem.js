@@ -49,25 +49,24 @@ class SimpleCombat {
     async initializeCombat(playerData, enemyData) {
         // Get player stats using equipment calculations like main combat system
         const combatLevel = await db.get(`combatlevel_${this.userId}`) || 0;
-        const health = await db.get(`health_${this.userId}`) || 100;
+        
+        // Calculate health using formula: 5 (Base) + (Combat Lvl * 2) + (Red crystal bonus if applicable)
+        const redCrystalCount = await db.get(`crystal_red_${this.userId}`) || 0;
+        const redCrystalBonus = redCrystalCount > 0 ? 10 : 0; // Red crystal gives +10 health
+        const calculatedHealth = 5 + (combatLevel * 2) + redCrystalBonus;
         
         // Get equipped weapon and armor
         const equippedWeapon = await this.getBestWeapon();
         const equippedArmor = await this.getBestArmor();
-        
-        // Calculate damage (base + combat level + weapon damage)
-        const baseDamage = 5 + combatLevel;
-        const weaponDamage = equippedWeapon.damage || 0;
-        const totalDamage = baseDamage + weaponDamage;
         
         // Calculate defense from armor
         const armorDefense = equippedArmor.defense || 0;
 
         this.player = {
             name: "You",
-            health: health,
-            maxHealth: health,
-            damage: totalDamage,
+            health: calculatedHealth,
+            maxHealth: calculatedHealth,
+            combatLevel: combatLevel,
             defense: armorDefense,
             weapon: equippedWeapon,
             armor: equippedArmor
@@ -85,7 +84,7 @@ class SimpleCombat {
                 { name: "Your Health", value: `${this.player.health}/${this.player.maxHealth} HP`, inline: true },
                 { name: `${this.enemy.name}`, value: `${this.enemy.health}/${this.enemy.maxHealth} HP`, inline: true },
                 { name: "\u200B", value: "\u200B", inline: true },
-                { name: "Your Weapon", value: `${this.player.weapon.name} (+${this.player.weapon.damage} damage)`, inline: true },
+                { name: "Your Weapon", value: this.player.weapon.minDamage ? `${this.player.weapon.name} (${this.player.weapon.minDamage}-${this.player.weapon.maxDamage} damage)` : `${this.player.weapon.name}`, inline: true },
                 { name: "Your Armor", value: `${this.player.armor.name} (+${this.player.armor.defense} defense)`, inline: true },
                 { name: "\u200B", value: "\u200B", inline: true }
             );
@@ -106,12 +105,28 @@ class SimpleCombat {
     }
 
     async processCombatRound() {
-        // Player attacks
-        const playerDamage = Math.max(1, this.player.damage + Math.floor(Math.random() * 4) - 2);
-        const damageDealt = Math.max(1, playerDamage - this.enemy.defense);
+        // Calculate player damage: 1 (Base) + (Combat Lvl) + (Weapon Roll if applicable)
+        const baseDamage = 1 + this.player.combatLevel;
+        let weaponDamage = 0;
+        let attackDescription = "";
+
+        if (this.player.weapon.isDual) {
+            // Dual pistols - two separate rolls
+            const firstRoll = Math.floor(Math.random() * (this.player.weapon.maxDamage - this.player.weapon.minDamage + 1)) + this.player.weapon.minDamage;
+            const secondRoll = Math.floor(Math.random() * (this.player.weapon.maxDamage - this.player.weapon.minDamage + 1)) + this.player.weapon.minDamage;
+            weaponDamage = firstRoll + secondRoll;
+            attackDescription = ` with dual pistols (${firstRoll} + ${secondRoll})`;
+        } else if (this.player.weapon.minDamage) {
+            // Regular weapon with damage range
+            weaponDamage = Math.floor(Math.random() * (this.player.weapon.maxDamage - this.player.weapon.minDamage + 1)) + this.player.weapon.minDamage;
+            attackDescription = ` with ${this.player.weapon.name}`;
+        }
+
+        const totalPlayerDamage = baseDamage + weaponDamage;
+        const damageDealt = Math.max(1, totalPlayerDamage - this.enemy.defense);
         this.enemy.health -= damageDealt;
 
-        let battleText = `You attack for ${damageDealt} damage!`;
+        let battleText = `You attack${attackDescription} for ${damageDealt} damage!`;
 
         if (this.enemy.health <= 0) {
             battleText += `\n\n🎉 **${this.enemy.name} defeated!**`;
@@ -158,18 +173,31 @@ class SimpleCombat {
 
     async getBestWeapon() {
         const weapons = [
-            { id: 'knife', name: 'Knife', damage: 2 },
-            { id: 'sword', name: 'Sword', damage: 5 },
-            { id: 'pistol', name: 'Pistol', damage: 8 },
-            { id: 'shotgun', name: 'Shotgun', damage: 12 },
-            { id: 'rifle', name: 'Rifle', damage: 15 }
+            { id: 'rifle', name: 'Rifle', minDamage: 6, maxDamage: 12, priority: 6 },
+            { id: 'shotgun', name: 'Shotgun', minDamage: 4, maxDamage: 10, priority: 5 },
+            { id: 'pistol', name: 'Pistol', minDamage: 3, maxDamage: 5, priority: 3 },
+            { id: 'sword', name: 'Sword', minDamage: 2, maxDamage: 4, priority: 2 },
+            { id: 'knife', name: 'Knife', minDamage: 1, maxDamage: 2, priority: 1 }
         ];
 
-        let bestWeapon = { name: "Fists", damage: 0 };
+        let bestWeapon = { name: "Fists", priority: 0 };
         
+        // Check for dual pistols first (guns akimbo feat)
+        const pistolCount = await db.get(`pistol_${this.userId}`) || 0;
+        if (pistolCount >= 2) {
+            bestWeapon = {
+                name: "Dual Pistols",
+                minDamage: 3,
+                maxDamage: 5,
+                priority: 4, // Between shotgun and single pistol
+                isDual: true
+            };
+        }
+        
+        // Check other weapons only if dual pistols aren't available or we find something better
         for (const weapon of weapons) {
             const count = await db.get(`${weapon.id}_${this.userId}`) || 0;
-            if (count > 0 && weapon.damage > bestWeapon.damage) {
+            if (count > 0 && weapon.priority > bestWeapon.priority) {
                 bestWeapon = weapon;
             }
         }
