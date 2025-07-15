@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const config = require("../config.json"); // Assuming config.json is in the parent directory
+const config = require("../../config.json");
 
 exports.run = async (client, message, args) => {
     if (message.author.id !== config.ownerID) {
